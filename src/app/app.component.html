@@ -1,0 +1,35 @@
+<mat-sidenav-container class="app-container">
+  <!-- Sidenav -->
+  <mat-sidenav #sidenav [opened]="sidenavOpened" mode="side" class="app-sidenav">
+    <div class="sidenav-header">
+      <mat-icon class="brand-icon">sports_gymnastics</mat-icon>
+      <span class="brand-title">GymBro Portal</span>
+    </div>
+
+    <mat-nav-list>
+      <a mat-list-item
+        *ngFor="let item of navItems"
+        [routerLink]="item.route"
+        routerLinkActive="active-link">
+        <mat-icon matListItemIcon>{{ item.icon }}</mat-icon>
+        <span matListItemTitle>{{ item.label }}</span>
+      </a>
+    </mat-nav-list>
+  </mat-sidenav>
+
+  <!-- Main content -->
+  <mat-sidenav-content class="app-content">
+    <!-- Toolbar -->
+    <mat-toolbar color="primary" class="app-toolbar">
+      <button mat-icon-button (click)="toggleSidenav()" aria-label="Toggle navigation">
+        <mat-icon>menu</mat-icon>
+      </button>
+      <span class="toolbar-title">{{ title }}</span>
+    </mat-toolbar>
+
+    <!-- Page content -->
+    <main class="main-content">
+      <router-outlet></router-outlet>
+    </main>
+  </mat-sidenav-content>
+</mat-sidenav-container>

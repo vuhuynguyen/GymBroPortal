@@ -1,0 +1,100 @@
+.page-container {
+  padding: 24px;
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+
+  .page-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 500;
+  }
+}
+
+.content-card {
+  padding: 0;
+
+  .filters-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    align-items: center;
+    padding: 24px 24px 8px;
+
+    mat-form-field {
+      flex: 1;
+      min-width: 160px;
+    }
+
+    .search-field {
+      flex: 2;
+      min-width: 200px;
+    }
+
+    .clear-btn {
+      height: 56px;
+      margin-top: -4px;
+    }
+  }
+
+  .table-container {
+    overflow-x: auto;
+
+    .exercise-table {
+      width: 100%;
+
+      .exercise-name {
+        font-weight: 500;
+      }
+
+      .difficulty-chip {
+        display: inline-block;
+        padding: 4px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 500;
+
+        &.chip-beginner {
+          background-color: #e8f5e9;
+          color: #2e7d32;
+        }
+
+        &.chip-intermediate {
+          background-color: #fff3e0;
+          color: #e65100;
+        }
+
+        &.chip-advanced {
+          background-color: #fce4ec;
+          color: #c62828;
+        }
+      }
+    }
+
+    .no-data-row {
+      .no-data {
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        padding: 40px;
+        color: rgba(0, 0, 0, 0.38);
+
+        mat-icon {
+          font-size: 48px;
+          width: 48px;
+          height: 48px;
+          margin-bottom: 8px;
+        }
+
+        p {
+          margin: 0;
+          font-size: 16px;
+        }
+      }
+    }
+  }
+}

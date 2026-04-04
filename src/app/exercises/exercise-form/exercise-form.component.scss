@@ -1,0 +1,47 @@
+.page-container {
+  padding: 24px;
+}
+
+.page-header {
+  margin-bottom: 24px;
+
+  .page-title {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 500;
+  }
+}
+
+.form-card {
+  max-width: 800px;
+
+  .form-fields {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    .full-width {
+      width: 100%;
+    }
+
+    .selects-row {
+      display: flex;
+      gap: 16px;
+      flex-wrap: wrap;
+
+      mat-form-field {
+        flex: 1;
+        min-width: 160px;
+      }
+    }
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 16px;
+    margin-top: 24px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(0, 0, 0, 0.08);
+  }
+}
