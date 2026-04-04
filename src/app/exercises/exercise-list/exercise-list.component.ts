@@ -9,6 +9,7 @@ import { ExerciseService } from '../exercise.service';
 
 @Component({
   selector: 'app-exercise-list',
+  standalone: false,
   templateUrl: './exercise-list.component.html',
   styleUrls: ['./exercise-list.component.scss']
 })
