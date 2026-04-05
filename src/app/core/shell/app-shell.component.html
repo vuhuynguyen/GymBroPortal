@@ -1,0 +1,112 @@
+<div
+  class="app-shell-layout"
+  [class.app-shell-layout--drawer-open]="isMobile() && mobileSidebarOpen()">
+  @if (isMobile() && mobileSidebarOpen()) {
+    <div class="app-shell-backdrop" role="presentation" (click)="closeMobileSidebar()"></div>
+  }
+
+  <aside
+    class="app-shell-sidebar"
+    [class.app-shell-sidebar--mobile-open]="isMobile() && mobileSidebarOpen()"
+    [class.app-shell-sidebar--rail]="sidebarRailMode()"
+    [attr.aria-label]="appTitle + ' navigation'">
+    <div class="app-shell-sidebar-top">
+      <div class="app-shell-sidebar-brand">
+        <div class="app-shell-sidebar-brand-main">
+          <span class="app-shell-brand-mark" aria-hidden="true">GB</span>
+          <div class="app-shell-brand-text">
+            <div class="app-shell-brand-title">{{ appTitle }}</div>
+            <div class="app-shell-brand-hint">Dashboard</div>
+          </div>
+        </div>
+        @if (!isMobile()) {
+          <div class="app-shell-sidebar-brand-toggle">
+            <app-button
+              [icon]="sidebarMinimized() ? 'pi pi-angle-right' : 'pi pi-angle-left'"
+              [rounded]="true"
+              [text]="true"
+              severity="secondary"
+              [ariaPressed]="sidebarMinimized()"
+              [ariaLabel]="
+                sidebarMinimized() ? 'Expand sidebar to full width' : 'Minimize sidebar to icons'
+              "
+              (clicked)="toggleSidebarMinimize()" />
+          </div>
+        }
+      </div>
+
+      <div class="app-shell-sidebar-scroll">
+        <p class="app-shell-section-label">General</p>
+        <nav class="app-shell-nav" aria-label="Main">
+          @for (item of navItems; track item.route) {
+            <a
+              [routerLink]="item.route"
+              routerLinkActive="app-shell-nav-link--active"
+              [routerLinkActiveOptions]="
+                item.activeMatch === 'prefix' ? { exact: false } : { exact: true }
+              "
+              class="app-shell-nav-link"
+              (click)="isMobile() && closeMobileSidebar()">
+              <i [class]="item.icon" aria-hidden="true"></i>
+              <span class="app-shell-nav-link-label">{{ item.label }}</span>
+            </a>
+          }
+        </nav>
+      </div>
+    </div>
+
+    <div class="app-shell-sidebar-bottom">
+      <div class="app-shell-sidebar-user">
+        <div class="app-shell-user-avatar-wrap">
+          <p-avatar label="GB" shape="circle" styleClass="app-shell-user-avatar" />
+        </div>
+        <div class="app-shell-user-meta">
+          <div class="app-shell-user-name">Gym Bro</div>
+          <div class="app-shell-user-role">Admin</div>
+        </div>
+      </div>
+
+      <p class="app-shell-footer-copy">
+        <span class="app-shell-footer-copy-text">© {{ footerYear }} {{ appTitle }}</span>
+      </p>
+    </div>
+  </aside>
+
+  <div class="app-shell-main">
+    <header class="app-shell-breadcrumb-bar">
+      @if (isMobile()) {
+        <app-button
+          icon="pi pi-bars"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          ariaLabel="Open navigation"
+          (clicked)="toggleMobileSidebar()" />
+      }
+      <nav class="app-shell-breadcrumb" aria-label="Breadcrumb">
+        @for (c of breadcrumbs(); track $index; let i = $index) {
+          @if (i > 0) {
+            <span class="app-shell-breadcrumb-sep" aria-hidden="true">/</span>
+          }
+          @if (c.link !== null) {
+            <a [routerLink]="c.link">{{ c.label }}</a>
+          } @else {
+            <span class="app-shell-breadcrumb-current" aria-current="page">{{ c.label }}</span>
+          }
+        }
+      </nav>
+      <div class="app-shell-topbar-actions">
+        <app-button
+          icon="pi pi-globe"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          ariaLabel="Language" />
+      </div>
+    </header>
+
+    <main class="app-shell-outlet">
+      <router-outlet />
+    </main>
+  </div>
+</div>

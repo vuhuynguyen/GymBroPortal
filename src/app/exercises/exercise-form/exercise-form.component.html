@@ -1,0 +1,82 @@
+<div class="page-container">
+  <app-page-header [title]="pageTitle" />
+
+  <p-card class="form-card">
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+      <div class="form-fields">
+        <app-form-field
+          label="Name"
+          forId="ex-name"
+          [required]="true"
+          [errorMessage]="fieldError('name')">
+          <app-input inputId="ex-name" formControlName="name" autocomplete="off" />
+        </app-form-field>
+
+        <app-form-field
+          label="Description"
+          forId="ex-desc"
+          [required]="true"
+          [errorMessage]="fieldError('description')">
+          <textarea
+            pTextarea
+            id="ex-desc"
+            formControlName="description"
+            rows="4"
+            class="w-full"
+            autocomplete="off"></textarea>
+        </app-form-field>
+
+        <div class="selects-row">
+          <app-form-field
+            label="Muscle Group"
+            forId="ex-muscle"
+            [required]="true"
+            [errorMessage]="fieldError('muscle')">
+            <app-select
+              inputId="ex-muscle"
+              formControlName="muscle"
+              [options]="muscleGroups"
+              placeholder="Select muscle group" />
+          </app-form-field>
+
+          <app-form-field
+            label="Equipment"
+            forId="ex-equipment"
+            [required]="true"
+            [errorMessage]="fieldError('equipment')">
+            <app-select
+              inputId="ex-equipment"
+              formControlName="equipment"
+              [options]="equipmentList"
+              placeholder="Select equipment" />
+          </app-form-field>
+
+          <app-form-field
+            label="Difficulty"
+            forId="ex-difficulty"
+            [required]="true"
+            [errorMessage]="fieldError('difficulty')">
+            <app-select
+              inputId="ex-difficulty"
+              formControlName="difficulty"
+              [options]="difficulties"
+              placeholder="Select difficulty" />
+          </app-form-field>
+        </div>
+      </div>
+
+      <div class="form-actions">
+        <app-button
+          label="Cancel"
+          severity="secondary"
+          [outlined]="true"
+          type="button"
+          (clicked)="onCancel()" />
+        <app-button
+          [label]="isEditMode ? 'Update Exercise' : 'Save Exercise'"
+          icon="pi pi-check"
+          type="submit" />
+      </div>
+    </form>
+  </p-card>
+</div>

@@ -1,0 +1,142 @@
+.ui-data-table-card {
+  min-width: 0;
+  background: var(--inv-surface-base);
+  border: 1px solid var(--dashboard-card-border);
+  border-radius: var(--inv-radius-lg);
+  box-shadow: var(--inv-shadow-card);
+}
+
+.ui-data-table-card__header {
+  padding: var(--inv-space-5) var(--inv-space-5) 0;
+}
+
+.ui-data-table-card__heading-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.ui-data-table-card__titles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.ui-data-table-card__count {
+  flex-shrink: 0;
+  font-size: var(--inv-text-body-sm);
+  font-weight: 600;
+  color: var(--inv-grey-600);
+  background: var(--inv-grey-25);
+  border: 1px solid var(--dashboard-card-border);
+  border-radius: 999px;
+  padding: var(--inv-space-2) var(--inv-space-3);
+  line-height: 1.25;
+}
+
+.ui-data-table-card__title {
+  margin: 0;
+  font-size: var(--inv-text-body-lg);
+  font-weight: 600;
+  color: var(--inv-grey-900);
+  letter-spacing: -0.01em;
+}
+
+.ui-data-table-card__sub {
+  margin: 0;
+  font-size: var(--inv-text-body-sm);
+  line-height: 1.45;
+  color: var(--inv-grey-500);
+  max-width: 48rem;
+}
+
+.ui-data-table-card__body {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  padding: var(--inv-space-4) var(--inv-space-5) var(--inv-space-5);
+}
+
+.ui-data-table-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--inv-space-4);
+  padding-bottom: var(--inv-space-5);
+  border-bottom: 1px solid var(--dashboard-card-border);
+}
+
+.ui-data-table-toolbar__left {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ui-data-table-toolbar__search {
+  flex: 1 1 100%;
+
+  p-iconfield {
+    display: block;
+    width: 100%;
+  }
+
+  /* PrimeNG Bind + iconfield expect a direct pInputText; keep left padding if theme omits it */
+  .p-iconfield.p-iconfield-left .p-inputtext,
+  .p-iconfield.p-iconfield-left input.p-inputtext {
+    width: 100%;
+    padding-left: 2.25rem;
+  }
+
+  @media (min-width: 640px) {
+    flex: 0 0 260px;
+    width: 260px;
+  }
+}
+
+.ui-data-table-card__content {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  min-width: 0;
+  overflow-x: auto;
+}
+
+.ui-data-table__col {
+  vertical-align: middle;
+}
+
+.ui-data-table__cell {
+  min-height: 4rem;
+  padding-top: var(--inv-space-3);
+  padding-bottom: var(--inv-space-3);
+  vertical-align: middle;
+}
+
+.ui-data-table__col--primary {
+  width: auto;
+  white-space: nowrap;
+}
+
+.ui-data-table__cell--primary {
+  width: auto;
+}
+
+.ui-data-table__col--compact,
+.ui-data-table__cell--compact {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.ui-data-table__col--actions,
+.ui-data-table__cell--actions {
+  width: 1%;
+  white-space: nowrap;
+}

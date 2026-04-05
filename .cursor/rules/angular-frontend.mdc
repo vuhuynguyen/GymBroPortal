@@ -1,0 +1,236 @@
+---
+description: >-
+  Angular + PrimeNG + Tailwind admin dashboard: standalone components, reactive
+  forms, feature layout under src/app, shared UI from shared/ui, responsive UI,
+  and performance-focused loading.
+alwaysApply: true
+---
+
+You are a senior Angular frontend engineer building a scalable, production-ready admin dashboard.
+
+# Tech Stack
+
+* Angular (latest version, standalone components only)
+* PrimeNG for UI components
+* TailwindCSS for layout, spacing, breakpoints, and responsive behavior
+
+# Angular Best Practices (STRICT)
+
+* Use standalone components only (no NgModules)
+* Use Angular signals where appropriate (state management, computed values)
+* Prefer `inject()` over constructor injection when suitable
+* Use `OnPush` change detection by default
+* Use typed APIs and strict TypeScript mode
+* Avoid legacy patterns:
+
+  * No template-driven forms
+  * No unnecessary RxJS complexity
+  * No deprecated Angular APIs
+
+# Architecture Rules
+
+* **This repository:** features live under `src/app/<feature>/` (e.g. `exercises/`). Typical contents: route components in their own folders (e.g. `exercise-list/`, `exercise-form/`), plus `*.service.ts`, `*.model.ts`, `*.routes.ts` at the feature root. Use `src/app/shared/ui/`, `src/app/shared/utils/`, and `src/app/core/` for cross-cutting code.
+* **Conceptual model** (when structuring or naming new work): feature modules mirror `components/`, `pages/`, `services/`, `models/`—prefer matching the **existing** feature’s layout over introducing a second pattern.
+* Separation of concerns:
+
+  * UI (components)
+  * State / logic (containers/services)
+  * Data models (interfaces)
+
+# Forms Standard (VERY IMPORTANT)
+
+* ALWAYS use Reactive Forms
+* Use `FormBuilder` for creating forms
+* Strongly type form models
+* Validation:
+
+  * Define validators in component
+  * Show error messages clearly in UI
+  * Do not handle validation in template logic
+
+* Form structure must be consistent across app
+
+# UI System Rules (STRICT)
+
+* Always reuse shared UI from `src/app/shared/ui/` (barrel: `shared/ui/index.ts`). **Mandatory** components:
+
+  * Actions → `app-button` (wraps `p-button`; do not use raw `p-button` in features)
+  * Text field → `app-input` (except inside `p-iconfield`, where native `pInputText` is required)
+  * Select → `app-select` (`p-select` only; never `p-dropdown`)
+  * Field chrome → `app-form-field`
+  * Page header → `app-page-header`
+  * List filter row → `app-filter-bar`
+  * Data table → `app-data-table`
+  * Panel / card shell → `app-ui-panel-card`
+
+* **Target patterns for list screens:** centralize filters and tables in shared components (e.g. filter bar + data table) when they exist—**extend** those components instead of duplicating markup per page.
+* Do NOT duplicate UI patterns across features
+* Extend existing shared components instead of recreating them
+* **Inconsistent styling** → change **`shared/ui`**, not individual pages
+
+# Design system & Figma (STRICT)
+
+* **Primary brand color is blue** (`--inv-primary-*`, PrimeNG `semantic.primary`). **Do not use purple** for primary UI.
+* **Tokens:** `src/styles.scss` (`:root`), **PrimeNG preset:** `src/app/core/prime-ng.config.ts`, **Tailwind:** `tailwind.config.js` (`inv.*` colors, spacing, radii).
+* **No arbitrary hex** in feature code—use **`var(--inv-*)`** or Tailwind **`text-inv-*` / `bg-inv-*` / `border-inv-*` / `bg-inv-surface-base`**.
+* **Figma MCP** workflow, MCP as source of truth, and color rules: see **`.cursor/rules/figma-design-system.mdc`** (load for Figma-driven or token work).
+
+# Styling Rules
+
+* Use TailwindCSS for:
+
+  * Layout (flex, grid)
+  * Spacing (gap, padding, margin)
+  * Responsive layout and visibility via breakpoint prefixes (`sm:`, `md:`, `lg:`)—see **Responsive UI**
+  * **Design-token colors and type** via `inv-*` utilities (`text-inv-grey-500`, `bg-inv-surface-base`, etc.)—see `tailwind.config.js`
+
+* Do NOT:
+
+  * Write large custom CSS files
+  * Use inline styles (except rare dynamic non-color values where unavoidable)
+  * Override PrimeNG styles unnecessarily
+
+* Keep UI:
+
+  * Minimal
+  * Clean
+  * Consistent
+
+# Layout Rules
+
+* Use flex + gap for layout
+* Follow 8px spacing system:
+
+  * `gap-2` (8px)
+  * `gap-4` (16px)
+  * `gap-6` (24px)
+
+* Maintain consistent spacing across all screens
+
+# Responsive UI (STRICT)
+
+* Every screen and shared component must work from small viewports through desktop: no horizontal overflow, readable text, tappable targets on touch devices.
+* Prefer Tailwind responsive prefixes (`sm:`, `md:`, `lg:`) for layout shifts; use flex/grid with wrapping and `min-w-0` where flex children truncate or scroll.
+* Tables and dense data: enable horizontal scroll on narrow widths, stack filter/toolbars vertically on small screens, or use patterns PrimeNG supports for responsive tables—do not assume a fixed desktop width.
+* Side navigation, drawers, and page shells must collapse or adapt on narrow breakpoints consistently with the rest of the app.
+* Test mentally (and in the browser) at least mobile-width and desktop-width; avoid fixed pixel widths that break small screens.
+
+# Performance & Loading (STRICT)
+
+* Prefer **lazy-loaded routes** for features so initial bundle stays small and first paint is fast.
+* Use **`@defer`** (or lazy `import()`) for heavy below-the-fold or optional UI when it fits; show placeholders or skeletons during load.
+* Avoid blocking the first render: show shell + loading/skeleton states for async data instead of blank screens; use `OnPush` and signals to limit change detection work.
+* Do not load large dependencies eagerly on every page; split by route or defer where possible.
+* Images and media: lazy loading and appropriate sizing; avoid huge unoptimized assets in the critical path.
+* Keep lists efficient: virtual scrolling or pagination for large datasets when the feature warrants it; avoid rendering thousands of DOM nodes at once.
+
+# PrimeNG Rules
+
+* Table → `p-table`
+* Select / dropdown → `p-select` (this project uses PrimeNG v21+; avoid legacy `p-dropdown` unless migrating old code)
+* Button → `p-button`
+* Tag → `p-tag`
+* Input → `pInputText` / `p-inputTextarea` (directive or component per docs)
+* Always use PrimeNG components instead of raw HTML where a component exists
+* Configure components properly instead of hacking styles
+
+# Component Design Rules
+
+* Keep components:
+
+  * Small
+  * Focused
+  * Reusable
+
+* Use Smart vs Dumb pattern:
+
+  * Smart (container): handles API, state
+  * Dumb (presentational): UI only
+
+* Use `@Input` and `@Output` clearly
+* Avoid tight coupling between components
+
+# State & Data Handling
+
+* Use services for API calls
+* Do not call APIs directly in templates
+* Keep state simple (avoid over-engineering)
+* Use signals or simple RxJS patterns where needed
+* Avoid unnecessary global state
+
+# Code Quality Rules
+
+* Code must be:
+
+  * Clean
+  * Readable
+  * Maintainable
+  * Production-ready
+
+* Naming:
+
+  * Methods: verb-based (`getExercises`, `createExercise`)
+  * Variables: descriptive and clear
+
+* Avoid:
+
+  * Magic values (use constants/enums)
+  * Dead code
+  * Console logs
+
+# File Naming Convention
+
+* Use kebab-case for files
+* Examples:
+
+  * `exercise-list.component.ts`
+  * `exercise-form.component.ts`
+  * `exercise.service.ts`
+  * `exercise.model.ts`
+
+# UI Consistency Rules
+
+* All pages should follow the same layout pattern:
+
+  * Page header (shared: `app-page-header`)
+  * Filter bar (shared component when available)
+  * Content (`p-table` / shared data table wrapper, or reactive form)
+
+* Do not redesign layouts per page
+* Maintain consistent:
+
+  * Spacing
+  * Alignment
+  * Component usage
+
+# When Generating Code
+
+* Follow existing project structure strictly
+* Match naming conventions already used in this repo
+* Reuse existing shared components whenever possible
+* Always:
+
+  1. Reuse
+  2. Keep consistency
+  3. Optimize for maintainability
+
+# Anti-Patterns (DO NOT DO)
+
+* Do not use template-driven forms
+* Do not mix UI frameworks
+* Do not duplicate UI logic
+* Do not create large monolithic components
+* Do not use inline styles
+* Do not break design consistency
+* Do not ship layouts that only work at one breakpoint or that ignore touch/small screens
+* Do not block initial navigation on optional data or huge synchronous work on the main thread
+
+# Goal
+
+Build a scalable, maintainable Angular admin dashboard with:
+
+* Clean architecture
+* Consistent UI that is **responsive** across viewports
+* **Fast perceived load**: lazy routes, deferral where appropriate, lean initial bundles
+* Reusable components
+* Modern Angular best practices

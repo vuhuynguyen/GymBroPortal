@@ -1,0 +1,52 @@
+<section class="flex flex-col gap-6" role="region" aria-label="Exercise catalog">
+  <div>
+    <app-page-header
+      title="Exercises"
+      subtitle="Manage your movement library, filters, and catalog.">
+      <div class="ui-page-actions flex flex-wrap items-center gap-4">
+        <app-button label="Create Exercise" icon="pi pi-plus" (clicked)="createExercise()" />
+      </div>
+    </app-page-header>
+  </div>
+
+  <app-data-table
+    [resizableColumns]="true"
+    [columns]="tableColumns"
+    [data]="exercises()"
+    [loading]="loading()"
+    [columnResizeMode]="'fit'"
+    [globalFilterExtraFields]="['description']"
+    globalSearchPlaceholder="Search exercises"
+    emptyMessage="No exercises found"
+    loadingMessage="Loading exercises…"
+    itemLabel="exercises">
+    <ng-template appDataTableCell="name" let-row>
+      <span class="whitespace-nowrap font-semibold text-inv-grey-900">{{ row['name'] }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="description" let-row>
+      <div class="text-inv-body-sm text-inv-grey-500">{{ row['description'] }}</div>
+    </ng-template>
+
+    <ng-template appDataTableCell="actions" let-row>
+      <div class="flex flex-nowrap items-center justify-end gap-2">
+        <app-button
+          icon="pi pi-pencil"
+          size="small"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          [ariaLabel]="'Edit ' + row['name']"
+          (clicked)="editExercise($any(row))" />
+        <app-button
+          icon="pi pi-trash"
+          size="small"
+          [rounded]="true"
+          [text]="true"
+          severity="danger"
+          [ariaLabel]="'Delete ' + row['name']"
+          (clicked)="deleteExercise($any(row))" />
+      </div>
+    </ng-template>
+  </app-data-table>
+</section>

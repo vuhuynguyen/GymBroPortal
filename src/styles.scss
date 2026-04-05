@@ -1,0 +1,267 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.w-full {
+  width: 100%;
+}
+
+:root {
+  /* Inventory Management UI Kit — style guide (Figma file jXtK2uw969pGDzhklidzeR, node 1:3) */
+  --inv-font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --inv-space-1: 0.25rem;
+  --inv-space-2: 0.5rem;
+  --inv-space-3: 0.75rem;
+  --inv-space-4: 1rem;
+  --inv-space-5: 1.5rem;
+  --inv-space-6: 2rem;
+
+  --inv-radius-sm: 8px;
+  --inv-radius-md: 12px;
+  --inv-radius-lg: 16px;
+
+  --inv-shadow-card: 0 1px 2px color-mix(in srgb, var(--inv-grey-900) 6%, transparent);
+
+  --inv-text-h1: 3rem;
+  --inv-text-h2: 2.5rem;
+  --inv-text-h3: 2rem;
+  --inv-text-h4: 1.5rem;
+  --inv-text-h5: 1.25rem;
+  --inv-text-h6: 1rem;
+  --inv-text-body-lg: 1.125rem;
+  --inv-text-body-md: 1rem;
+  --inv-text-body-sm: 0.875rem;
+  --inv-text-body-mini: 0.75rem;
+
+  /* Primary — blue only (no purple). Align with Figma tokens when MCP provides values. */
+  --inv-primary-0: #eff6ff;
+  --inv-primary-25: #dbeafe;
+  --inv-primary-50: #bfdbfe;
+  --inv-primary-100: #93c5fd;
+  --inv-primary-200: #60a5fa;
+  --inv-primary-300: #1e3a8a;
+  --inv-primary-400: #38bdf8;
+  --inv-primary-500: #3b82f6;
+  --inv-primary-600: #2563eb;
+  --inv-primary-700: #1d4ed8;
+  --inv-primary-800: #1e40af;
+  --inv-primary-900: #172554;
+
+  --inv-surface-base: #ffffff;
+
+  /* Secondary / accent blues (supporting; not neutral greys) */
+  --inv-secondary-0: #eff6ff;
+  --inv-secondary-25: #e0f2fe;
+  --inv-secondary-50: #bae6fd;
+  --inv-secondary-100: #7dd3fc;
+  --inv-secondary-200: #38bdf8;
+  --inv-secondary-300: #0284c7;
+
+  --inv-grey-0: #f7f8f9;
+  --inv-grey-25: #eceff2;
+  --inv-grey-50: #d0d5dd;
+  --inv-grey-100: #c8ccd4;
+  --inv-grey-200: #b5bac5;
+  --inv-grey-300: #98a1b0;
+  --inv-grey-400: #858c9d;
+  --inv-grey-500: #667085;
+  --inv-grey-600: #475467;
+  --inv-grey-700: #344054;
+  --inv-grey-800: #1a2230;
+  --inv-grey-900: #000000;
+
+  --inv-sky-0: #e0f5ff;
+  --inv-sky-25: #b8e8fc;
+  --inv-sky-50: #7ed4f2;
+  --inv-sky-100: #3db8e0;
+  --inv-sky-200: #1a8fb8;
+  --inv-sky-300: #0084b3;
+
+  --inv-success-0: #e6f9f4;
+  --inv-success-25: #c5efe3;
+  --inv-success-50: #7fd9c1;
+  --inv-success-100: #3fbf9a;
+  --inv-success-200: #259e7c;
+  --inv-success-300: #178265;
+
+  --inv-warning-0: #fff9e6;
+  --inv-warning-25: #ffeec2;
+  --inv-warning-50: #fbd582;
+  --inv-warning-100: #ffb040;
+  --inv-warning-200: #996021;
+  --inv-warning-300: #5d3e1c;
+
+  --inv-error-0: #ffe6e6;
+  --inv-error-25: #ffc8c8;
+  --inv-error-50: #f28e8e;
+  --inv-error-100: #e02424;
+  --inv-error-200: #a32020;
+  --inv-error-300: #802626;
+
+  --dashboard-page-bg: var(--inv-grey-0);
+  --dashboard-card-border: var(--inv-grey-50);
+  --dashboard-table-header: var(--inv-grey-500);
+}
+
+body {
+  font-family: var(--inv-font-sans);
+  font-size: var(--inv-text-body-md);
+  color: var(--inv-grey-900);
+}
+
+.p-inputtext,
+.p-inputtextarea,
+.p-select {
+  border-radius: var(--inv-radius-md);
+}
+
+.header-search .p-inputtext {
+  width: 100%;
+  border-radius: var(--inv-radius-md);
+  padding-left: 2.25rem;
+}
+
+.p-datatable.dashboard-data-table {
+  width: 100%;
+
+  .p-datatable-table {
+    width: 100%;
+    table-layout: auto;
+  }
+
+  .p-datatable-wrapper {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .p-datatable-thead > tr > th,
+  .p-datatable-tbody > tr > td {
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+
+  .p-datatable-thead > tr > th {
+    font-size: var(--inv-text-body-sm);
+    font-weight: 600;
+    color: var(--dashboard-table-header);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--dashboard-card-border);
+    padding: var(--inv-space-3) var(--inv-space-4);
+  }
+
+  .p-datatable-tbody > tr > td {
+    border: none;
+    border-bottom: 1px solid var(--dashboard-card-border);
+    padding: var(--inv-space-3) var(--inv-space-4);
+    font-size: var(--inv-text-body-sm);
+    vertical-align: middle;
+  }
+
+  .p-datatable-tbody > tr:hover > td {
+    background: color-mix(in srgb, var(--inv-primary-0) 55%, transparent);
+  }
+
+  .p-datatable-tbody > tr:last-child > td {
+    border-bottom: none;
+  }
+
+  .p-datatable-thead > tr > th:first-child,
+  .p-datatable-tbody > tr > td:first-child {
+    padding-left: 1.5rem;
+  }
+
+  .p-datatable-thead > tr > th:last-child,
+  .p-datatable-tbody > tr > td:last-child {
+    padding-right: 1.5rem;
+  }
+}
+
+.dashboard-table-card {
+  background: var(--inv-surface-base);
+  border: 1px solid var(--dashboard-card-border);
+  border-radius: var(--inv-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--inv-shadow-card);
+}
+
+.dashboard-table-card .p-paginator,
+.ui-data-table-card .p-paginator {
+  padding: 1rem 1.5rem 0 1.5rem;
+  border: none;
+  border-top: 1px solid var(--dashboard-card-border);
+  background: var(--inv-surface-base);
+}
+
+.dashboard-table-card .p-paginator .p-paginator-page,
+.ui-data-table-card .p-paginator .p-paginator-page {
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.dashboard-table-card .p-paginator .p-paginator-page:not(.p-highlight):hover,
+.ui-data-table-card .p-paginator .p-paginator-page:not(.p-highlight):hover {
+  background: color-mix(in srgb, var(--inv-primary-500) 12%, transparent);
+}
+
+.dashboard-table-card .p-paginator .p-paginator-page.p-highlight,
+.ui-data-table-card .p-paginator .p-paginator-page.p-highlight {
+  background: var(--inv-primary-500);
+  color: var(--inv-surface-base);
+  border-radius: 999px;
+  min-width: 2.25rem;
+  height: 2.25rem;
+}
+
+.p-card.form-card {
+  max-width: 800px;
+  border-radius: var(--inv-radius-lg);
+  box-shadow: var(--inv-shadow-card);
+  border: 1px solid var(--dashboard-card-border);
+}
+
+.p-card.form-card .p-card-body {
+  padding: var(--inv-space-5);
+}
+
+.p-card.form-card .form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--inv-space-4);
+}
+
+.p-card.form-card .form-field.full-width {
+  width: 100%;
+}
+
+.p-card.form-card .selects-row {
+  display: flex;
+  gap: var(--inv-space-4);
+  flex-wrap: wrap;
+}
+
+.p-card.form-card .selects-row .form-field {
+  flex: 1;
+  min-width: 160px;
+}
+
+.p-card.form-card .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--inv-space-4);
+  margin-top: var(--inv-space-6);
+  padding-top: var(--inv-space-4);
+  border-top: 1px solid var(--dashboard-card-border);
+}
