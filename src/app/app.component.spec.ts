@@ -1,45 +1,37 @@
-import { TestBed } from '@angular/core/testing';
-import { RouterTestingModule } from '@angular/router/testing';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
-import { MatSidenavModule } from '@angular/material/sidenav';
-import { MatToolbarModule } from '@angular/material/toolbar';
-import { MatIconModule } from '@angular/material/icon';
-import { MatListModule } from '@angular/material/list';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { By } from '@angular/platform-browser';
+import { provideRouter } from '@angular/router';
 import { AppComponent } from './app.component';
+import { AppShellComponent } from './core/shell/app-shell.component';
+import { primengTestProviders } from '../testing/primeng-test-providers';
 
 describe('AppComponent', () => {
+  let fixture: ComponentFixture<AppComponent>;
+
   beforeEach(async () => {
     await TestBed.configureTestingModule({
-      imports: [
-        RouterTestingModule,
-        NoopAnimationsModule,
-        MatSidenavModule,
-        MatToolbarModule,
-        MatIconModule,
-        MatListModule
-      ],
-      declarations: [
-        AppComponent
-      ],
+      imports: [AppComponent],
+      providers: [provideRouter([]), ...primengTestProviders]
     }).compileComponents();
   });
 
+  beforeEach(() => {
+    fixture = TestBed.createComponent(AppComponent);
+  });
+
   it('should create the app', () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
+    expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it(`should have as title 'GymBro Portal'`, () => {
-    const fixture = TestBed.createComponent(AppComponent);
-    const app = fixture.componentInstance;
-    expect(app.title).toEqual('GymBro Portal');
-  });
-
-  it('should render the toolbar with the app title', () => {
-    const fixture = TestBed.createComponent(AppComponent);
+  it(`should expose app title on the shell`, () => {
     fixture.detectChanges();
-    const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.querySelector('mat-toolbar')?.textContent).toContain('GymBro Portal');
+    const shell = fixture.debugElement.query(By.directive(AppShellComponent));
+    expect(shell).toBeTruthy();
+    expect(shell!.componentInstance.appTitle).toEqual('GymBro Portal');
+  });
+
+  it('should render the app name in the shell', () => {
+    fixture.detectChanges();
+    expect((fixture.nativeElement as HTMLElement).textContent).toContain('GymBro Portal');
   });
 });

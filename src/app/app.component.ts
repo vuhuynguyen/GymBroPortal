@@ -1,26 +1,12 @@
 import { Component } from '@angular/core';
-
-interface NavItem {
-  label: string;
-  icon: string;
-  route: string;
-}
+import { AppShellComponent } from './core/shell/app-shell.component';
+import { ToastModule } from 'primeng/toast';
 
 @Component({
   selector: 'app-root',
-  standalone: false,
+  standalone: true,
+  imports: [AppShellComponent, ToastModule],
   templateUrl: './app.component.html',
-  styleUrls: ['./app.component.scss']
+  styleUrl: './app.component.scss'
 })
-export class AppComponent {
-  title = 'GymBro Portal';
-  sidenavOpened = true;
-
-  navItems: NavItem[] = [
-    { label: 'Exercises', icon: 'fitness_center', route: '/exercises' }
-  ];
-
-  toggleSidenav(): void {
-    this.sidenavOpened = !this.sidenavOpened;
-  }
-}
+export class AppComponent {}

@@ -6,7 +6,7 @@ import { Exercise, Difficulty, Equipment, MuscleGroup } from './exercise.model';
   providedIn: 'root'
 })
 export class ExerciseService {
-  private nextId = 6;
+  private nextId = 26;
   private exercises: Exercise[] = [
     {
       id: 1,
@@ -46,6 +46,166 @@ export class ExerciseService {
       description: 'Shoulder pressing movement performed standing with a barbell.',
       muscle: 'Shoulders',
       equipment: 'Barbell',
+      difficulty: 'Intermediate'
+    },
+    {
+      id: 6,
+      name: 'Deadlift',
+      description: 'Full-body posterior chain compound lift with a barbell from the floor.',
+      muscle: 'Back',
+      equipment: 'Barbell',
+      difficulty: 'Advanced'
+    },
+    {
+      id: 7,
+      name: 'Dumbbell Curl',
+      description: 'Isolation exercise targeting the biceps with dumbbells.',
+      muscle: 'Arms',
+      equipment: 'Dumbbell',
+      difficulty: 'Beginner'
+    },
+    {
+      id: 8,
+      name: 'Tricep Pushdown',
+      description: 'Cable isolation exercise for the triceps using a rope or bar attachment.',
+      muscle: 'Arms',
+      equipment: 'Cable',
+      difficulty: 'Beginner'
+    },
+    {
+      id: 9,
+      name: 'Leg Press',
+      description: 'Machine-based lower body exercise targeting quads, hamstrings, and glutes.',
+      muscle: 'Legs',
+      equipment: 'Machine',
+      difficulty: 'Beginner'
+    },
+    {
+      id: 10,
+      name: 'Incline Dumbbell Press',
+      description: 'Upper chest focused pressing movement on an incline bench with dumbbells.',
+      muscle: 'Chest',
+      equipment: 'Dumbbell',
+      difficulty: 'Intermediate'
+    },
+    {
+      id: 11,
+      name: 'Lat Pulldown',
+      description: 'Cable machine exercise targeting the latissimus dorsi.',
+      muscle: 'Back',
+      equipment: 'Cable',
+      difficulty: 'Beginner'
+    },
+    {
+      id: 12,
+      name: 'Romanian Deadlift',
+      description: 'Hip-hinge movement emphasising the hamstrings and glutes with a barbell.',
+      muscle: 'Legs',
+      equipment: 'Barbell',
+      difficulty: 'Intermediate'
+    },
+    {
+      id: 13,
+      name: 'Face Pull',
+      description: 'Rear-delt and rotator-cuff cable exercise using a rope attachment.',
+      muscle: 'Shoulders',
+      equipment: 'Cable',
+      difficulty: 'Beginner'
+    },
+    {
+      id: 14,
+      name: 'Kettlebell Swing',
+      description: 'Explosive hip-hinge movement that develops power and conditioning.',
+      muscle: 'Full Body',
+      equipment: 'Kettlebell',
+      difficulty: 'Intermediate'
+    },
+    {
+      id: 15,
+      name: 'Push-Up',
+      description: 'Bodyweight pressing exercise for chest, shoulders, and triceps.',
+      muscle: 'Chest',
+      equipment: 'Bodyweight',
+      difficulty: 'Beginner'
+    },
+    {
+      id: 16,
+      name: 'Seated Row',
+      description: 'Cable rowing exercise that targets the mid-back and biceps.',
+      muscle: 'Back',
+      equipment: 'Cable',
+      difficulty: 'Beginner'
+    },
+    {
+      id: 17,
+      name: 'Lunges',
+      description: 'Unilateral lower body exercise for quads, glutes, and balance.',
+      muscle: 'Legs',
+      equipment: 'Bodyweight',
+      difficulty: 'Beginner'
+    },
+    {
+      id: 18,
+      name: 'Dumbbell Shoulder Press',
+      description: 'Seated or standing overhead press variation with dumbbells.',
+      muscle: 'Shoulders',
+      equipment: 'Dumbbell',
+      difficulty: 'Intermediate'
+    },
+    {
+      id: 19,
+      name: 'Barbell Row',
+      description: 'Compound rowing movement for back thickness using a barbell.',
+      muscle: 'Back',
+      equipment: 'Barbell',
+      difficulty: 'Intermediate'
+    },
+    {
+      id: 20,
+      name: 'Leg Curl',
+      description: 'Machine isolation exercise targeting the hamstrings.',
+      muscle: 'Legs',
+      equipment: 'Machine',
+      difficulty: 'Beginner'
+    },
+    {
+      id: 21,
+      name: 'Cable Fly',
+      description: 'Cable isolation exercise for the chest through a wide arc of motion.',
+      muscle: 'Chest',
+      equipment: 'Cable',
+      difficulty: 'Intermediate'
+    },
+    {
+      id: 22,
+      name: 'Ab Wheel Rollout',
+      description: 'Advanced core stability exercise using an ab wheel.',
+      muscle: 'Core',
+      equipment: 'Bodyweight',
+      difficulty: 'Advanced'
+    },
+    {
+      id: 23,
+      name: 'Resistance Band Pull-Apart',
+      description: 'Shoulder health exercise targeting the rear delts with a resistance band.',
+      muscle: 'Shoulders',
+      equipment: 'Resistance Band',
+      difficulty: 'Beginner'
+    },
+    {
+      id: 24,
+      name: 'Goblet Squat',
+      description: 'Squat variation holding a kettlebell at chest height, great for beginners.',
+      muscle: 'Legs',
+      equipment: 'Kettlebell',
+      difficulty: 'Beginner'
+    },
+    {
+      id: 25,
+      name: 'Dips',
+      description: 'Bodyweight compound movement for chest and triceps on parallel bars.',
+      muscle: 'Chest',
+      equipment: 'Bodyweight',
       difficulty: 'Intermediate'
     }
   ];

@@ -1,107 +1,52 @@
-<div class="page-container">
-  <div class="page-header">
-    <h1 class="page-title">Exercises</h1>
-    <button mat-raised-button color="primary" (click)="createExercise()">
-      <mat-icon>add</mat-icon>
-      Create Exercise
-    </button>
+<section class="flex flex-col gap-6" role="region" aria-label="Exercise catalog">
+  <div>
+    <app-page-header
+      title="Exercises"
+      subtitle="Manage your movement library, filters, and catalog.">
+      <div class="ui-page-actions flex flex-wrap items-center gap-4">
+        <app-button label="Create Exercise" icon="pi pi-plus" (clicked)="createExercise()" />
+      </div>
+    </app-page-header>
   </div>
 
-  <mat-card class="content-card">
-    <!-- Filters Row -->
-    <div class="filters-row">
-      <mat-form-field appearance="outline" class="search-field">
-        <mat-label>Search</mat-label>
-        <input matInput [(ngModel)]="searchValue" (ngModelChange)="applyFilters()" placeholder="Search exercises...">
-        <mat-icon matSuffix>search</mat-icon>
-      </mat-form-field>
+  <app-data-table
+    [resizableColumns]="true"
+    [columns]="tableColumns"
+    [data]="exercises()"
+    [loading]="loading()"
+    [columnResizeMode]="'fit'"
+    [globalFilterExtraFields]="['description']"
+    globalSearchPlaceholder="Search exercises"
+    emptyMessage="No exercises found"
+    loadingMessage="Loading exercises…"
+    itemLabel="exercises">
+    <ng-template appDataTableCell="name" let-row>
+      <span class="whitespace-nowrap font-semibold text-inv-grey-900">{{ row['name'] }}</span>
+    </ng-template>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Muscle Group</mat-label>
-        <mat-select [(ngModel)]="selectedMuscle" (ngModelChange)="applyFilters()">
-          <mat-option value="">All</mat-option>
-          <mat-option *ngFor="let m of muscleGroups" [value]="m">{{ m }}</mat-option>
-        </mat-select>
-      </mat-form-field>
+    <ng-template appDataTableCell="description" let-row>
+      <div class="text-inv-body-sm text-inv-grey-500">{{ row['description'] }}</div>
+    </ng-template>
 
-      <mat-form-field appearance="outline">
-        <mat-label>Equipment</mat-label>
-        <mat-select [(ngModel)]="selectedEquipment" (ngModelChange)="applyFilters()">
-          <mat-option value="">All</mat-option>
-          <mat-option *ngFor="let e of equipmentList" [value]="e">{{ e }}</mat-option>
-        </mat-select>
-      </mat-form-field>
-
-      <mat-form-field appearance="outline">
-        <mat-label>Difficulty</mat-label>
-        <mat-select [(ngModel)]="selectedDifficulty" (ngModelChange)="applyFilters()">
-          <mat-option value="">All</mat-option>
-          <mat-option *ngFor="let d of difficulties" [value]="d">{{ d }}</mat-option>
-        </mat-select>
-      </mat-form-field>
-
-      <button mat-stroked-button (click)="clearFilters()" class="clear-btn">
-        <mat-icon>clear</mat-icon>
-        Clear
-      </button>
-    </div>
-
-    <!-- Table -->
-    <div class="table-container">
-      <table mat-table [dataSource]="dataSource" class="exercise-table">
-
-        <ng-container matColumnDef="name">
-          <th mat-header-cell *matHeaderCellDef>Name</th>
-          <td mat-cell *matCellDef="let row">
-            <span class="exercise-name">{{ row.name }}</span>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="muscle">
-          <th mat-header-cell *matHeaderCellDef>Muscle Group</th>
-          <td mat-cell *matCellDef="let row">{{ row.muscle }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="equipment">
-          <th mat-header-cell *matHeaderCellDef>Equipment</th>
-          <td mat-cell *matCellDef="let row">{{ row.equipment }}</td>
-        </ng-container>
-
-        <ng-container matColumnDef="difficulty">
-          <th mat-header-cell *matHeaderCellDef>Difficulty</th>
-          <td mat-cell *matCellDef="let row">
-            <span class="difficulty-chip" [ngClass]="getDifficultyClass(row.difficulty)">
-              {{ row.difficulty }}
-            </span>
-          </td>
-        </ng-container>
-
-        <ng-container matColumnDef="actions">
-          <th mat-header-cell *matHeaderCellDef>Actions</th>
-          <td mat-cell *matCellDef="let row">
-            <button mat-icon-button color="primary" (click)="editExercise(row)" matTooltip="Edit">
-              <mat-icon>edit</mat-icon>
-            </button>
-            <button mat-icon-button color="warn" (click)="deleteExercise(row)" matTooltip="Delete">
-              <mat-icon>delete</mat-icon>
-            </button>
-          </td>
-        </ng-container>
-
-        <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-        <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-
-        <tr class="mat-row no-data-row" *matNoDataRow>
-          <td class="mat-cell" [attr.colspan]="displayedColumns.length">
-            <div class="no-data">
-              <mat-icon>fitness_center</mat-icon>
-              <p>No exercises found</p>
-            </div>
-          </td>
-        </tr>
-      </table>
-    </div>
-
-    <mat-paginator [pageSizeOptions]="[10, 25, 50]" showFirstLastButtons></mat-paginator>
-  </mat-card>
-</div>
+    <ng-template appDataTableCell="actions" let-row>
+      <div class="flex flex-nowrap items-center justify-end gap-2">
+        <app-button
+          icon="pi pi-pencil"
+          size="small"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          [ariaLabel]="'Edit ' + row['name']"
+          (clicked)="editExercise($any(row))" />
+        <app-button
+          icon="pi pi-trash"
+          size="small"
+          [rounded]="true"
+          [text]="true"
+          severity="danger"
+          [ariaLabel]="'Delete ' + row['name']"
+          (clicked)="deleteExercise($any(row))" />
+      </div>
+    </ng-template>
+  </app-data-table>
+</section>

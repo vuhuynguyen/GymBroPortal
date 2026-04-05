@@ -1,0 +1,9 @@
+:host {
+  display: block;
+}
+
+.ui-panel-card {
+  border-radius: var(--inv-radius-lg);
+  border: 1px solid var(--dashboard-card-border);
+  box-shadow: var(--inv-shadow-card);
+}
