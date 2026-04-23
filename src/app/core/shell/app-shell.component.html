@@ -65,10 +65,6 @@
           <div class="app-shell-user-role">Admin</div>
         </div>
       </div>
-
-      <p class="app-shell-footer-copy">
-        <span class="app-shell-footer-copy-text">© {{ footerYear }} {{ appTitle }}</span>
-      </p>
     </div>
   </aside>
 
@@ -96,6 +92,13 @@
         }
       </nav>
       <div class="app-shell-topbar-actions">
+        <app-button
+          icon="pi pi-cog"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          ariaLabel="Settings"
+          (clicked)="goSettings()" />
         <app-button
           icon="pi pi-globe"
           [rounded]="true"

@@ -177,7 +177,8 @@
                   <p-tag
                     [value]="formatText(row[col.field])"
                     [severity]="resolveTagSeverity(col, row)"
-                    [rounded]="true" />
+                    [rounded]="false"
+                    styleClass="inv-catalog-chip" />
                 } @else if (col.type === 'custom') {
                 } @else {
                   <span class="text-inv-body-sm text-inv-grey-700">{{ formatText(row[col.field]) }}</span>

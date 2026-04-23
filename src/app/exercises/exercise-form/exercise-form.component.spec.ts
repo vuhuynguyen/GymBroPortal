@@ -1,3 +1,5 @@
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, provideRouter } from '@angular/router';
 import { ExerciseFormComponent } from './exercise-form.component';
@@ -11,6 +13,8 @@ describe('ExerciseFormComponent', () => {
       imports: [ExerciseFormComponent],
       providers: [
         provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
         ...primengTestProviders,
         {
           provide: ActivatedRoute,

@@ -1,6 +1,38 @@
 <p-card
-  [class]="mergedCardClass()"
-  [header]="header() ?? undefined"
-  [subheader]="subheader() ?? undefined">
-  <ng-content />
+  [styleClass]="mergedCardClass()"
+  [header]="collapsible() ? undefined : (header() ?? undefined)"
+  [subheader]="collapsible() ? undefined : (subheader() ?? undefined)">
+  @if (collapsible()) {
+    <ng-template #title>
+      <button
+        type="button"
+        class="ui-panel-card__collapsible-trigger"
+        [id]="headButtonId()"
+        [attr.aria-expanded]="expanded()"
+        [attr.aria-controls]="bodyDomId()"
+        (click)="onToggleClick()">
+        <span class="ui-panel-card__collapsible-text">
+          @if (header(); as h) {
+            <span class="ui-panel-card__collapsible-title">{{ h }}</span>
+          }
+          @if (subheader(); as s) {
+            <span class="ui-panel-card__collapsible-sub">{{ s }}</span>
+          }
+        </span>
+        <i
+          class="pi shrink-0 text-inv-grey-500"
+          [class.pi-chevron-up]="expanded()"
+          [class.pi-chevron-down]="!expanded()"
+          aria-hidden="true"></i>
+      </button>
+    </ng-template>
+  }
+
+  <div
+    [attr.id]="collapsible() ? bodyDomId() : null"
+    class="ui-panel-card__body-wrap"
+    [class.ui-panel-card__body-wrap--collapsed]="collapsible() && !expanded()"
+    [attr.inert]="collapsible() && !expanded() ? '' : null">
+    <ng-content />
+  </div>
 </p-card>

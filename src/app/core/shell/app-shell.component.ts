@@ -94,12 +94,15 @@ export class AppShellComponent {
     this.sidebarMinimized.update((v) => !v);
   }
 
+  goSettings(): void {
+    void this.router.navigateByUrl('/settings');
+  }
+
   private computeBreadcrumbs(): BreadcrumbItem[] {
     const url = this.router.url.split('?')[0] || '/';
     if (url.startsWith('/exercises/create')) {
       return [
-        { label: 'Home', link: '/dashboard' },
-        { label: 'Dashboard', link: '/dashboard' },
+        { label: 'Home', link: '/exercises' },
         { label: 'Exercises', link: '/exercises' },
         { label: 'Create', link: null }
       ];
@@ -107,7 +110,6 @@ export class AppShellComponent {
     if (/\/exercises\/edit\//.test(url)) {
       return [
         { label: 'Home', link: '/dashboard' },
-        { label: 'Dashboard', link: '/dashboard' },
         { label: 'Exercises', link: '/exercises' },
         { label: 'Edit', link: null }
       ];
@@ -120,8 +122,6 @@ export class AppShellComponent {
     }
     if (url.startsWith('/settings')) {
       return [
-        { label: 'Home', link: '/dashboard' },
-        { label: 'Dashboard', link: '/dashboard' },
         { label: 'Settings', link: null }
       ];
     }

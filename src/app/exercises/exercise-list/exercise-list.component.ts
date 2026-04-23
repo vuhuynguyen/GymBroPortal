@@ -1,60 +1,55 @@
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
+import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
 import { Router } from '@angular/router';
-import { map, startWith } from 'rxjs/operators';
-import { MessageService } from 'primeng/api';
 import {
   ButtonComponent,
   DataTableCellTemplateDirective,
   DataTableComponent,
+  PageContainerComponent,
   PageHeaderComponent,
-  type TableColumn,
-  type TableTagSeverity
+  type TableColumn
 } from '../../shared/ui';
-import { Exercise, Difficulty } from '../exercise.model';
+import { exerciseDifficultyTagSeverity } from '../exercise-difficulty-tag-severity';
+import { ExerciseDto } from '../exercise.model';
 import { ExerciseService } from '../exercise.service';
 
-/**
- * Sample rows for tests, Storybook, or UI-only demos (same shape as API data).
- * Production data still flows from {@link ExerciseService}.
- */
-export const EXERCISE_LIST_SAMPLE_ROWS: Exercise[] = [
-  {
-    id: 101,
-    name: 'Sample Bench',
-    description: 'Demo row for layout testing.',
-    muscle: 'Chest',
-    equipment: 'Barbell',
-    difficulty: 'Intermediate'
-  },
-  {
-    id: 102,
-    name: 'Sample Plank',
-    description: 'Another demo row.',
-    muscle: 'Core',
-    equipment: 'Bodyweight',
-    difficulty: 'Beginner'
-  }
-];
+
 
 @Component({
   selector: 'app-exercise-list',
   standalone: true,
-  imports: [PageHeaderComponent, DataTableComponent, DataTableCellTemplateDirective, ButtonComponent],
+  imports: [
+    PageContainerComponent,
+    PageHeaderComponent,
+    DataTableComponent,
+    DataTableCellTemplateDirective,
+    ButtonComponent
+  ],
   templateUrl: './exercise-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class ExerciseListComponent {
+export class ExerciseListComponent implements OnInit {
   private readonly exerciseService = inject(ExerciseService);
   private readonly router = inject(Router);
-  private readonly messageService = inject(MessageService);
 
   readonly tableColumns: TableColumn[] = [
     { field: 'name', header: 'Name', type: 'custom', filter: true, filterType: 'text' },
-    { field: 'description', header: 'Description', type: 'custom', includeInGlobalSearch: false, maxWidth: '360px' },
     {
-      field: 'muscle',
-      header: 'Muscle Group',
+      field: 'type',
+      header: 'Type',
+      filter: true,
+      filterType: 'select',
+      options: this.exerciseService.exerciseTypes.map((t) => ({ label: t, value: t }))
+    },
+    {
+      field: 'movementType',
+      header: 'Movement',
+      filter: true,
+      filterType: 'select',
+      options: this.exerciseService.movementTypes.map((m) => ({ label: m, value: m }))
+    },
+    {
+      field: 'muscleGroup',
+      header: 'Primary muscle',
       filter: true,
       filterType: 'select',
       options: this.exerciseService.muscleGroups.map((m) => ({ label: m, value: m }))
@@ -73,46 +68,23 @@ export class ExerciseListComponent {
       filter: true,
       filterType: 'select',
       options: this.exerciseService.difficulties.map((d) => ({ label: d, value: d })),
-      tagSeverityResolver: (value) => this.difficultySeverity(value as Difficulty)
+      tagSeverityResolver: (value) => exerciseDifficultyTagSeverity(String(value ?? ''))
     },
     { field: 'actions', header: '', type: 'custom', includeInGlobalSearch: false }
   ];
 
-  protected readonly exercises = toSignal(this.exerciseService.exercises$, {
-    initialValue: [] as Exercise[]
-  });
+  protected readonly exercises = this.exerciseService.exercises;
+  protected readonly loading = this.exerciseService.loading;
 
-  readonly loading = toSignal(
-    this.exerciseService.exercises$.pipe(map(() => false), startWith(true)),
-    { initialValue: true }
-  );
+  ngOnInit(): void {
+    this.exerciseService.load();
+  }
 
   createExercise(): void {
     this.router.navigate(['/exercises/create']);
   }
 
-  editExercise(exercise: Exercise): void {
+  editExercise(exercise: ExerciseDto): void {
     this.router.navigate(['/exercises/edit', exercise.id]);
   }
-
-  deleteExercise(exercise: Exercise): void {
-    if (confirm(`Delete exercise "${exercise.name}"?`)) {
-      this.exerciseService.delete(exercise.id);
-      this.messageService.add({
-        severity: 'success',
-        summary: 'Deleted',
-        detail: `"${exercise.name}" removed`
-      });
-    }
-  }
-
-  difficultySeverity(difficulty: Difficulty): TableTagSeverity {
-    const map: Record<Difficulty, TableTagSeverity> = {
-      Beginner: 'success',
-      Intermediate: 'info',
-      Advanced: 'danger'
-    };
-    return map[difficulty];
-  }
-
 }

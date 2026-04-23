@@ -1,6 +1,24 @@
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: ['./src/**/*.{html,ts}'],
+  safelist: [
+    // Responsive layout classes used in inline component templates (.ts files).
+    // Tailwind JIT can miss these when scanning .ts template strings.
+    'lg:grid-cols-3',
+    'lg:col-span-1',
+    'lg:col-span-2',
+    'lg:gap-8',
+    'lg:sticky',
+    'lg:top-8',
+    'lg:self-start',
+    'lg:px-8',
+    'sm:px-6',
+    'md:left-[var(--inv-app-sidebar-width)]',
+    'md:min-h-[calc(100dvh-6.5rem)]',
+    'md:pb-[5.5rem]',
+    { pattern: /min-\[480px\]:.*/ },
+    { pattern: /min-\[560px\]:.*/ },
+  ],
   corePlugins: {
     preflight: false
   },
@@ -38,6 +56,9 @@ module.exports = {
         'inv-6': 'var(--inv-space-6)'
       },
       colors: {
+        /* Figma Edit Exercise — `App.tsx`: card vs field borders (see `src/styles.scss` :root). */
+        'inv-border-card': 'var(--inv-border-card)',
+        'inv-border-field': 'var(--inv-border-field)',
         inv: {
           primary: {
             0: 'var(--inv-primary-0)',
