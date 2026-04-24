@@ -1,0 +1,5 @@
+/* Dismiss glyph: smaller than body text; Prime `.pi` inherits this `font-size`. */
+:host button .chip-removable-list__remove-icon {
+  font-size: 12px;
+  line-height: 1;
+}

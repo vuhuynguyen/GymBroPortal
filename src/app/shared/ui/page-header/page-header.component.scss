@@ -13,6 +13,11 @@
   padding-bottom: var(--inv-space-4);
 }
 
+/* Figma: `mb-8` under title block before main grid (~32px). */
+.ui-page-header--hero {
+  padding-bottom: var(--inv-space-6);
+}
+
 .ui-page-header-title {
   margin: 0;
   font-size: var(--inv-text-h5);
@@ -25,6 +30,21 @@
 @media (min-width: 768px) {
   .ui-page-header-title {
     font-size: var(--inv-text-h4);
+  }
+}
+
+/* Figma `text-3xl font-semibold` (~1.875rem). */
+.ui-page-header-title--hero {
+  font-size: 1.875rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+@media (min-width: 768px) {
+  .ui-page-header-title--hero {
+    font-size: var(--inv-text-h3);
+    line-height: 1.25;
   }
 }
 

@@ -11,7 +11,7 @@ import { PageHeaderComponent } from '../shared/ui';
         title="Settings"
         subtitle="Workspace preferences and account options will live here." />
       <div
-        class="settings-panel rounded-inv-lg border border-solid border-inv-grey-50 bg-inv-surface-base p-8 shadow-inv-card">
+        class="settings-panel rounded-inv-lg border border-solid border-inv-border-card bg-inv-surface-base p-8 shadow-inv-card">
         <p class="settings-panel__text">No settings are configured yet.</p>
       </div>
     </div>

@@ -7,6 +7,8 @@ import { Component, input } from '@angular/core';
   styleUrl: './page-header.component.scss'
 })
 export class PageHeaderComponent {
+  /** `hero` — large title + spacing for full-page editors (Figma Edit Exercise). */
+  readonly variant = input<'default' | 'hero'>('default');
   readonly title = input.required<string>();
   readonly subtitle = input<string>();
 }

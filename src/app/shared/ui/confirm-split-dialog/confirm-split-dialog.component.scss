@@ -1,0 +1,19 @@
+@use '../dialog/dialog-shared';
+
+:host {
+  display: contents;
+}
+
+.ui-confirm-split-dialog :where(button) {
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  box-shadow: none;
+  cursor: pointer;
+  font-family: inherit;
+}
+
+.ui-confirm-split-dialog :where(button):focus-visible {
+  outline: 2px solid var(--inv-primary-500);
+  outline-offset: 2px;
+}

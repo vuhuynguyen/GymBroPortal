@@ -1,23 +1,40 @@
-import { Component, forwardRef, input } from '@angular/core';
+import { booleanAttribute, Component, computed, forwardRef, input } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
+import { TextareaModule } from 'primeng/textarea';
 
 @Component({
   selector: 'app-input',
   standalone: true,
-  imports: [InputTextModule],
+  imports: [InputTextModule, TextareaModule],
   template: `
-    <input
-      pInputText
-      class="w-full"
-      [attr.id]="inputId() || null"
-      [type]="type()"
-      [placeholder]="placeholder() || null"
-      [attr.autocomplete]="autocomplete()"
-      [disabled]="disabled"
-      [value]="value"
-      (input)="onInput($event)"
-      (blur)="onBlur()" />
+    @if (!multiline()) {
+      <input
+        pInputText
+        class="w-full"
+        [attr.id]="inputId() || null"
+        [type]="type()"
+        [attr.placeholder]="placeholder() || null"
+        [attr.autocomplete]="autocomplete()"
+        [attr.maxlength]="maxLenAttr() ?? null"
+        [disabled]="disabled"
+        [value]="value"
+        (input)="onInput($event)"
+        (blur)="onBlur()" />
+    } @else {
+      <textarea
+        pTextarea
+        class="w-full min-w-0"
+        [attr.id]="inputId() || null"
+        [attr.rows]="rows()"
+        [attr.placeholder]="placeholder() || null"
+        [attr.autocomplete]="autocomplete()"
+        [attr.maxlength]="maxLenAttr() ?? null"
+        [disabled]="disabled"
+        [value]="value"
+        (input)="onInput($event)"
+        (blur)="onBlur()"></textarea>
+    }
   `,
   providers: [
     {
@@ -33,6 +50,16 @@ export class InputComponent implements ControlValueAccessor {
   readonly type = input<string>('text');
   readonly placeholder = input<string>('');
   readonly autocomplete = input<string>('off');
+  /** When true, renders a multi-line textarea (same reactive form binding as single-line). */
+  readonly multiline = input(false, { transform: booleanAttribute });
+  readonly rows = input(4);
+  /** When set, maps to native `maxlength` on input/textarea. */
+  readonly maxLength = input<number | undefined>(undefined);
+
+  readonly maxLenAttr = computed(() => {
+    const n = this.maxLength();
+    return n != null && n > 0 ? n : null;
+  });
 
   value = '';
   disabled = false;
@@ -61,7 +88,7 @@ export class InputComponent implements ControlValueAccessor {
   }
 
   protected onInput(ev: Event): void {
-    const v = (ev.target as HTMLInputElement).value;
+    const v = (ev.target as HTMLInputElement | HTMLTextAreaElement).value;
     this.value = v;
     this.onChange(v);
   }

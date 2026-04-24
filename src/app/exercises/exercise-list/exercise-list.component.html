@@ -1,4 +1,12 @@
-<section class="flex flex-col gap-6" role="region" aria-label="Exercise catalog">
+<section role="region" aria-label="Exercise catalog">
+  <app-confirm-split-dialog
+    [open]="deleteTarget() !== null"
+    (openChange)="onDeleteDialogOpenChange($event)"
+    heading="Delete exercise?"
+    [message]="deleteDialogMessage()"
+    (confirmed)="onDeleteConfirmed()" />
+
+  <app-ui-page-container class="flex flex-col gap-inv-5">
   <div>
     <app-page-header
       title="Exercises"
@@ -15,17 +23,13 @@
     [data]="exercises()"
     [loading]="loading()"
     [columnResizeMode]="'fit'"
-    [globalFilterExtraFields]="['description']"
+    [globalFilterExtraFields]="['type', 'movementType', 'muscleGroup', 'equipment']"
     globalSearchPlaceholder="Search exercises"
     emptyMessage="No exercises found"
     loadingMessage="Loading exercises…"
     itemLabel="exercises">
     <ng-template appDataTableCell="name" let-row>
       <span class="whitespace-nowrap font-semibold text-inv-grey-900">{{ row['name'] }}</span>
-    </ng-template>
-
-    <ng-template appDataTableCell="description" let-row>
-      <div class="text-inv-body-sm text-inv-grey-500">{{ row['description'] }}</div>
     </ng-template>
 
     <ng-template appDataTableCell="actions" let-row>
@@ -36,6 +40,7 @@
           [rounded]="true"
           [text]="true"
           severity="secondary"
+          [disabled]="deleteInProgress()"
           [ariaLabel]="'Edit ' + row['name']"
           (clicked)="editExercise($any(row))" />
         <app-button
@@ -44,9 +49,11 @@
           [rounded]="true"
           [text]="true"
           severity="danger"
+          [disabled]="deleteInProgress()"
           [ariaLabel]="'Delete ' + row['name']"
-          (clicked)="deleteExercise($any(row))" />
+          (clicked)="confirmDeleteExercise($any(row))" />
       </div>
     </ng-template>
   </app-data-table>
+  </app-ui-page-container>
 </section>

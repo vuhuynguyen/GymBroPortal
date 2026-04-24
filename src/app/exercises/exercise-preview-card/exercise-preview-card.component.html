@@ -1,0 +1,192 @@
+<!--
+  Member preview body: no full outer border (avoids a “boxed” last section vs panel chrome).
+  Section separators are horizontal rules only (`border-0 border-t`), per `docs/design-system.md`.
+-->
+<div class="min-w-0 overflow-hidden rounded-lg bg-inv-surface-base">
+
+  <div class="preview-card__image-slot min-w-0 overflow-hidden bg-inv-grey-0">
+    @if (imageSrc()) {
+      <img
+        class="preview-card__image block w-full object-cover"
+        [src]="imageSrc()"
+        [alt]="data().name || 'Exercise image'"
+        loading="lazy"
+        decoding="async"
+      />
+    } @else {
+      <div
+        class="preview-card__image-placeholder flex w-full flex-col items-center justify-center gap-2 text-center"
+        role="img"
+        [attr.aria-label]="'No image available'">
+        <span
+          class="preview-card__image-placeholder-icon-wrap flex h-9 w-9 items-center justify-center rounded-full bg-inv-surface-base shadow-sm ring-1 ring-inv-border-card"
+          aria-hidden="true">
+          <i class="pi pi-image preview-card__image-placeholder-icon text-lg"></i>
+        </span>
+        <span class="text-inv-body-mini font-medium text-inv-grey-500">No image</span>
+      </div>
+    }
+  </div>
+
+  <div class="flex min-w-0 flex-col gap-0 p-4">
+    <p class="m-0 min-w-0 break-words font-semibold text-inv-grey-900">
+      {{ data().name || 'Exercise name' }}
+    </p>
+
+    @if (hasAnyTag()) {
+      <div class="mt-2 flex min-w-0 flex-wrap gap-2">
+        @if (data().type) {
+          <span class="inv-catalog-chip inline-block bg-blue-100 font-medium text-blue-700">{{ data().type }}</span>
+        }
+        @if (data().movementType) {
+          <span class="inv-catalog-chip inline-block bg-purple-100 font-medium text-purple-700">{{ data().movementType }}</span>
+        }
+        @if (data().difficulty) {
+          @switch (difficultyListSeverity()) {
+            @case ('danger') {
+              <span class="inv-catalog-chip inline-block bg-inv-error-0 font-medium text-inv-error-200">{{
+                data().difficulty
+              }}</span>
+            }
+            @case ('info') {
+              <span class="inv-catalog-chip inline-block bg-inv-primary-0 font-medium text-inv-primary-700">{{
+                data().difficulty
+              }}</span>
+            }
+            @case ('success') {
+              <span class="inv-catalog-chip inline-block bg-inv-success-0 font-medium text-inv-success-200">{{
+                data().difficulty
+              }}</span>
+            }
+            @default {
+              <span class="inv-catalog-chip inline-block bg-inv-grey-25 font-medium text-inv-grey-600">{{
+                data().difficulty
+              }}</span>
+            }
+          }
+        }
+      </div>
+    }
+
+    <p class="m-0 mt-3 line-clamp-3 break-words text-inv-body-sm leading-snug text-inv-grey-600">
+      {{ data().description || 'No description' }}
+    </p>
+
+    @if (hasMetaSection()) {
+      <div
+        class="mt-3 flex flex-col gap-0.5 text-inv-body-sm text-inv-grey-500"
+        [class.mb-3]="hasCatalogAfterMeta()">
+        @if (data().equipment) {
+          <div class="flex items-start gap-2">
+            <span class="min-w-[5rem] shrink-0 font-medium text-inv-grey-700">Equipment:</span>
+            <span class="min-w-0 break-words">{{ data().equipment }}</span>
+          </div>
+        }
+        @if (data().primaryMuscle) {
+          <div class="flex items-start gap-2">
+            <span class="min-w-[5rem] shrink-0 font-medium text-inv-grey-700">Muscles:</span>
+            <span class="min-w-0 break-words">{{ data().primaryMuscle }}</span>
+          </div>
+        }
+        @if (secondaryMuscleLine()) {
+          <div class="flex items-start gap-2">
+            <span class="min-w-[5rem] shrink-0 font-medium text-inv-grey-700">Secondary:</span>
+            <span class="min-w-0 break-words">{{ secondaryMuscleLine() }}</span>
+          </div>
+        }
+        @if (showCaloriesRow()) {
+          <div class="flex items-start gap-2">
+            <span class="min-w-[5rem] shrink-0 font-medium text-inv-grey-700">Calories:</span>
+            <span>{{ data().caloriesLabel }}</span>
+          </div>
+        }
+        @if (showDurationRow()) {
+          <div class="flex items-start gap-2">
+            <span class="min-w-[5rem] shrink-0 font-medium text-inv-grey-700">Duration:</span>
+            <span>{{ data().durationLabel }}</span>
+          </div>
+        }
+      </div>
+    }
+
+    @if (data().instructions.length) {
+      <div
+        class="border-0 border-t border-solid border-inv-border-card pt-3"
+        [class.mt-3]="!hasMetaSection()"
+        [class.mb-3]="marginBelowInstructions()">
+        <p class="m-0 mb-2 text-inv-body-mini font-semibold uppercase tracking-wide text-inv-grey-500">
+          Instructions
+        </p>
+        <ul class="m-0 list-none space-y-1 pl-0 text-inv-body-mini leading-snug text-inv-grey-600">
+          @for (line of instructionPreviewLines(); track $index) {
+            <li class="line-clamp-2 min-w-0 break-words">• {{ line }}</li>
+          }
+        </ul>
+        @if (instructionMoreCount() > 0) {
+          <p class="m-0 mt-1 text-inv-body-mini text-inv-grey-500">+{{ instructionMoreCount() }} more</p>
+        }
+      </div>
+    }
+
+    @if (data().catalogWarnings.length) {
+      <div
+        class="border-0 border-t border-solid border-inv-border-card pt-3"
+        [class.mt-3]="leadSpacerBeforeWarnings()"
+        [class.mb-3]="marginBelowWarnings()">
+        <p class="m-0 mb-2 text-inv-body-mini font-semibold uppercase tracking-wide text-inv-grey-500">
+          ⚠️ Warnings
+        </p>
+        <ul class="m-0 list-none space-y-1 pl-0 text-inv-body-mini text-inv-warning-100">
+          @for (w of warningPreviewLines(); track $index) {
+            <li class="line-clamp-2 min-w-0 break-words">• {{ w }}</li>
+          }
+        </ul>
+        @if (warningMoreCount() > 0) {
+          <p class="m-0 mt-1 text-inv-body-mini text-inv-warning-100">+{{ warningMoreCount() }} more</p>
+        }
+      </div>
+    }
+
+    @if (data().catalogMedia.length) {
+      <div
+        class="border-0 border-t border-solid border-inv-border-card pt-3"
+        [class.mt-3]="leadSpacerBeforeMedia()"
+        [class.mb-3]="marginBelowMedia()">
+        <p class="m-0 mb-2 text-inv-body-mini font-semibold uppercase tracking-wide text-inv-grey-500">
+          Training media
+        </p>
+        <div class="flex min-w-0 flex-col gap-1.5">
+          @for (item of mediaPreviewItems(); track $index) {
+            <div class="flex min-w-0 items-center gap-2 text-inv-body-mini">
+              @if (item.type.toLowerCase() === 'video') {
+                <span class="inv-catalog-chip shrink-0 bg-purple-100 font-medium text-purple-700">Video</span>
+              } @else {
+                <span class="inv-catalog-chip shrink-0 bg-blue-100 font-medium text-blue-700">Image</span>
+              }
+              <span class="min-w-0 truncate text-inv-grey-600">{{ item.url }}</span>
+            </div>
+          }
+          @if (mediaMoreCount() > 0) {
+            <p class="m-0 text-inv-body-mini text-inv-grey-500">+{{ mediaMoreCount() }} more</p>
+          }
+        </div>
+      </div>
+    }
+
+    @if (data().catalogTags.length) {
+      <div
+        class="border-0 border-t border-solid border-inv-border-card pt-3"
+        [class.mt-3]="leadSpacerBeforeTags()">
+        <p class="m-0 mb-2 text-inv-body-mini font-semibold uppercase tracking-wide text-inv-grey-500">Tags</p>
+        <div class="flex min-w-0 flex-wrap gap-2">
+          @for (t of tagPreviewItems(); track t) {
+            <span class="inv-catalog-chip inline-block bg-indigo-50 font-medium text-indigo-700">{{ t }}</span>
+          }
+          @if (tagMoreCount() > 0) {
+            <span class="inv-catalog-chip inline-block bg-inv-grey-0 font-medium text-inv-grey-500">+{{ tagMoreCount() }}</span>
+          }
+        </div>
+      </div>
+    }
+  </div>
+</div>

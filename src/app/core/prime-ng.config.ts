@@ -16,6 +16,11 @@ const GymBroAura = definePreset(Aura, {
     }
   },
   semantic: {
+    formField: {
+      paddingX: '0.75rem',
+      paddingY: '0.75rem',
+      borderRadius: '{border.radius.sm}'
+    },
     primary: {
       50: '#eff6ff',
       100: '#dbeafe',

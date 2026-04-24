@@ -1,0 +1,41 @@
+<ng-template #dialogTpl>
+  <div
+    class="ui-info-dialog ui-dialog-animate-in w-full max-w-lg rounded-3xl bg-inv-surface-base p-8 shadow-2xl"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="titleDomId"
+    (click)="$event.stopPropagation()">
+    <div class="flex items-start gap-4">
+      <div
+        class="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-full bg-inv-primary-0">
+        <i [class]="headerIconClass() + ' text-2xl text-inv-primary-600'" aria-hidden="true"></i>
+      </div>
+      <div class="min-w-0 flex-1">
+        <div class="mb-2 flex items-start justify-between gap-2">
+          <h3 [id]="titleDomId" class="text-lg font-semibold text-inv-grey-900">
+            {{ heading() }}
+          </h3>
+          <app-button
+            icon="pi pi-times"
+            [text]="true"
+            [rounded]="true"
+            severity="secondary"
+            ariaLabel="Close dialog"
+            (clicked)="onClose()" />
+        </div>
+        <p class="mb-4 text-sm text-inv-grey-600">{{ intro() }}</p>
+
+        <div class="mb-6 flex flex-col gap-3">
+          @for (row of rows(); track $index) {
+            <div class="flex items-start gap-3">
+              <span [class]="badgeClasses(row.tone)">{{ row.label }}</span>
+              <p class="flex-1 text-sm text-inv-grey-600">{{ row.description }}</p>
+            </div>
+          }
+        </div>
+
+        <app-button [label]="primaryLabel()" [styleClass]="'w-full'" (clicked)="onPrimary()" />
+      </div>
+    </div>
+  </div>
+</ng-template>
