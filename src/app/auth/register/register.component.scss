@@ -1,0 +1,307 @@
+.reg-page {
+  min-height: 100vh;
+  background: var(--p-surface-50, #f9fafb);
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 1rem;
+}
+
+.reg-container {
+  width: 100%;
+  max-width: 28rem;
+}
+
+// ── Header ─────────────────────────────────────────────────────────────────
+
+.reg-header {
+  text-align: center;
+  margin-bottom: 2rem;
+}
+
+.reg-logo {
+  width: 4rem;
+  height: 4rem;
+  background: var(--p-primary-500, #3b82f6);
+  border-radius: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-size: 1.5rem;
+  font-weight: 700;
+  margin: 0 auto 1rem;
+}
+
+.reg-title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--p-surface-900, #111827);
+  margin: 0 0 0.5rem;
+}
+
+.reg-subtitle {
+  font-size: 0.875rem;
+  color: var(--p-surface-500, #6b7280);
+  margin: 0;
+}
+
+// ── Card ───────────────────────────────────────────────────────────────────
+
+.reg-card {
+  background: var(--p-surface-0, #fff);
+  border: 1px solid var(--p-surface-200, #e5e7eb);
+  border-radius: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+  padding: 2rem;
+}
+
+.reg-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+// ── Error ──────────────────────────────────────────────────────────────────
+
+.reg-error {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  border-radius: 0.5rem;
+}
+
+.reg-error-icon {
+  color: #dc2626;
+  font-size: 1.125rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+}
+
+.reg-error-msg {
+  font-size: 0.875rem;
+  color: #b91c1c;
+  margin: 0;
+}
+
+// ── Fields ─────────────────────────────────────────────────────────────────
+
+.reg-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.reg-label {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--p-surface-700, #374151);
+}
+
+.reg-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.reg-input-icon {
+  position: absolute;
+  left: 0.75rem;
+  color: var(--p-surface-400, #9ca3af);
+  font-size: 1rem;
+  pointer-events: none;
+}
+
+.reg-input {
+  width: 100%;
+  padding: 0.625rem 1rem 0.625rem 2.5rem;
+  border: 1px solid var(--p-surface-300, #d1d5db);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  color: var(--p-surface-900, #111827);
+  background: var(--p-surface-0, #fff);
+  outline: none;
+  transition: border-color 0.15s, box-shadow 0.15s;
+  box-sizing: border-box;
+
+  &::placeholder { color: var(--p-surface-400, #9ca3af); }
+
+  &:focus {
+    border-color: var(--p-primary-500, #3b82f6);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
+  }
+
+  &:disabled { opacity: 0.6; cursor: not-allowed; }
+
+  &--has-eye { padding-right: 2.75rem; }
+}
+
+.reg-eye-btn {
+  position: absolute;
+  right: 0;
+  top: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  padding: 0 0.75rem;
+  background: transparent;
+  border: none;
+  color: var(--p-surface-400, #9ca3af);
+  cursor: pointer;
+  transition: color 0.15s;
+
+  i { font-size: 0.9375rem; }
+  &:hover { color: var(--p-surface-600, #4b5563); }
+}
+
+.reg-hint {
+  font-size: 0.75rem;
+  color: var(--p-surface-400, #9ca3af);
+  margin: 0;
+}
+
+.reg-hint-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: 0.3125rem;
+
+  li {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.75rem;
+    color: var(--p-surface-400, #9ca3af);
+    transition: color 0.15s;
+
+    &.reg-hint-met {
+      color: #16a34a;
+
+      .reg-hint-dot {
+        background: #dcfce7;
+        i { display: flex; color: #16a34a; }
+      }
+    }
+  }
+}
+
+.reg-hint-dot {
+  flex-shrink: 0;
+  width: 0.875rem;
+  height: 0.875rem;
+  border-radius: 50%;
+  background: #e5e7eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.15s;
+
+  i { display: none; font-size: 0.5rem; }
+}
+
+// ── Submit ─────────────────────────────────────────────────────────────────
+
+.reg-btn {
+  width: 100%;
+  padding: 0.75rem 1rem;
+  min-height: 3rem;
+  background: var(--p-primary-500, #3b82f6);
+  color: #fff;
+  border: none;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+
+  &:hover:not(:disabled) { background: var(--p-primary-600, #2563eb); }
+  &:disabled { background: var(--p-primary-300, #93c5fd); cursor: not-allowed; }
+}
+
+.reg-spinner {
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 2px solid rgba(255, 255, 255, 0.4);
+  border-top-color: #fff;
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }
+
+// ── Divider ────────────────────────────────────────────────────────────────
+
+.reg-divider {
+  position: relative;
+  margin: 1.5rem 0;
+  text-align: center;
+
+  &::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 0;
+    right: 0;
+    border-top: 1px solid var(--p-surface-200, #e5e7eb);
+  }
+}
+
+.reg-divider-label {
+  position: relative;
+  padding: 0 0.5rem;
+  background: var(--p-surface-0, #fff);
+  font-size: 0.875rem;
+  color: var(--p-surface-500, #6b7280);
+}
+
+// ── Phone button ───────────────────────────────────────────────────────────
+
+.reg-phone-btn {
+  width: 100%;
+  padding: 0.625rem 1rem;
+  background: transparent;
+  border: 1px solid var(--p-surface-300, #d1d5db);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--p-surface-700, #374151);
+  cursor: not-allowed;
+  transition: background 0.15s;
+  opacity: 0.5;
+}
+
+// ── Sign-in link ───────────────────────────────────────────────────────────
+
+.reg-signin {
+  margin-top: 1.5rem;
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--p-surface-600, #4b5563);
+}
+
+.reg-link {
+  font-weight: 500;
+  color: var(--p-primary-500, #3b82f6);
+  text-decoration: none;
+  cursor: pointer;
+
+  &:hover { color: var(--p-primary-600, #2563eb); }
+}
+
+// ── Footer ─────────────────────────────────────────────────────────────────
+
+.reg-footer {
+  text-align: center;
+  font-size: 0.875rem;
+  color: var(--p-surface-500, #6b7280);
+  margin-top: 1.5rem;
+}

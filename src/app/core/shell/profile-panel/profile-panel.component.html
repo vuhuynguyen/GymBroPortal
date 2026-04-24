@@ -1,0 +1,129 @@
+<div class="profile-overlay" (click)="close()" role="presentation">
+  <div class="profile-panel" (click)="$event.stopPropagation()" role="dialog" aria-label="My Profile" aria-modal="true">
+    <!-- Header -->
+    <div class="profile-panel-header">
+      <div>
+        <h2 class="profile-panel-title">My Profile</h2>
+        <p class="profile-panel-subtitle">Manage your personal information</p>
+      </div>
+      <div class="profile-panel-header-actions">
+        @if (!isEditing()) {
+          <button class="profile-btn-edit" (click)="startEditing()">
+            <i class="pi pi-pencil"></i>
+            Edit
+          </button>
+        }
+        <button class="profile-btn-close" (click)="close()" aria-label="Close">
+          <i class="pi pi-times"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Body -->
+    <div class="profile-panel-body">
+      <div class="profile-card">
+        <!-- Avatar banner -->
+        <div class="profile-card-banner">
+          <div class="profile-card-avatar">
+            <span>{{ getInitial() }}</span>
+          </div>
+          <div class="profile-card-banner-info">
+            <div class="profile-card-banner-name">{{ user().name }}</div>
+            <div class="profile-card-banner-email">{{ user().email }}</div>
+            <div class="profile-card-banner-since">
+              <i class="pi pi-calendar"></i>
+              Member since April 2026
+            </div>
+          </div>
+        </div>
+
+        <!-- Form -->
+        <div class="profile-card-form">
+          @if (error()) {
+            <div class="profile-form-error">
+              <i class="pi pi-exclamation-circle"></i>
+              {{ error() }}
+            </div>
+          }
+
+          <!-- Full Name -->
+          <div class="profile-form-field">
+            <label class="profile-form-label">Full Name</label>
+            @if (isEditing()) {
+              <div class="profile-input-wrap">
+                <i class="pi pi-user profile-input-icon"></i>
+                <input
+                  class="profile-input"
+                  type="text"
+                  [ngModel]="editName()"
+                  (ngModelChange)="editName.set($event)"
+                  placeholder="Your full name"
+                  autocomplete="name" />
+              </div>
+            } @else {
+              <div class="profile-field-static">
+                <i class="pi pi-user"></i>
+                <span>{{ user().name }}</span>
+              </div>
+            }
+          </div>
+
+          <!-- Email Address -->
+          <div class="profile-form-field">
+            <label class="profile-form-label">Email Address</label>
+            @if (isEditing()) {
+              <div class="profile-input-wrap">
+                <i class="pi pi-envelope profile-input-icon"></i>
+                <input
+                  class="profile-input profile-input--disabled"
+                  type="email"
+                  [value]="user().email"
+                  disabled
+                  autocomplete="off" />
+              </div>
+            } @else {
+              <div class="profile-field-static">
+                <i class="pi pi-envelope"></i>
+                <span>{{ user().email }}</span>
+              </div>
+            }
+            <p class="profile-form-hint">Your email cannot be changed. Contact support if needed.</p>
+          </div>
+
+          <!-- Account type -->
+          <div class="profile-form-field">
+            <label class="profile-form-label">Account Type</label>
+            <div class="profile-badge">
+              <i class="pi pi-envelope"></i>
+              Email Account
+            </div>
+          </div>
+
+          <!-- Edit actions -->
+          @if (isEditing()) {
+            <div class="profile-form-actions">
+              <button class="profile-btn-cancel" (click)="cancel()">
+                <i class="pi pi-times"></i>
+                Cancel
+              </button>
+              <button class="profile-btn-save" (click)="save()" [disabled]="isSaving()">
+                @if (isSaving()) {
+                  <i class="pi pi-spin pi-spinner"></i>
+                  Saving...
+                } @else {
+                  <i class="pi pi-save"></i>
+                  Save Changes
+                }
+              </button>
+            </div>
+          }
+        </div>
+      </div>
+
+      <p class="profile-support-hint">
+        Need to update your email or phone?
+        <a href="mailto:support@gymbro.app">Contact Support</a>
+      </p>
+    </div>
+  </div>
+</div>

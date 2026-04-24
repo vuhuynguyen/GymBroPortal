@@ -17,6 +17,9 @@ import {
 import { Avatar } from 'primeng/avatar';
 import { ButtonComponent } from '../../shared/ui';
 import { filter, map, startWith } from 'rxjs/operators';
+import { AuthService } from '../../auth/auth.service';
+import { ProfilePanelComponent } from './profile-panel/profile-panel.component';
+import { ChangePasswordPanelComponent } from './change-password-panel/change-password-panel.component';
 
 export interface BreadcrumbItem {
   label: string;
@@ -33,7 +36,7 @@ interface NavItem {
 @Component({
   selector: 'app-shell',
   standalone: true,
-  imports: [RouterOutlet, RouterLink, RouterLinkActive, ButtonComponent, Avatar],
+  imports: [RouterOutlet, RouterLink, RouterLinkActive, ButtonComponent, Avatar, ProfilePanelComponent, ChangePasswordPanelComponent],
   templateUrl: './app-shell.component.html',
   styleUrl: './app-shell.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -44,6 +47,13 @@ export class AppShellComponent {
 
   private readonly router = inject(Router);
   private readonly breakpoint = inject(BreakpointObserver);
+  private readonly auth = inject(AuthService);
+
+  readonly currentUser = this.auth.currentUser;
+
+  readonly showProfilePanel = signal(false);
+  readonly showChangePasswordPanel = signal(false);
+  readonly userMenuOpen = signal(false);
 
   readonly mobileSidebarOpen = signal(false);
   /** When true on viewports ≥768px, sidebar shows as a narrow icon rail (240px → 72px). */
@@ -79,7 +89,10 @@ export class AppShellComponent {
         filter((e): e is NavigationEnd => e instanceof NavigationEnd),
         takeUntilDestroyed()
       )
-      .subscribe(() => this.mobileSidebarOpen.set(false));
+      .subscribe(() => {
+        this.mobileSidebarOpen.set(false);
+        this.userMenuOpen.set(false);
+      });
   }
 
   toggleMobileSidebar(): void {
@@ -94,8 +107,29 @@ export class AppShellComponent {
     this.sidebarMinimized.update((v) => !v);
   }
 
+  toggleUserMenu(): void {
+    this.userMenuOpen.update((v) => !v);
+  }
+
+  openProfile(): void {
+    this.userMenuOpen.set(false);
+    this.showProfilePanel.set(true);
+    this.mobileSidebarOpen.set(false);
+  }
+
+  openChangePassword(): void {
+    this.userMenuOpen.set(false);
+    this.showChangePasswordPanel.set(true);
+    this.mobileSidebarOpen.set(false);
+  }
+
   goSettings(): void {
+    this.userMenuOpen.set(false);
     void this.router.navigateByUrl('/settings');
+  }
+
+  logout(): void {
+    this.auth.logout();
   }
 
   private computeBreadcrumbs(): BreadcrumbItem[] {
