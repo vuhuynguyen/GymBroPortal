@@ -1,0 +1,115 @@
+<section role="region" aria-label="Tenant management">
+  <app-confirm-split-dialog
+    [open]="deleteTarget() !== null"
+    (openChange)="onDeleteDialogOpenChange($event)"
+    heading="Delete workspace?"
+    [message]="deleteDialogMessage()"
+    confirmLabel="Delete"
+    (confirmed)="onDeleteConfirmed()" />
+
+  <app-confirm-split-dialog
+    [open]="removeMemberTarget() !== null"
+    (openChange)="onRemoveMemberDialogOpenChange($event)"
+    heading="Remove member?"
+    [message]="removeMemberDialogMessage()"
+    confirmLabel="Remove"
+    (confirmed)="onRemoveMemberConfirmed()" />
+
+  <app-ui-page-container class="flex flex-col gap-inv-5">
+
+    @if (selectedTenant(); as tenant) {
+      <!-- Members drill-down view -->
+      <div>
+        <app-page-header
+          [title]="tenant.name"
+          subtitle="Members of this workspace.">
+          <div class="ui-page-actions flex items-center gap-4">
+            <app-button
+              label="Back to Tenants"
+              icon="pi pi-arrow-left"
+              [outlined]="true"
+              severity="secondary"
+              (clicked)="backToTenants()" />
+          </div>
+        </app-page-header>
+      </div>
+
+      <app-data-table
+        [columns]="memberColumns"
+        [data]="tenantMembers()"
+        [loading]="membersLoading()"
+        globalSearchPlaceholder="Search members"
+        emptyMessage="No members in this workspace."
+        itemLabel="members">
+
+        <ng-template appDataTableCell="name" let-row>
+          <span class="font-semibold text-inv-grey-900">{{ row['name'] }}</span>
+        </ng-template>
+
+        <ng-template appDataTableCell="joinedAt" let-row>
+          <span class="text-inv-grey-500 text-sm">{{ formatDate(row['joinedAt']) }}</span>
+        </ng-template>
+
+        <ng-template appDataTableCell="actions" let-row>
+          <div class="flex justify-end">
+            <app-button
+              icon="pi pi-user-minus"
+              size="small"
+              [rounded]="true"
+              [text]="true"
+              severity="danger"
+              [disabled]="removeMemberInProgress()"
+              [ariaLabel]="'Remove ' + row['name']"
+              (clicked)="confirmRemoveMember($any(row))" />
+          </div>
+        </ng-template>
+      </app-data-table>
+
+    } @else {
+      <!-- Tenant list view -->
+      <app-page-header
+        title="Tenants"
+        subtitle="All workspaces on the platform." />
+
+      <app-data-table
+        [columns]="tenantColumns"
+        [data]="tenants()"
+        [loading]="loading()"
+        globalSearchPlaceholder="Search workspaces"
+        emptyMessage="No workspaces found."
+        itemLabel="workspaces">
+
+        <ng-template appDataTableCell="name" let-row>
+          <span class="font-semibold text-inv-grey-900">{{ row['name'] }}</span>
+        </ng-template>
+
+        <ng-template appDataTableCell="createdOnUtc" let-row>
+          <span class="text-inv-grey-500 text-sm">{{ formatDate(row['createdOnUtc']) }}</span>
+        </ng-template>
+
+        <ng-template appDataTableCell="actions" let-row>
+          <div class="flex flex-nowrap items-center justify-end gap-2">
+            <app-button
+              icon="pi pi-users"
+              size="small"
+              [rounded]="true"
+              [text]="true"
+              severity="secondary"
+              [ariaLabel]="'View members of ' + row['name']"
+              (clicked)="viewMembers($any(row))" />
+            <app-button
+              icon="pi pi-trash"
+              size="small"
+              [rounded]="true"
+              [text]="true"
+              severity="danger"
+              [disabled]="deleteInProgress()"
+              [ariaLabel]="'Delete ' + row['name']"
+              (clicked)="confirmDelete($any(row))" />
+          </div>
+        </ng-template>
+      </app-data-table>
+    }
+
+  </app-ui-page-container>
+</section>

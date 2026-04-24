@@ -1,0 +1,21 @@
+<app-ui-page-container class="flex flex-col gap-inv-5">
+
+  <app-page-header
+    [title]="coachName() ?? 'Assigned Plans'"
+    [subtitle]="coachName() ? 'Plans assigned to you by ' + coachName() : 'Plans your coach has assigned to you.'" />
+
+  <div class="tp-empty">
+    <div class="tp-empty__icon">
+      <i class="pi pi-calendar-times"></i>
+    </div>
+    <p class="tp-empty__heading">No plans yet</p>
+    <p class="tp-empty__text">
+      @if (coachName()) {
+        {{ coachName() }} hasn't assigned a plan yet — check back soon.
+      } @else {
+        Your coach hasn't assigned a plan yet — check back soon.
+      }
+    </p>
+  </div>
+
+</app-ui-page-container>

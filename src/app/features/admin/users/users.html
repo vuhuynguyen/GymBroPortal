@@ -1,0 +1,48 @@
+<section role="region" aria-label="User management">
+  <app-confirm-split-dialog
+    [open]="deleteTarget() !== null"
+    (openChange)="onDeleteDialogOpenChange($event)"
+    heading="Delete user?"
+    [message]="deleteDialogMessage()"
+    confirmLabel="Delete"
+    (confirmed)="onDeleteConfirmed()" />
+
+  <app-ui-page-container class="flex flex-col gap-inv-5">
+
+    <app-page-header
+      title="Users"
+      subtitle="All registered users on the platform." />
+
+    <app-data-table
+      [columns]="tableColumns"
+      [data]="users()"
+      [loading]="loading()"
+      globalSearchPlaceholder="Search users"
+      emptyMessage="No users found."
+      itemLabel="users">
+
+      <ng-template appDataTableCell="name" let-row>
+        <span class="font-semibold text-inv-grey-900">{{ row['name'] }}</span>
+      </ng-template>
+
+      <ng-template appDataTableCell="createdOnUtc" let-row>
+        <span class="text-inv-grey-500 text-sm">{{ formatDate(row['createdOnUtc']) }}</span>
+      </ng-template>
+
+      <ng-template appDataTableCell="actions" let-row>
+        <div class="flex justify-end">
+          <app-button
+            icon="pi pi-trash"
+            size="small"
+            [rounded]="true"
+            [text]="true"
+            severity="danger"
+            [disabled]="deleteInProgress()"
+            [ariaLabel]="'Delete ' + row['name']"
+            (clicked)="confirmDelete($any(row))" />
+        </div>
+      </ng-template>
+    </app-data-table>
+
+  </app-ui-page-container>
+</section>

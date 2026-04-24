@@ -1,0 +1,58 @@
+<div class="cp-overlay" (click)="close()" role="presentation">
+  <div class="cp-panel" (click)="$event.stopPropagation()" role="dialog" aria-label="Join GymBro" aria-modal="true">
+
+    <div class="cp-header">
+      <div>
+        <h2 class="cp-title">Join GymBro</h2>
+        <p class="cp-subtitle">Enter the invite code shared by your trainer</p>
+      </div>
+      <button class="cp-btn-close" (click)="close()" aria-label="Close">
+        <i class="pi pi-times"></i>
+      </button>
+    </div>
+
+    <div class="cp-body">
+      <div class="cp-card">
+
+        @if (error()) {
+          <div class="cp-error">
+            <i class="pi pi-exclamation-circle"></i>
+            {{ error() }}
+          </div>
+        }
+
+        <div class="cp-field">
+          <label class="cp-label" for="invite-code">Invite Code</label>
+          <input
+            id="invite-code"
+            class="cp-input cp-input--code"
+            type="text"
+            [ngModel]="code()"
+            (ngModelChange)="code.set($event.toUpperCase())"
+            placeholder="e.g. AB3K7MNP"
+            maxlength="8"
+            autocomplete="off"
+            autocorrect="off"
+            spellcheck="false" />
+          <p class="cp-hint">8-character code — letters and numbers only</p>
+        </div>
+
+      </div>
+    </div>
+
+    <div class="cp-footer">
+      <button class="cp-btn cp-btn--ghost" type="button" (click)="close()">Cancel</button>
+      <button
+        class="cp-btn cp-btn--primary"
+        type="button"
+        [disabled]="loading()"
+        (click)="submit()">
+        @if (loading()) {
+          <i class="pi pi-spin pi-spinner"></i>
+        }
+        Join GymBro
+      </button>
+    </div>
+
+  </div>
+</div>

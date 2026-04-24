@@ -36,3 +36,16 @@ If the **structure is wrong** (layout, component choice, spacing outside the sys
 
 1. **Analyze:** “Extract design system from this Figma export” — layout, spacing, components, hierarchy; ignore React implementation detail.
 2. **Apply:** “Use the system to implement Angular UI” — map to `shared/ui`, tokens (`var(--inv-*)`, `inv-*` utilities), and `docs/figma-workflow.md`.
+
+## Shared documentation (read before any UI task)
+
+| What you need | Read |
+|---|---|
+| Angular structure, routes, signals | `../../docs/ui-structure.md` |
+| API endpoints this page calls | `../../docs/api-contracts.md` |
+| AI behavior rules | `../../docs/ai-rules.md` |
+| Figma → Angular (summary) | `../../docs/figma-to-angular.md` |
+| Figma → Angular (full workflow) | `docs/figma-workflow.md` |
+| Design tokens | `docs/design-system.md` |
+
+After every change: new route/component → update `../../docs/ui-structure.md`.

@@ -1,0 +1,254 @@
+<div
+  class="app-shell-layout"
+  [class.app-shell-layout--drawer-open]="isMobile() && mobileSidebarOpen()">
+  @if (isMobile() && mobileSidebarOpen()) {
+    <div class="app-shell-backdrop" role="presentation" (click)="closeMobileSidebar()"></div>
+  }
+
+  <aside
+    class="app-shell-sidebar"
+    [class.app-shell-sidebar--mobile-open]="isMobile() && mobileSidebarOpen()"
+    [class.app-shell-sidebar--rail]="sidebarRailMode()"
+    [attr.aria-label]="appTitle + ' navigation'">
+    <div class="app-shell-sidebar-top">
+      <div class="app-shell-sidebar-brand">
+        <div class="app-shell-sidebar-brand-main">
+          <span class="app-shell-brand-mark" aria-hidden="true">GB</span>
+          <div class="app-shell-brand-text">
+            <div class="app-shell-brand-title">{{ appTitle }}</div>
+            <div class="app-shell-brand-hint">
+              @if (isPlatformAdmin()) { Platform Admin }
+              @else { {{ roleBadge() }} }
+            </div>
+          </div>
+        </div>
+        @if (!isMobile()) {
+          <div class="app-shell-sidebar-brand-toggle">
+            <app-button
+              [icon]="sidebarMinimized() ? 'pi pi-angle-right' : 'pi pi-angle-left'"
+              [rounded]="true"
+              [text]="true"
+              severity="secondary"
+              [ariaPressed]="sidebarMinimized()"
+              [ariaLabel]="sidebarMinimized() ? 'Expand sidebar' : 'Minimize sidebar'"
+              (clicked)="toggleSidebarMinimize()" />
+          </div>
+        }
+      </div>
+
+      <div class="app-shell-sidebar-scroll">
+
+        <!-- My Training (always visible for regular users) -->
+        @if (generalNavItems().length > 0) {
+          @if (!isPlatformAdmin()) {
+            <p class="app-shell-section-label">My Training</p>
+          }
+          <nav class="app-shell-nav" aria-label="My Training">
+            @for (item of generalNavItems(); track item.route) {
+              <a
+                [routerLink]="item.route"
+                routerLinkActive="app-shell-nav-link--active"
+                [routerLinkActiveOptions]="item.activeMatch === 'prefix' ? { exact: false } : { exact: true }"
+                class="app-shell-nav-link"
+                (click)="isMobile() && closeMobileSidebar()">
+                <i [class]="item.icon" aria-hidden="true"></i>
+                <span class="app-shell-nav-link-label">{{ item.label }}</span>
+              </a>
+            }
+          </nav>
+        }
+
+        <!-- Coaching: plans from your coach -->
+        @for (ws of trainerWorkspaces(); track ws.id) {
+          <p class="app-shell-section-label">Coaching</p>
+          <nav class="app-shell-nav" aria-label="Coaching">
+            <a
+              [routerLink]="['/workspace/trainer', ws.id, 'plans']"
+              routerLinkActive="app-shell-nav-link--active"
+              [routerLinkActiveOptions]="{ exact: false }"
+              class="app-shell-nav-link"
+              (click)="isMobile() && closeMobileSidebar()">
+              <i class="pi pi-calendar" aria-hidden="true"></i>
+              <span class="app-shell-nav-link-label">Assigned Plans</span>
+            </a>
+          </nav>
+        }
+
+        <!-- Team: People / Invite when you own a workspace; Join GymBro for everyone -->
+        @if (trainerNavItems().length > 0) {
+          <p class="app-shell-section-label">Team</p>
+          <nav class="app-shell-nav" aria-label="Team">
+            @for (item of trainerNavItems(); track item.route) {
+              @if (item.opensInviteGymBroPanel) {
+                <button
+                  type="button"
+                  class="app-shell-nav-link app-shell-nav-link--button"
+                  (click)="openInviteGymBroPanel()">
+                  <i [class]="item.icon" aria-hidden="true"></i>
+                  <span class="app-shell-nav-link-label">{{ item.label }}</span>
+                </button>
+              } @else if (item.opensJoinGymBroPanel) {
+                <button
+                  type="button"
+                  class="app-shell-nav-link app-shell-nav-link--button"
+                  (click)="openJoinGymBroPanel()">
+                  <i [class]="item.icon" aria-hidden="true"></i>
+                  <span class="app-shell-nav-link-label">{{ item.label }}</span>
+                </button>
+              } @else {
+                <a
+                  [routerLink]="item.route"
+                  routerLinkActive="app-shell-nav-link--active"
+                  [routerLinkActiveOptions]="item.activeMatch === 'prefix' ? { exact: false } : { exact: true }"
+                  class="app-shell-nav-link"
+                  (click)="isMobile() && closeMobileSidebar()">
+                  <i [class]="item.icon" aria-hidden="true"></i>
+                  <span class="app-shell-nav-link-label">{{ item.label }}</span>
+                </a>
+              }
+            }
+          </nav>
+        }
+
+        <!-- Admin section (Platform Admin only) -->
+        @if (adminNavItems().length > 0) {
+          <p class="app-shell-section-label">Admin</p>
+          <nav class="app-shell-nav" aria-label="Admin">
+            @for (item of adminNavItems(); track item.route) {
+              <a
+                [routerLink]="item.route"
+                routerLinkActive="app-shell-nav-link--active"
+                [routerLinkActiveOptions]="item.activeMatch === 'prefix' ? { exact: false } : { exact: true }"
+                class="app-shell-nav-link"
+                (click)="isMobile() && closeMobileSidebar()">
+                <i [class]="item.icon" aria-hidden="true"></i>
+                <span class="app-shell-nav-link-label">{{ item.label }}</span>
+              </a>
+            }
+          </nav>
+        }
+
+      </div>
+    </div>
+
+    <div class="app-shell-sidebar-bottom">
+      <!-- Popup menu -->
+      @if (userMenuOpen()) {
+        <div class="app-shell-user-menu" role="menu">
+
+
+          <div class="app-shell-user-menu-group">
+            <button class="app-shell-user-menu-item" role="menuitem" (click)="openProfile()">
+              <i class="pi pi-user" aria-hidden="true"></i>
+              <span>My Profile</span>
+            </button>
+            <button class="app-shell-user-menu-item" role="menuitem" (click)="goSettings()">
+              <i class="pi pi-cog" aria-hidden="true"></i>
+              <span>Settings</span>
+            </button>
+            <button class="app-shell-user-menu-item" role="menuitem" (click)="openChangePassword()">
+              <i class="pi pi-key" aria-hidden="true"></i>
+              <span>Change Password</span>
+            </button>
+          </div>
+          <div class="app-shell-user-menu-divider"></div>
+          <div class="app-shell-user-menu-group">
+            <button class="app-shell-user-menu-item app-shell-user-menu-item--danger" role="menuitem" (click)="logout()">
+              <i class="pi pi-sign-out" aria-hidden="true"></i>
+              <span>Sign out</span>
+            </button>
+          </div>
+        </div>
+      }
+
+      <!-- User row -->
+      <button
+        class="app-shell-sidebar-user"
+        [class.app-shell-sidebar-user--open]="userMenuOpen()"
+        (click)="toggleUserMenu()"
+        [attr.aria-expanded]="userMenuOpen()"
+        aria-haspopup="menu">
+        <div class="app-shell-user-avatar-wrap">
+          <p-avatar
+            [label]="(currentUser()?.name || 'U').charAt(0).toUpperCase()"
+            shape="circle"
+            styleClass="app-shell-user-avatar" />
+        </div>
+        <div class="app-shell-user-meta">
+          <div class="app-shell-user-name">{{ currentUser()?.name || 'User' }}</div>
+          <div class="app-shell-user-role">{{ roleBadge() }}</div>
+        </div>
+        <i class="pi app-shell-user-chevron"
+           [class.pi-chevron-up]="userMenuOpen()"
+           [class.pi-chevron-down]="!userMenuOpen()"
+           aria-hidden="true"></i>
+      </button>
+    </div>
+  </aside>
+
+  @if (showProfilePanel() && currentUser()) {
+    <app-profile-panel
+      [user]="currentUser()!"
+      (closed)="showProfilePanel.set(false)" />
+  }
+
+  @if (showChangePasswordPanel()) {
+    <app-change-password-panel
+      (closed)="showChangePasswordPanel.set(false)" />
+  }
+
+  @if (showJoinGymBroPanel()) {
+    <app-join-gymbro-panel
+      (closed)="showJoinGymBroPanel.set(false)"
+      (joined)="showJoinGymBroPanel.set(false)" />
+  }
+
+  @if (showInviteGymBroPanel()) {
+    <app-invite-gymbro-panel (closed)="showInviteGymBroPanel.set(false)" />
+  }
+
+  <div class="app-shell-main">
+    <header class="app-shell-breadcrumb-bar">
+      @if (isMobile()) {
+        <app-button
+          icon="pi pi-bars"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          ariaLabel="Open navigation"
+          (clicked)="toggleMobileSidebar()" />
+      }
+      <nav class="app-shell-breadcrumb" aria-label="Breadcrumb">
+        @for (c of breadcrumbs(); track $index; let i = $index) {
+          @if (i > 0) {
+            <span class="app-shell-breadcrumb-sep" aria-hidden="true">/</span>
+          }
+          @if (c.link !== null) {
+            <a [routerLink]="c.link">{{ c.label }}</a>
+          } @else {
+            <span class="app-shell-breadcrumb-current" aria-current="page">{{ c.label }}</span>
+          }
+        }
+      </nav>
+      <div class="app-shell-topbar-actions">
+        <app-button
+          icon="pi pi-cog"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          ariaLabel="Settings"
+          (clicked)="goSettings()" />
+        <app-button
+          icon="pi pi-globe"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          ariaLabel="Language" />
+      </div>
+    </header>
+
+    <main class="app-shell-outlet">
+      <router-outlet />
+    </main>
+  </div>
+</div>

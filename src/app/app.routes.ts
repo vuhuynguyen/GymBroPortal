@@ -1,20 +1,20 @@
 import { Routes } from '@angular/router';
-import { authGuard } from './auth/auth.guard';
-import { noAuthGuard } from './auth/no-auth.guard';
+import { authGuard } from './core/auth/auth-guard';
+import { noAuthGuard } from './core/auth/no-auth-guard';
+import { adminGuard } from './core/auth/role-guard';
 
 export const routes: Routes = [
-  // Auth screens — outside the shell, redirect away if already logged in
   {
     path: 'login',
     canActivate: [noAuthGuard],
     loadComponent: () =>
-      import('./auth/login/login.component').then((m) => m.LoginComponent)
+      import('./features/auth/login/login').then((m) => m.LoginComponent)
   },
   {
     path: 'forgot-password',
     canActivate: [noAuthGuard],
     loadComponent: () =>
-      import('./auth/forgot-password/forgot-password.component').then(
+      import('./features/auth/forgot-password/forgot-password').then(
         (m) => m.ForgotPasswordComponent
       )
   },
@@ -22,30 +22,71 @@ export const routes: Routes = [
     path: 'register',
     canActivate: [noAuthGuard],
     loadComponent: () =>
-      import('./auth/register/register.component').then((m) => m.RegisterComponent)
+      import('./features/auth/register/register').then((m) => m.RegisterComponent)
   },
-  // Protected shell
   {
     path: '',
     loadComponent: () =>
-      import('./core/shell/app-shell.component').then((m) => m.AppShellComponent),
+      import('./core/layout/app-shell').then((m) => m.AppShellComponent),
     canActivate: [authGuard],
     children: [
-      { path: '', redirectTo: 'exercises', pathMatch: 'full' },
-      {
-        path: 'dashboard',
-        loadComponent: () =>
-          import('./dashboard/dashboard.component').then((m) => m.DashboardComponent)
-      },
+      { path: '', redirectTo: 'workspace/plans', pathMatch: 'full' },
       {
         path: 'settings',
         loadComponent: () =>
-          import('./settings/settings.component').then((m) => m.SettingsComponent)
+          import('./features/settings/settings').then((m) => m.SettingsComponent)
       },
       {
         path: 'exercises',
+        canActivate: [adminGuard()],
         loadChildren: () =>
-          import('./exercises/exercises.routes').then((m) => m.exercisesRoutes)
+          import('./features/exercises/exercises.routes').then((m) => m.exercisesRoutes)
+      },
+      {
+        path: 'workspace',
+        children: [
+          {
+            path: 'plans',
+            loadComponent: () =>
+              import('./features/workspace/plans/plans').then((m) => m.PlansComponent)
+          },
+          {
+            path: 'logs',
+            loadComponent: () =>
+              import('./features/workspace/logs/logs').then((m) => m.LogsComponent)
+          },
+          {
+            path: 'clients',
+            loadComponent: () =>
+              import('./features/workspace/clients/clients').then((m) => m.ClientsComponent)
+          },
+          { path: 'invite', redirectTo: 'clients', pathMatch: 'full' },
+          // legacy redirect
+          { path: 'members', redirectTo: 'clients', pathMatch: 'full' },
+          {
+            path: 'trainer/:trainerId/plans',
+            loadComponent: () =>
+              import('./features/workspace/trainer-plans/trainer-plans').then(
+                (m) => m.TrainerPlansComponent
+              )
+          }
+        ]
+      },
+      {
+        path: 'admin',
+        canActivate: [adminGuard()],
+        children: [
+          {
+            path: 'tenants',
+            loadComponent: () =>
+              import('./features/admin/tenants/tenants').then((m) => m.TenantsComponent)
+          },
+          {
+            path: 'users',
+            loadComponent: () =>
+              import('./features/admin/users/users').then((m) => m.UsersComponent)
+          }
+        ]
       }
     ]
   }
