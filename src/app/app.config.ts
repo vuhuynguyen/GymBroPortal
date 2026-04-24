@@ -10,9 +10,9 @@ import { provideRouter } from '@angular/router';
 import { provideAnimationsAsync } from '@angular/platform-browser/animations/async';
 import { MessageService } from 'primeng/api';
 import { routes } from './app.routes';
-import { providePrimeNgTheming } from './core/prime-ng.config';
-import { authInterceptor } from './auth/auth.interceptor';
-import { FeaturesService } from './core/features/features.service';
+import { providePrimeNgTheming } from './core/config/prime-ng.config';
+import { authInterceptor } from './core/auth/auth-interceptor';
+import { FeaturesService } from './core/feature-flags/feature-flags';
 
 export const appConfig: ApplicationConfig = {
   providers: [

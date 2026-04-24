@@ -29,13 +29,19 @@ You are a senior Angular frontend engineer building a scalable, production-ready
 
 # Architecture Rules
 
-* **This repository:** features live under `src/app/<feature>/` (e.g. `exercises/`). Typical contents: route components in their own folders (e.g. `exercise-list/`, `exercise-form/`), plus `*.service.ts`, `*.model.ts`, `*.routes.ts` at the feature root. Use `src/app/shared/ui/`, `src/app/shared/utils/`, and `src/app/core/` for cross-cutting code.
-* **Conceptual model** (when structuring or naming new work): feature modules mirror `components/`, `pages/`, `services/`, `models/`—prefer matching the **existing** feature’s layout over introducing a second pattern.
+* **Three top-level buckets under `src/app/`:**
+  * `core/` — app-wide singletons / infrastructure: `core/auth/` (guards, interceptor, auth service, permissions), `core/config/` (PrimeNG preset at `core/config/prime-ng.config.ts`), `core/feature-flags/`, `core/layout/` (`app-shell`, `invite-gymbro-panel/`, `join-gymbro-panel/`, profile/change-password panels), `core/tenant/`.
+  * `features/` — route-level features only: `features/admin/`, `features/auth/` (login/register/forgot-password PAGES — infra lives in `core/auth/`), `features/dashboard/`, `features/exercises/`, `features/settings/`, `features/workspace/`. Typical feature shape: route-component folders (`exercise-list/`, `exercise-form/`) plus feature-root service (`exercise.ts`), `*.model.ts`, `*.routes.ts`.
+  * `shared/ui/` — dumb, stateless, reusable wrappers. Nothing business-aware (tenant/auth/feature services stay in `core/`).
+* **Do NOT add new root-level folders** at `src/app/` alongside these three — fit the work into an existing bucket.
+* **Conceptual model:** prefer matching the existing feature’s layout over introducing a second pattern.
 * Separation of concerns:
 
   * UI (components)
   * State / logic (containers/services)
   * Data models (interfaces)
+
+* **Documentation (same change):** If you change routes, shell/sidebar behavior, `core/layout/` module names or wiring, workspace flows, or cross-cutting patterns, update **`CLAUDE.md`**, **`docs/claude-context-short.md`**, and **`docs/claude-context.md`** (when rules/architecture change) in the same pass. Do not leave docs referencing removed paths, old selectors, or renamed types.
 
 # Forms Standard (VERY IMPORTANT)
 
@@ -71,7 +77,7 @@ You are a senior Angular frontend engineer building a scalable, production-ready
 # Design system & Figma (STRICT)
 
 * **Primary brand color is blue** (`--inv-primary-*`, PrimeNG `semantic.primary`). **Do not use purple** for primary UI.
-* **Tokens:** `src/styles.scss` (`:root`), **PrimeNG preset:** `src/app/core/prime-ng.config.ts`, **Tailwind:** `tailwind.config.js` (`inv.*` colors, spacing, radii).
+* **Tokens:** `src/styles.scss` (`:root`), **PrimeNG preset:** `src/app/core/config/prime-ng.config.ts`, **Tailwind:** `tailwind.config.js` (`inv.*` colors, spacing, radii).
 * **No arbitrary hex** in feature code—use **`var(--inv-*)`** or Tailwind **`text-inv-*` / `bg-inv-*` / `border-inv-*` / `bg-inv-surface-base`**.
 * **Figma MCP** workflow, MCP as source of truth, and color rules: see **`.cursor/rules/figma-design-system.mdc`** (load for Figma-driven or token work).
 
@@ -178,15 +184,21 @@ You are a senior Angular frontend engineer building a scalable, production-ready
   * Dead code
   * Console logs
 
-# File Naming Convention
+# File Naming Convention (Angular v20+ style guide, file-only)
 
-* Use kebab-case for files
-* Examples:
+kebab-case filenames. **Class names keep their suffix** (`LoginComponent`, `AuthService`); only filenames follow the new rules.
 
-  * `exercise-list.component.ts`
-  * `exercise-form.component.ts`
-  * `exercise.service.ts`
-  * `exercise.model.ts`
+| Kind | Filename rule | Example |
+|---|---|---|
+| Component | drop `.component` | `exercise-list.ts` / `.html` / `.scss` / `.spec.ts` |
+| Service | drop `.service` | `exercise.ts`, `auth.ts`, `tenant.ts` |
+| Guard | `.guard` → `-guard` | `auth-guard.ts`, `no-auth-guard.ts`, `role-guard.ts` |
+| Interceptor | `.interceptor` → `-interceptor` | `auth-interceptor.ts` |
+| Directive | `.directive` → `-directive` | `data-table-cell-template-directive.ts` |
+| Pipe | `.pipe` → `-pipe` | `my-pipe.ts` |
+| Model | keep `.model.ts` / `.models.ts` | `exercise.model.ts`, `info-dialog.models.ts` |
+| Routes | keep `.routes.ts` | `exercises.routes.ts` |
+| Config | keep `.config.ts` | `prime-ng.config.ts` |
 
 # UI Consistency Rules
 
@@ -224,6 +236,16 @@ You are a senior Angular frontend engineer building a scalable, production-ready
 * Do not break design consistency
 * Do not ship layouts that only work at one breakpoint or that ignore touch/small screens
 * Do not block initial navigation on optional data or huge synchronous work on the main thread
+
+# Shared documentation (read before any task)
+
+| What you need | Read |
+|---|---|
+| Routes, services, component pattern | `../../docs/ui-structure.md` |
+| API endpoints | `../../docs/api-contracts.md` |
+| AI behavior rules | `../../docs/ai-rules.md` |
+
+After every change: new route/component → update `../../docs/ui-structure.md`.
 
 # Goal
 

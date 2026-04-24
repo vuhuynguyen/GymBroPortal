@@ -18,7 +18,7 @@ Use these rules with the **Figma MCP server** when implementing or updating UI. 
 ## Source of truth (MCP)
 
 - **Figma (via MCP) is the single source of truth** for colors, spacing, typography, radii, and component specs when the file is available.
-- **IMPORTANT:** Prefer **`get_design_context`** on the **selected frame/layer** in Figma Desktop (or supported remote MCP). **Do not invent** hex values, spacing, or type scales when MCP returns token data—map them into `src/styles.scss` and `src/app/core/prime-ng.config.ts`.
+- **IMPORTANT:** Prefer **`get_design_context`** on the **selected frame/layer** in Figma Desktop (or supported remote MCP). **Do not invent** hex values, spacing, or type scales when MCP returns token data—map them into `src/styles.scss` and `src/app/core/config/prime-ng.config.ts`.
 - **Do not rely on screenshots alone** if MCP design context is available for the same node.
 - If MCP returns **no selection**, **rate limit**, or **error**: ask the user to **select the correct node** in Figma Desktop or paste **Variables / Inspect** values, then update tokens manually.
 - MCP output (often React + Tailwind) is **reference only**—implement with **Angular + PrimeNG + shared/ui**, not copied React.
@@ -33,7 +33,7 @@ Use these rules with the **Figma MCP server** when implementing or updating UI. 
   - **`--inv-primary-600`** — hover / pressed (use via PrimeNG theme or `color-mix` / hover rules).
   - **`--inv-primary-0` … `--inv-primary-100`** — light backgrounds and tints.
   - **`--inv-primary-300` … `--inv-primary-900`** — darker brand surfaces (e.g. shell mark, high-contrast brand).
-- **PrimeNG** `semantic.primary` in `src/app/core/prime-ng.config.ts` **must stay aligned** with the same blue scale as `:root`.
+- **PrimeNG** `semantic.primary` in `src/app/core/config/prime-ng.config.ts` **must stay aligned** with the same blue scale as `:root`.
 - **Neutrals:** `--inv-grey-*`. **Semantic:** `--inv-success-*`, `--inv-warning-*`, `--inv-error-*`, `--inv-sky-*`, `--inv-secondary-*` (supporting blues—do not replace primary).
 - **Surfaces:** `--inv-surface-base` for primary white cards/panels (use `var(--inv-surface-base)` or Tailwind `bg-inv-surface-base`).
 - **No hardcoded colors** in feature templates or one-off SCSS: use **tokens** or **`inv-*` Tailwind** (`text-inv-grey-500`, `bg-inv-primary-0`, etc.).
@@ -46,7 +46,7 @@ Use these rules with the **Figma MCP server** when implementing or updating UI. 
 | Layer | File | Role |
 |-------|------|------|
 | Design tokens | `src/styles.scss` `:root` | All `--inv-*`, dashboard aliases, global PrimeNG overrides (tables, paginator, forms) |
-| PrimeNG theme | `src/app/core/prime-ng.config.ts` | `semantic.primary`, `primitive.borderRadius` |
+| PrimeNG theme | `src/app/core/config/prime-ng.config.ts` | `semantic.primary`, `primitive.borderRadius` |
 | Tailwind | `tailwind.config.js` | `inv.primary` (0–900), `inv.grey`, semantics, `inv-surface-base`, spacing, radii, type utilities |
 
 No Style Dictionary pipeline—tokens are **hand-maintained** and should be **updated from Figma** when the kit changes.
@@ -109,6 +109,6 @@ src/app/
 | Concern | File |
 |---------|------|
 | Global tokens + overrides | `src/styles.scss` |
-| PrimeNG primary blue | `src/app/core/prime-ng.config.ts` |
+| PrimeNG primary blue | `src/app/core/config/prime-ng.config.ts` |
 | Tailwind `inv-*` | `tailwind.config.js` |
 | Shared exports | `src/app/shared/ui/index.ts` |

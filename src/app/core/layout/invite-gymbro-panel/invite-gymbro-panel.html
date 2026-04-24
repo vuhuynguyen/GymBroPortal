@@ -1,0 +1,22 @@
+<div class="cp-overlay" (click)="close()" role="presentation">
+  <div
+    class="cp-panel cp-panel--wide"
+    (click)="$event.stopPropagation()"
+    role="dialog"
+    aria-label="Invite GymBro"
+    aria-modal="true">
+    <div class="cp-header">
+      <div>
+        <h2 class="cp-title">Invite GymBro</h2>
+        <p class="cp-subtitle">Share a code with anyone you want to coach. They enter it once to join your space.</p>
+      </div>
+      <button class="cp-btn-close" type="button" (click)="close()" aria-label="Close">
+        <i class="pi pi-times"></i>
+      </button>
+    </div>
+
+    <div class="cp-body cp-body--flush">
+      <app-invite [embedded]="true" />
+    </div>
+  </div>
+</div>

@@ -106,11 +106,25 @@ Tokens are **hand-maintained** from design specs—update all three layers toget
 
 ## Architecture
 
-- **Features** live under `src/app/<feature>/` (e.g. exercises, dashboard, settings).
-- Typical feature shape: route folders (`exercise-list/`, `exercise-form/`), plus `*.service.ts`, `*.model.ts`, `*.routes.ts` at the feature root.
-- **Cross-cutting:** `src/app/core/` (shell, app config, PrimeNG preset), `src/app/shared/ui/`, `src/app/shared/utils/`.
-- **Separation:** UI components; state and orchestration in containers/services; interfaces and DTO shapes in models.
-- **APIs:** only in services—not in templates.
+Three top-level buckets under `src/app/`:
+
+- **`core/`** — app-wide singletons / infrastructure (provided in root). Sub-buckets: `auth/` (guards, interceptor, auth service, permissions), `config/` (PrimeNG preset), `feature-flags/`, `layout/` (`app-shell`, `invite-gymbro-panel/`, `join-gymbro-panel/`, profile/change-password panels), `tenant/`.
+- **`features/`** — all route-level features. One folder per feature: `admin/`, `auth/` (login/register/forgot-password PAGES only — auth infra lives in `core/auth/`), `dashboard/`, `exercises/`, `settings/`, `workspace/`. Typical shape: route-component folders (`exercise-list/`, `exercise-form/`) plus `*.ts` service, `*.model.ts`, `*.routes.ts` at the feature root.
+- **`shared/ui/`** — dumb, stateless, reusable UI components. Nothing business-aware belongs here (tenant/auth/feature services stay in `core/`).
+
+**Separation:** UI components; state + orchestration in services; DTO shapes in models. **APIs:** only in services, never in templates.
+
+---
+
+## Documentation (keep aligned with code)
+
+When a change affects **routes**, **app shell / sidebar** (structure, labels, how overlays open), **`core/layout/`** module names, **workspace** screens, or **cross-cutting patterns**, update documentation in the **same PR or edit session**:
+
+1. **`GymBroPortal/CLAUDE.md`** — app map, shell panels, file locations.
+2. **`docs/claude-context-short.md`** — short pointers agents load first.
+3. **`docs/claude-context.md`** — this file, when architecture bullets, rules tables, or anti-patterns change.
+
+Remove or rewrite references to **deleted paths**, **old selectors**, or **renamed symbols** so docs never contradict the tree.
 
 ---
 
@@ -144,9 +158,13 @@ Tokens are **hand-maintained** from design specs—update all three layers toget
 
 ## Naming and files
 
-- **kebab-case** filenames: `exercise-list.component.ts`, `exercise.service.ts`, `exercise.model.ts`.
-- Methods: verb-led (`getExercises`, `createExercise`). Variables: descriptive, intention-revealing.
-- Prefer **constants / enums** over unexplained magic strings or numbers.
+Angular v20+ style guide (file-only rename; class suffixes like `Component` / `Service` kept in code):
+
+- **Components / services** — drop the suffix from the filename: `login.ts` (class `LoginComponent`), `exercise.ts` (class `ExerciseService`), `exercise-list.ts` (class `ExerciseListComponent`).
+- **Guards / interceptors / directives / pipes** — hyphenate: `auth-guard.ts`, `auth-interceptor.ts`, `data-table-cell-template-directive.ts`.
+- **Models** keep `.model.ts` / `.models.ts`; **routes** keep `.routes.ts`; **configs** keep `.config.ts`.
+- Companion files track the TS filename: `login.html`, `login.scss`, `login.spec.ts`.
+- All filenames kebab-case. Methods: verb-led (`getExercises`, `createExercise`). Prefer constants / enums over magic strings.
 
 ---
 
