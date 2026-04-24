@@ -61,4 +61,8 @@ export class ExerciseService {
   update(id: string, body: SaveExerciseRequest): Observable<string> {
     return this.http.put<string>(`${this.baseUrl}/${id}`, body);
   }
+
+  delete(id: string): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
+  }
 }

@@ -11,6 +11,10 @@ export type { AppButtonSeverity } from './button/button.component';
 export { InputComponent } from './input/input.component';
 export { SelectComponent } from './select/select.component';
 export { FormFieldComponent } from './form-field/form-field.component';
+export { ConfirmSplitDialogComponent } from './confirm-split-dialog/confirm-split-dialog.component';
+export { SuccessDialogComponent } from './success-dialog/success-dialog.component';
+export { InfoDialogComponent } from './info-dialog/info-dialog.component';
+export type { InfoDialogBadgeTone, InfoDialogRow } from './info-dialog/info-dialog.models';
 export { ChipRemovableListComponent } from './chip-removable-list/chip-removable-list.component';
 export { DataTableCellTemplateDirective } from './data-table/data-table-cell-template.directive';
 export type {

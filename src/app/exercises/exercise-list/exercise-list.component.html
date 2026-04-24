@@ -1,4 +1,11 @@
 <section role="region" aria-label="Exercise catalog">
+  <app-confirm-split-dialog
+    [open]="deleteTarget() !== null"
+    (openChange)="onDeleteDialogOpenChange($event)"
+    heading="Delete exercise?"
+    [message]="deleteDialogMessage()"
+    (confirmed)="onDeleteConfirmed()" />
+
   <app-ui-page-container class="flex flex-col gap-inv-5">
   <div>
     <app-page-header
@@ -33,8 +40,18 @@
           [rounded]="true"
           [text]="true"
           severity="secondary"
+          [disabled]="deleteInProgress()"
           [ariaLabel]="'Edit ' + row['name']"
           (clicked)="editExercise($any(row))" />
+        <app-button
+          icon="pi pi-trash"
+          size="small"
+          [rounded]="true"
+          [text]="true"
+          severity="danger"
+          [disabled]="deleteInProgress()"
+          [ariaLabel]="'Delete ' + row['name']"
+          (clicked)="confirmDeleteExercise($any(row))" />
       </div>
     </ng-template>
   </app-data-table>

@@ -18,6 +18,7 @@ import {
   FormControl,
   FormGroup,
   ReactiveFormsModule,
+  ValidationErrors,
   Validators
 } from '@angular/forms';
 import { maxLength, minLength, required } from '@angular/forms/signals';
@@ -63,6 +64,9 @@ import {
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ExerciseFormComponent implements OnInit {
+  /** Lets PrimeNG render the success toast before a full navigation / reload. */
+  private static readonly SUCCESS_TOAST_THEN_NAV_MS = 900;
+
   /** Aligned with API / `ANGULAR_IMPLEMENTATION.md` limits (used in template + handlers). */
   readonly maxInstructionSteps = 100;
   readonly maxMediaRows = 50;
@@ -156,6 +160,9 @@ export class ExerciseFormComponent implements OnInit {
   readonly catalogTags = signal<string[]>([]);
   readonly catalogWarnings = signal<string[]>([]);
 
+  /** Inline error for tag picker (e.g. duplicate); cleared when the picker value changes. */
+  readonly tagPickerContextError = signal<string | null>(null);
+
   private readonly initialInstructionsSnapshot = signal<string>('[]');
   private readonly initialCatalogTagsSnapshot = signal<string>('[]');
   private readonly initialCatalogWarningsSnapshot = signal<string>('[]');
@@ -187,6 +194,16 @@ export class ExerciseFormComponent implements OnInit {
       .subscribe((primary) => {
         this.secondaryMuscles.update((list) => list.filter((m) => m !== primary));
         this.cdr.markForCheck();
+      });
+
+    this.form
+      .get('tagPicker')
+      ?.valueChanges.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        if (this.tagPickerContextError() !== null) {
+          this.tagPickerContextError.set(null);
+          this.cdr.markForCheck();
+        }
       });
 
     merge(
@@ -388,7 +405,9 @@ export class ExerciseFormComponent implements OnInit {
             detail: `"${payload.name}" updated`
           });
           this.exerciseService.load();
-          globalThis.location.reload();
+          globalThis.setTimeout(() => {
+            globalThis.location.reload();
+          }, ExerciseFormComponent.SUCCESS_TOAST_THEN_NAV_MS);
         },
         error: (err) => this.showHttpError(err)
       });
@@ -404,7 +423,9 @@ export class ExerciseFormComponent implements OnInit {
           const editUrl = this.router.serializeUrl(
             this.router.createUrlTree(['/exercises', 'edit', newId])
           );
-          globalThis.location.assign(editUrl);
+          globalThis.setTimeout(() => {
+            globalThis.location.assign(editUrl);
+          }, ExerciseFormComponent.SUCCESS_TOAST_THEN_NAV_MS);
         },
         error: (err) => this.showHttpError(err)
       });
@@ -431,13 +452,50 @@ export class ExerciseFormComponent implements OnInit {
       if (field === 'difficulty') return 'Difficulty is required';
     }
     if (field === 'name') {
-      if (e['minlength']) return 'Name must be at least 2 characters';
-      if (e['maxlength']) return 'Name must not exceed 200 characters';
+      if (e['minlength'] || e['minLength']) return 'Name must be at least 2 characters';
+      if (this.hasMaxLengthError(e)) return 'Name must not exceed 200 characters';
     }
     if (field === 'description') {
-      if (e['maxlength']) return 'Description must not exceed 1000 characters';
+      if (this.hasMaxLengthError(e)) return 'Description must not exceed 1000 characters';
+    }
+    if (field === 'tagPicker' && this.hasMaxLengthError(e)) {
+      return 'Tag must be at most 50 characters';
+    }
+    if (field === 'warningPicker' && this.hasMaxLengthError(e)) {
+      return 'Warning must be at most 500 characters';
     }
     return null;
+  }
+
+  instructionFieldError(index: number): string | null {
+    const ctrl = this.instructionStepsArray.at(index);
+    if (!ctrl?.touched || !ctrl.errors) {
+      return null;
+    }
+    if (this.hasMaxLengthError(ctrl.errors)) {
+      return 'Step must not exceed 1000 characters';
+    }
+    return null;
+  }
+
+  mediaUrlFieldError(index: number): string | null {
+    const g = this.mediaRowsArray.at(index);
+    const urlCtrl = g?.get('url');
+    if (!urlCtrl?.touched || !urlCtrl.errors) {
+      return null;
+    }
+    if (this.hasMaxLengthError(urlCtrl.errors)) {
+      return 'URL must not exceed 500 characters';
+    }
+    return null;
+  }
+
+  private hasMaxLengthError(e: ValidationErrors): boolean {
+    return !!(e['maxlength'] ?? e['maxLength']);
+  }
+
+  tagPickerErrorMessage(): string | null {
+    return this.tagPickerContextError() ?? this.fieldError('tagPicker');
   }
 
   secondaryMusclePickerOptions(): readonly string[] {
@@ -519,27 +577,32 @@ export class ExerciseFormComponent implements OnInit {
   }
 
   addCatalogTag(): void {
+    const tagPicker = this.form.get('tagPicker');
     const raw = String(this.form.getRawValue()['tagPicker'] ?? '').trim();
     if (!raw) {
       return;
     }
+    tagPicker?.markAsTouched();
     if (raw.length > 50) {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Tag',
-        detail: 'Tag must be at most 50 characters'
-      });
+      tagPicker?.updateValueAndValidity();
+      this.cdr.markForCheck();
       return;
     }
     const lower = raw.toLowerCase();
     if (this.catalogTags().some((t) => t.toLowerCase() === lower)) {
+      this.tagPickerContextError.set('This tag is already in the list');
+      this.cdr.markForCheck();
       return;
     }
     if (this.catalogTags().length >= this.maxCatalogTags) {
+      this.tagPickerContextError.set(`You can add at most ${this.maxCatalogTags} tags`);
+      this.cdr.markForCheck();
       return;
     }
+    this.tagPickerContextError.set(null);
     this.catalogTags.update((t) => [...t, raw]);
     this.form.patchValue({ tagPicker: '' });
+    tagPicker?.markAsUntouched();
     this.cdr.markForCheck();
   }
 
@@ -549,23 +612,25 @@ export class ExerciseFormComponent implements OnInit {
   }
 
   addCatalogWarning(): void {
+    const warningPicker = this.form.get('warningPicker');
     const raw = String(this.form.getRawValue()['warningPicker'] ?? '').trim();
     if (!raw) {
       return;
     }
+    warningPicker?.markAsTouched();
     if (raw.length > 500) {
-      this.messageService.add({
-        severity: 'error',
-        summary: 'Warning',
-        detail: 'Warning must be at most 500 characters'
-      });
+      warningPicker?.updateValueAndValidity();
+      this.cdr.markForCheck();
       return;
     }
     if (this.catalogWarnings().length >= this.maxCatalogWarnings) {
+      warningPicker?.markAsTouched();
+      this.cdr.markForCheck();
       return;
     }
     this.catalogWarnings.update((w) => [...w, raw]);
     this.form.patchValue({ warningPicker: '' });
+    warningPicker?.markAsUntouched();
     this.cdr.markForCheck();
   }
 
@@ -592,6 +657,7 @@ export class ExerciseFormComponent implements OnInit {
     this.mediaRowsArray.push(this.newMediaRowGroup());
     this.catalogTags.set([]);
     this.catalogWarnings.set([]);
+    this.tagPickerContextError.set(null);
     this.form.patchValue({ tagPicker: '', warningPicker: '' });
   }
 

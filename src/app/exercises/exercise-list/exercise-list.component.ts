@@ -1,7 +1,16 @@
-import { ChangeDetectionStrategy, Component, OnInit, inject } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  OnInit,
+  inject,
+  signal
+} from '@angular/core';
 import { Router } from '@angular/router';
+import { MessageService } from 'primeng/api';
 import {
   ButtonComponent,
+  ConfirmSplitDialogComponent,
   DataTableCellTemplateDirective,
   DataTableComponent,
   PageContainerComponent,
@@ -22,7 +31,8 @@ import { ExerciseService } from '../exercise.service';
     PageHeaderComponent,
     DataTableComponent,
     DataTableCellTemplateDirective,
-    ButtonComponent
+    ButtonComponent,
+    ConfirmSplitDialogComponent
   ],
   templateUrl: './exercise-list.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -30,6 +40,19 @@ import { ExerciseService } from '../exercise.service';
 export class ExerciseListComponent implements OnInit {
   private readonly exerciseService = inject(ExerciseService);
   private readonly router = inject(Router);
+  private readonly messageService = inject(MessageService);
+
+  /** Disables row action buttons while a delete request is in flight. */
+  protected readonly deleteInProgress = signal(false);
+
+  /** Exercise pending delete confirmation, or null when dialog is closed. */
+  protected readonly deleteTarget = signal<ExerciseDto | null>(null);
+
+  protected readonly deleteDialogMessage = computed(() => {
+    const ex = this.deleteTarget();
+    const name = ex?.name?.trim() || 'this exercise';
+    return `This will permanently remove "${name}" from your catalog.`;
+  });
 
   readonly tableColumns: TableColumn[] = [
     { field: 'name', header: 'Name', type: 'custom', filter: true, filterType: 'text' },
@@ -86,5 +109,46 @@ export class ExerciseListComponent implements OnInit {
 
   editExercise(exercise: ExerciseDto): void {
     this.router.navigate(['/exercises/edit', exercise.id]);
+  }
+
+  confirmDeleteExercise(exercise: ExerciseDto): void {
+    this.deleteTarget.set(exercise);
+  }
+
+  onDeleteDialogOpenChange(open: boolean): void {
+    if (!open) {
+      this.deleteTarget.set(null);
+    }
+  }
+
+  onDeleteConfirmed(): void {
+    const ex = this.deleteTarget();
+    if (!ex) {
+      return;
+    }
+    this.performDeleteExercise(ex.id);
+  }
+
+  private performDeleteExercise(id: string): void {
+    this.deleteInProgress.set(true);
+    this.exerciseService.delete(id).subscribe({
+      next: () => {
+        this.deleteInProgress.set(false);
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Deleted',
+          detail: 'Exercise removed from the catalog.'
+        });
+        this.exerciseService.load();
+      },
+      error: (err: { error?: unknown; message?: string }) => {
+        this.deleteInProgress.set(false);
+        const detail =
+          typeof err.error === 'string' && err.error.trim()
+            ? err.error
+            : err.message || 'Request failed';
+        this.messageService.add({ severity: 'error', summary: 'Error', detail });
+      }
+    });
   }
 }

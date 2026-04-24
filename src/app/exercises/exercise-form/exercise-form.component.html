@@ -3,7 +3,7 @@
   <app-ui-page-container class="flex w-full min-w-0 flex-1 flex-col gap-6">
     <div class="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-3 lg:gap-8">
       <form
-        class="flex min-w-0 flex-col gap-6 lg:col-span-2"
+        class="order-2 flex min-w-0 flex-col gap-6 lg:order-none lg:col-span-2"
         #exerciseForm
         id="exercise-edit-form"
         [formGroup]="form"
@@ -196,30 +196,34 @@
           <div class="flex min-w-0 flex-col gap-4">
             <div formArrayName="instructionSteps" class="flex min-w-0 flex-col gap-4">
               @for (ctrl of instructionStepsArray.controls; track $index; let i = $index) {
-                <div class="flex min-w-0 flex-col gap-1.5">
-                  <div class="flex items-center gap-2">
-                    <span class="text-inv-body-sm font-medium text-inv-grey-700">Step {{ i + 1 }}</span>
-                    <span class="text-inv-body-mini text-inv-grey-500">{{ instructionCharCount($any(ctrl)) }}/1000</span>
-                  </div>
-                  <div class="flex min-w-0 items-start gap-2">
-                    <div class="min-w-0 flex-1">
-                      <app-input
-                        [inputId]="'ex-inst-' + i"
-                        [formControl]="$any(ctrl)"
-                        [multiline]="true"
-                        [rows]="2"
-                        [maxLength]="1000"
-                        placeholder="Describe this step..."
-                        autocomplete="off" />
+                <app-form-field
+                  [label]="'Step ' + (i + 1)"
+                  [forId]="'ex-inst-' + i"
+                  [errorMessage]="instructionFieldError(i)">
+                  <div class="flex min-w-0 flex-col gap-1.5">
+                    <span class="text-inv-body-mini text-inv-grey-500">
+                      {{ instructionCharCount($any(ctrl)) }}/1000
+                    </span>
+                    <div class="flex min-w-0 items-start gap-2">
+                      <div class="min-w-0 flex-1">
+                        <app-input
+                          [inputId]="'ex-inst-' + i"
+                          [formControl]="$any(ctrl)"
+                          [multiline]="true"
+                          [rows]="2"
+                          [maxLength]="1000"
+                          placeholder="Describe this step..."
+                          autocomplete="off" />
+                      </div>
+                      <button
+                        type="button"
+                        class="shrink-0 cursor-pointer rounded-inv-sm border-0 bg-transparent p-2 text-inv-grey-300 transition-colors hover:bg-red-50 hover:text-red-600"
+                        (click)="removeInstructionStep(i)">
+                        <i class="pi pi-trash text-inv-body-sm"></i>
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      class="shrink-0 cursor-pointer rounded-inv-sm border-0 bg-transparent p-2 text-inv-grey-300 transition-colors hover:bg-red-50 hover:text-red-600"
-                      (click)="removeInstructionStep(i)">
-                      <i class="pi pi-trash text-inv-body-sm"></i>
-                    </button>
                   </div>
-                </div>
+                </app-form-field>
               }
             </div>
             <button
@@ -251,7 +255,10 @@
             } @else {
               <p class="text-inv-body-sm italic text-inv-grey-500">No warnings</p>
             }
-            <app-form-field label="New warning" forId="ex-warn-new">
+            <app-form-field
+              label="New warning"
+              forId="ex-warn-new"
+              [errorMessage]="fieldError('warningPicker')">
               @if (warningPickerCharCount()) {
                 <span class="mb-1 block text-inv-body-mini text-inv-grey-500">
                   {{ warningPickerCharCount() }}/500
@@ -299,12 +306,14 @@
                       placeholder="Type" />
                   </div>
                   <div class="min-w-0 flex-1">
-                    <app-input
-                      [inputId]="'ex-med-url-' + i"
-                      formControlName="url"
-                      placeholder="https://..."
-                      [maxLength]="500"
-                      autocomplete="off" />
+                    <app-form-field [forId]="'ex-med-url-' + i" [errorMessage]="mediaUrlFieldError(i)">
+                      <app-input
+                        [inputId]="'ex-med-url-' + i"
+                        formControlName="url"
+                        placeholder="https://..."
+                        [maxLength]="500"
+                        autocomplete="off" />
+                    </app-form-field>
                   </div>
                   <app-button
                     class="shrink-0"
@@ -348,7 +357,7 @@
             }
             <app-ui-form-inline>
               <div class="min-w-0 flex-1" (keydown.enter)="onTagPickerEnter($event)">
-                <app-form-field forId="ex-tag-new">
+                <app-form-field forId="ex-tag-new" [errorMessage]="tagPickerErrorMessage()">
                   @if (tagPickerCharCount()) {
                     <span class="mb-1 block text-inv-body-mini text-inv-grey-500">
                       {{ tagPickerCharCount() }}/50
@@ -378,7 +387,7 @@
       </form>
 
       <aside
-        class="min-w-0 lg:col-span-1 lg:self-start"
+        class="order-1 min-w-0 lg:order-none lg:col-span-1 lg:self-start"
         role="complementary"
         aria-label="Live preview">
         <app-ui-panel-card

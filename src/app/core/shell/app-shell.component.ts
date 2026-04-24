@@ -65,7 +65,7 @@ export class AppShellComponent {
 
   readonly navItems: NavItem[] = [
     // { label: 'Dashboard', icon: 'pi pi-th-large', route: '/dashboard' },
-    { label: 'Exercises', icon: 'pi pi-table', route: '/exercises', activeMatch: 'prefix' },
+    { label: 'Exercises', icon: 'pi pi-table', route: '/exercises', activeMatch: 'prefix' }
     // { label: 'Settings', icon: 'pi pi-cog', route: '/settings' }
   ];
 

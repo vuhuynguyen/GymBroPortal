@@ -1,0 +1,71 @@
+/**
+ * iOS-style alert footer: hairline top + vertical split, transparent cells on white.
+ * Parent dialog shell should use overflow-hidden + radius on the card.
+ */
+.ui-dialog-ios-actions {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-top: 1px solid var(--inv-border-card);
+  background-color: var(--inv-surface-base);
+}
+
+.ui-dialog-ios-actions > button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 3.25rem;
+  padding: 0.75rem 1rem;
+  margin: 0;
+  appearance: none;
+  -webkit-appearance: none;
+  border: 0;
+  box-shadow: none;
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.9375rem;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.ui-dialog-ios-actions > button:first-of-type {
+  border-right: 1px solid var(--inv-border-card);
+  color: var(--inv-grey-900);
+  font-weight: 500;
+}
+
+.ui-dialog-ios-actions > button:last-of-type {
+  color: var(--inv-error-100);
+  font-weight: 600;
+}
+
+.ui-dialog-ios-actions > button:first-of-type:hover {
+  background-color: var(--inv-grey-0);
+}
+
+.ui-dialog-ios-actions > button:last-of-type:hover {
+  background-color: var(--inv-error-0);
+}
+
+.ui-dialog-ios-actions > button:focus-visible {
+  outline: 2px solid var(--inv-primary-500);
+  outline-offset: -2px;
+  z-index: 1;
+  position: relative;
+}
+
+.ui-dialog-animate-in {
+  animation: ui-dialog-fade-zoom 0.2s ease-out both;
+}
+
+@keyframes ui-dialog-fade-zoom {
+  from {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
