@@ -1,0 +1,242 @@
+<div class="login-page">
+  <div class="login-container">
+
+    <!-- ── Logo & Header ──────────────────────────────────────────────────── -->
+    <div class="login-header">
+      <div class="login-logo" aria-hidden="true">
+        @if (method() === 'phone' && phoneStep() === 'otp') {
+          <i class="pi pi-shield"></i>
+        } @else {
+          GB
+        }
+      </div>
+      <h1 class="login-title">
+        @if (method() === 'phone' && phoneStep() === 'otp') {
+          Enter verification code
+        } @else {
+          Welcome to GymBro
+        }
+      </h1>
+      <p class="login-subtitle">
+        @if (method() === 'phone' && phoneStep() === 'otp') {
+          We sent a 6-digit code to
+          <strong>{{ countryCode() }} {{ maskedPhone() }}</strong>
+        } @else {
+          Sign in to your account
+        }
+      </p>
+    </div>
+
+    <!-- ── Card ───────────────────────────────────────────────────────────── -->
+    <div class="login-card">
+
+      <!-- Error banner (shared) -->
+      @if (error()) {
+        <div class="login-error" role="alert">
+          <i class="pi pi-exclamation-circle login-error-icon" aria-hidden="true"></i>
+          <p class="login-error-msg">{{ error() }}</p>
+        </div>
+      }
+
+      <!-- ════════ EMAIL FORM ════════ -->
+      @if (method() === 'email') {
+        <form class="login-form" (ngSubmit)="submitEmail()" novalidate>
+
+          <div class="login-field">
+            <label class="login-label" for="login-email">Email Address</label>
+            <div class="login-input-wrap">
+              <i class="pi pi-envelope login-input-icon" aria-hidden="true"></i>
+              <input
+                id="login-email"
+                class="login-input"
+                type="email"
+                autocomplete="email"
+                placeholder="you@example.com"
+                [value]="email()"
+                (input)="email.set($any($event.target).value)"
+                [disabled]="loading()" />
+            </div>
+          </div>
+
+          <div class="login-field">
+            <div class="login-field-header">
+              <label class="login-label" for="login-password">Password</label>
+              <a class="login-link login-link--sm" routerLink="/forgot-password">Forgot password?</a>
+            </div>
+            <div class="login-input-wrap">
+              <i class="pi pi-lock login-input-icon" aria-hidden="true"></i>
+              <input
+                id="login-password"
+                class="login-input login-input--has-eye"
+                [type]="showPassword() ? 'text' : 'password'"
+                autocomplete="current-password"
+                placeholder="••••••••"
+                [value]="password()"
+                (input)="password.set($any($event.target).value)"
+                [disabled]="loading()" />
+              <button
+                type="button"
+                class="login-eye-btn"
+                (click)="showPassword.set(!showPassword())"
+                [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+                <i [class]="showPassword() ? 'pi pi-eye-slash' : 'pi pi-eye'" aria-hidden="true"></i>
+              </button>
+            </div>
+          </div>
+
+          <button type="submit" class="login-btn" [disabled]="loading()">
+            @if (loading()) {
+              <span class="login-spinner" aria-hidden="true"></span>
+              Signing in...
+            } @else {
+              Sign in
+              <i class="pi pi-arrow-right" aria-hidden="true"></i>
+            }
+          </button>
+
+        </form>
+
+        <!-- Divider + phone switch (feature-flagged) -->
+        @if (features.phoneLoginEnabled()) {
+          <div class="login-divider">
+            <span class="login-divider-label">Or continue with</span>
+          </div>
+          <button type="button" class="login-alt-btn" (click)="switchMethod('phone')">
+            Sign in with Phone Number
+          </button>
+        }
+
+        <p class="login-signup">
+          Don't have an account?&nbsp;
+          <a class="login-link" routerLink="/register">Sign up</a>
+        </p>
+      }
+
+      <!-- ════════ PHONE — STEP 1: enter number ════════ -->
+      @if (method() === 'phone' && phoneStep() === 'input') {
+        <form class="login-form" (ngSubmit)="sendOtp()" novalidate>
+
+          <div class="login-field">
+            <label class="login-label" for="login-phone">Phone Number</label>
+            <div class="login-phone-row">
+              <select
+                class="login-country-select"
+                [value]="countryCode()"
+                (change)="setCountryCode($event)"
+                [disabled]="loading()">
+                @for (cc of countryCodes; track cc.value) {
+                  <option [value]="cc.value">{{ cc.label }}</option>
+                }
+              </select>
+              <div class="login-input-wrap login-input-wrap--flex">
+                <i class="pi pi-phone login-input-icon" aria-hidden="true"></i>
+                <input
+                  id="login-phone"
+                  class="login-input"
+                  type="tel"
+                  inputmode="numeric"
+                  placeholder="912345678"
+                  maxlength="11"
+                  [value]="phoneNumber()"
+                  (input)="setPhoneNumber($event)"
+                  [disabled]="loading()" />
+              </div>
+            </div>
+            <p class="login-hint">We'll send you a verification code via SMS</p>
+          </div>
+
+          <button type="submit" class="login-btn" [disabled]="loading()">
+            @if (loading()) {
+              <span class="login-spinner" aria-hidden="true"></span>
+              Sending code...
+            } @else {
+              Continue
+              <i class="pi pi-arrow-right" aria-hidden="true"></i>
+            }
+          </button>
+
+        </form>
+
+        <div class="login-divider">
+          <span class="login-divider-label">Or continue with</span>
+        </div>
+        <button type="button" class="login-alt-btn" (click)="switchMethod('email')">
+          Sign in with Email &amp; Password
+        </button>
+
+        <p class="login-signup">
+          Don't have an account?&nbsp;
+          <a class="login-link" routerLink="/register">Sign up</a>
+        </p>
+      }
+
+      <!-- ════════ PHONE — STEP 2: OTP ════════ -->
+      @if (method() === 'phone' && phoneStep() === 'otp') {
+
+        <!-- OTP boxes -->
+        <div class="login-otp-label">Verification Code</div>
+        <div class="login-otp-boxes">
+          @for (digit of otp(); track $index; let i = $index) {
+            <input
+              #otpInput
+              class="login-otp-box"
+              [class.login-otp-box--filled]="digit"
+              type="text"
+              inputmode="numeric"
+              maxlength="1"
+              [value]="digit"
+              (input)="onOtpInput(i, $event)"
+              (keydown)="onOtpKeydown(i, $event)"
+              (paste)="onOtpPaste($event)"
+              [disabled]="loading()"
+              autocomplete="one-time-code" />
+          }
+        </div>
+
+        <!-- Resend -->
+        <div class="login-resend">
+          @if (resendSeconds() > 0) {
+            <span class="login-resend-timer">
+              Resend code in <strong>{{ resendSeconds() }}s</strong>
+            </span>
+          } @else {
+            <button type="button" class="login-resend-btn" (click)="resendOtp()">
+              <i class="pi pi-refresh" aria-hidden="true"></i>
+              Resend code
+            </button>
+          }
+        </div>
+
+        <!-- Verify -->
+        <button
+          type="button"
+          class="login-btn"
+          [disabled]="!otpFilled() || loading()"
+          (click)="submitOtp(otp().join(''))">
+          @if (loading()) {
+            <span class="login-spinner" aria-hidden="true"></span>
+            Verifying...
+          } @else {
+            Verify Code
+          }
+        </button>
+
+        <!-- Back -->
+        <button type="button" class="login-back-btn" (click)="backToPhoneInput()">
+          <i class="pi pi-arrow-left" aria-hidden="true"></i>
+          Use different number
+        </button>
+      }
+
+    </div>
+
+    <!-- ── Footer ─────────────────────────────────────────────────────────── -->
+    <p class="login-footer">
+      By continuing, you agree to our&nbsp;
+      <a class="login-link" href="#">Terms of Service</a>
+      &nbsp;and&nbsp;
+      <a class="login-link" href="#">Privacy Policy</a>
+    </p>
+
+  </div>
+</div>
