@@ -47,8 +47,26 @@ export const routes: Routes = [
         children: [
           {
             path: 'plans',
+            children: [
+              {
+                path: '',
+                loadComponent: () =>
+                  import('./features/workspace/plans/plans-list/plans-list').then((m) => m.PlansListComponent)
+              },
+              { path: 'new', redirectTo: '', pathMatch: 'full' },
+              {
+                path: ':planId',
+                loadComponent: () =>
+                  import('./features/workspace/plans/plan-builder/plan-builder').then((m) => m.PlanBuilderComponent)
+              }
+            ]
+          },
+          {
+            path: 'plan-assignments',
             loadComponent: () =>
-              import('./features/workspace/plans/plans').then((m) => m.PlansComponent)
+              import('./features/workspace/plan-assignments/plan-assignments').then(
+                (m) => m.PlanAssignmentsComponent
+              )
           },
           {
             path: 'logs',

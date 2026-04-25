@@ -38,7 +38,7 @@
         [attr.aria-selected]="activeTab() === 'clients'"
         (click)="setTab('clients')">
         <i class="pi pi-users" aria-hidden="true"></i>
-        People
+        GymBro
         <span class="members-tab__count">{{ clients().length }}</span>
       </button>
       <button
@@ -59,9 +59,9 @@
         [columns]="clientColumns"
         [data]="clients()"
         [loading]="membersLoading()"
-        globalSearchPlaceholder="Search people"
+        globalSearchPlaceholder="Search GymBro"
         emptyMessage="No one yet. Generate an invite code to add someone."
-        itemLabel="people">
+        itemLabel="GymBro">
 
         <ng-template appDataTableCell="name" let-row>
           <span class="font-semibold text-inv-grey-900">{{ row['name'] }}</span>

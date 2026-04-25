@@ -8,11 +8,11 @@
 
 **Forms:** Reactive only, `FormBuilder`, strong typing; validators and rules in TS; clear errors in UI.
 
-**Mandatory shared UI:** `app-button`, `app-input` (except `p-iconfield` → `pInputText`), `app-select` (`p-select` only—**never `p-dropdown`**), `app-form-field`, `app-page-header`, `app-filter-bar`, `app-data-table`, `app-ui-panel-card`. Fix styling in shared components.
+**Mandatory shared UI:** `app-button`, `app-input` (except `p-iconfield` → `pInputText`), `app-select` for string lists (`p-select` only—**never `p-dropdown`**), `app-form-field`, `app-page-header`, `app-ui-page-container`, `app-ui-page-sticky-footer`, `app-filter-bar`, `app-data-table`, `app-ui-panel-card`, `app-ui-form-grid`. Object option lists: **`p-select`** inside `app-form-field` per **`docs/ui-screen-patterns.md`**. Fix styling in shared components.
 
-**Styling:** Tailwind for layout/spacing/responsive; **blue primary**—**no purple**; no hex in features; no inline colors; token alignment across CSS variables, PrimeNG preset, and Tailwind.
+**Styling:** Tailwind for layout/spacing/responsive; **blue primary**—**no purple**; no hex in features; no inline colors; token alignment across CSS variables, PrimeNG preset, and Tailwind. Chips/badges must follow system chip standards (`inv-catalog-chip` + `--inv-catalog-chip-radius`), not pill (`999px`) radius.
 
-**Layout:** flex + gap (`gap-4`/`gap-6`); responsive everywhere; `min-w-0` for truncating flex children; tables scroll/stack on small screens; sensible max-width containers.
+**Layout:** flex + gap; **`gap-inv-5`** on page containers for new list pages (see **`features/exercises/exercise-list`**); **`gap-4`** inside panel bodies; responsive everywhere; `min-w-0` for truncating flex children; tables scroll/stack on small screens. In `app-data-table` action cells, row action buttons should use icon-only `app-button` (`pi-pencil`/`pi-trash`), `size="small"`, `[rounded]="true"`, `[text]="true"`, and descriptive `[ariaLabel]`. **New list/editor screens:** follow **`docs/ui-screen-patterns.md`** (sticky footer for save flows matches **`exercise-form`**).
 
 **PrimeNG:** `p-table` via `app-data-table`; `p-select` not `p-dropdown`; configure themes, don’t hack overrides.
 

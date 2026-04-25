@@ -9,7 +9,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
 
   const headers: Record<string, string> = { Authorization: `Bearer ${token}` };
 
-  const tenantId = inject(TenantService).activeTenant()?.id;
+  const tenants = inject(TenantService);
+  // Prefer resolved tenant; fall back to stored id so requests work before /api/tenants/mine finishes.
+  const tenantId = tenants.activeTenant()?.id ?? tenants.activeTenantId() ?? undefined;
   if (tenantId) headers['X-Tenant-Id'] = tenantId;
 
   return next(req.clone({ setHeaders: headers }));

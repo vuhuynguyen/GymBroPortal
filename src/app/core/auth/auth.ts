@@ -62,7 +62,11 @@ export class AuthService {
 
   register(email: string, password: string, name?: string) {
     return this.http
-      .post<AuthResponse>('/api/auth/register', { email, password })
+      .post<AuthResponse>('/api/auth/register', {
+        email,
+        password,
+        fullName: name?.trim() ?? ''
+      })
       .pipe(
         tap((res) => {
           this.storeToken(res.token);

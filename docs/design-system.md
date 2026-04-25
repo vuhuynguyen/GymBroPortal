@@ -1,6 +1,6 @@
 # GymBro UI System
 
-Human- and AI-readable contract for **GymBroPortal** (Angular admin). For Figma handoff steps, see `docs/figma-workflow.md`. Cursor rules: `.cursor/rules/design-system-enforcer.mdc`, `.cursor/rules/ui-consistency.mdc`.
+Human- and AI-readable contract for **GymBroPortal** (Angular admin). **Concrete list/editor/sticky-footer patterns** (match `features/exercises/`): **`docs/ui-screen-patterns.md`**. For Figma handoff steps, see `docs/figma-workflow.md`. Cursor rules: `.cursor/rules/design-system-enforcer.mdc`, `.cursor/rules/ui-consistency.mdc`.
 
 ---
 

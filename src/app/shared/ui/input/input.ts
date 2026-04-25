@@ -20,6 +20,7 @@ import { TextareaModule } from 'primeng/textarea';
         [disabled]="disabled"
         [value]="value"
         (input)="onInput($event)"
+        (change)="onInput($event)"
         (blur)="onBlur()" />
     } @else {
       <textarea
@@ -33,6 +34,7 @@ import { TextareaModule } from 'primeng/textarea';
         [disabled]="disabled"
         [value]="value"
         (input)="onInput($event)"
+        (change)="onInput($event)"
         (blur)="onBlur()"></textarea>
     }
   `,

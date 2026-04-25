@@ -1,21 +1,22 @@
 <app-ui-page-container class="flex flex-col gap-inv-5">
 
   <app-page-header
-    [title]="coachName() ?? 'Assigned Plans'"
-    [subtitle]="coachName() ? 'Plans assigned to you by ' + coachName() : 'Plans your coach has assigned to you.'" />
+    title="Assigned Plans"
+    subtitle="Plans your coach assigned to you." />
 
-  <div class="tp-empty">
-    <div class="tp-empty__icon">
-      <i class="pi pi-calendar-times"></i>
-    </div>
-    <p class="tp-empty__heading">No plans yet</p>
-    <p class="tp-empty__text">
-      @if (coachName()) {
-        {{ coachName() }} hasn't assigned a plan yet — check back soon.
-      } @else {
-        Your coach hasn't assigned a plan yet — check back soon.
+  @if (loading()) {
+    <section class="tp-loading">Loading plans...</section>
+  } @else if (emptyState(); as state) {
+    <app-trainer-plans-empty-state
+      [title]="state.title"
+      [message]="state.message"
+      [showCreateButton]="state.showCreateButton" />
+  } @else {
+    <section class="tp-grid">
+      @for (plan of plans(); track plan.id + '-' + plan.createdBySelf) {
+        <app-plan-card [plan]="plan" (viewClicked)="viewPlan($event)" />
       }
-    </p>
-  </div>
+    </section>
+  }
 
 </app-ui-page-container>

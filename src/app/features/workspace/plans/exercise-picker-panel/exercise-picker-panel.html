@@ -1,0 +1,128 @@
+<div class="epp-overlay" (click)="close()" role="presentation">
+  <aside
+    class="epp-panel"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="epp-title"
+    (click)="$event.stopPropagation()">
+    <header class="epp-header">
+      <div class="min-w-0">
+        <h2 id="epp-title" class="epp-title">Add Exercise</h2>
+        <p class="epp-subtitle">
+          @if (workoutLabel(); as wl) {
+            Search and select an exercise for <span class="font-medium text-inv-grey-800">{{ wl }}</span>, then set the details.
+          } @else {
+            Search and select an exercise, then set the details.
+          }
+        </p>
+      </div>
+      <button class="epp-close" type="button" aria-label="Close" (click)="close()">
+        <i class="pi pi-times" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <div class="epp-body">
+      <div class="epp-search">
+        <p-iconfield iconPosition="left">
+          <p-inputicon>
+            <i class="pi pi-search" aria-hidden="true"></i>
+          </p-inputicon>
+          <input
+            pInputText
+            type="search"
+            autocomplete="off"
+            class="w-full"
+            placeholder="Search exercises…"
+            [formControl]="searchControl" />
+        </p-iconfield>
+      </div>
+
+      <nav class="epp-tabs" role="tablist" aria-label="Filter by muscle group">
+        @for (tab of muscleTabs; track tab) {
+          <button
+            type="button"
+            role="tab"
+            class="epp-tab"
+            [class.epp-tab--active]="activeMuscle() === tab"
+            [attr.aria-selected]="activeMuscle() === tab"
+            (click)="setMuscle(tab)">
+            {{ tab }}
+          </button>
+        }
+      </nav>
+
+      <ul class="epp-list" role="listbox" aria-label="Exercise catalog">
+        @for (ex of filtered(); track ex.id) {
+          <li class="epp-list-item" [class.epp-list-item--selected]="isSelected(ex.id)">
+            <button
+              type="button"
+              class="epp-row"
+              [attr.aria-pressed]="isSelected(ex.id)"
+              (click)="selectExercise(ex.id)">
+              <span class="epp-row__thumb" aria-hidden="true">
+                @if (ex.imageUrl) {
+                  <img [src]="ex.imageUrl" [alt]="''" loading="lazy" />
+                } @else {
+                  <i class="pi pi-bullseye"></i>
+                }
+              </span>
+              <span class="epp-row__body">
+                <span class="epp-row__name">{{ ex.name }}</span>
+                <span class="epp-row__meta">{{ ex.muscleGroup }}</span>
+              </span>
+              <span class="epp-row__cta" aria-hidden="true">
+                <i class="pi" [class.pi-plus]="!isSelected(ex.id)" [class.pi-check]="isSelected(ex.id)"></i>
+              </span>
+            </button>
+          </li>
+        } @empty {
+          <li class="epp-empty">
+            <i class="pi pi-search text-inv-grey-300" aria-hidden="true"></i>
+            <p class="m-0 text-inv-body-sm text-inv-grey-500">No exercises match your filter.</p>
+          </li>
+        }
+      </ul>
+    </div>
+
+    <form class="epp-footer" [formGroup]="detailsForm" (ngSubmit)="submit()" novalidate>
+      <div class="epp-details">
+        <h3 class="epp-details__title">Exercise details</h3>
+        @if (selectedExercise(); as se) {
+          <p class="epp-details__hint">Selected: <span class="font-medium text-inv-grey-800">{{ se.name }}</span></p>
+        } @else {
+          <p class="epp-details__hint">Pick an exercise from the list to enable the defaults below.</p>
+        }
+        <div class="epp-details__grid">
+          <label class="epp-num">
+            <span class="epp-num__label">Sets</span>
+            <app-input inputId="epp-sets" type="number" formControlName="sets" />
+          </label>
+          <label class="epp-num">
+            <span class="epp-num__label">Reps</span>
+            <app-input inputId="epp-reps" type="number" formControlName="reps" />
+          </label>
+          <label class="epp-num">
+            <span class="epp-num__label">Rest (s)</span>
+            <app-input inputId="epp-rest" type="number" formControlName="restSeconds" />
+          </label>
+        </div>
+
+        <label class="epp-check">
+          <input type="checkbox" formControlName="addAnother" />
+          <span class="text-inv-body-sm text-inv-grey-700">Add another exercise after this one</span>
+        </label>
+      </div>
+
+      <div class="epp-actions">
+        <app-button label="Cancel" severity="secondary" [outlined]="true" type="button" (clicked)="close()" />
+        <app-button
+          label="Add Exercise"
+          icon="pi pi-plus"
+          severity="primary"
+          type="submit"
+          [disabled]="!canAdd()"
+          (clicked)="submit()" />
+      </div>
+    </form>
+  </aside>
+</div>

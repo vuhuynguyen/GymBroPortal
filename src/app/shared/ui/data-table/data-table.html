@@ -61,7 +61,10 @@
         [value]="data()"
         [globalFilterFields]="globalFilterFields()"
         [loading]="loading()"
+        [showLoader]="false"
         [paginator]="paginator()"
+        [lazy]="lazy()"
+        [totalRecords]="totalRecords()"
         [rows]="rows()"
         [rowsPerPageOptions]="rowsPerPageOptions()"
         [showFirstLastIcon]="true"
@@ -72,6 +75,7 @@
         [resizableColumns]="resizableColumns()"
         [columnResizeMode]="columnResizeMode()"
         paginatorDropdownAppendTo="body"
+        (onLazyLoad)="onTableLazyLoad($event)"
         (onFilter)="onTableFilter($event)">
         <ng-template pTemplate="header">
           <tr>

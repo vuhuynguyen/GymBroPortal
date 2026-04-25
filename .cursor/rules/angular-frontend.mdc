@@ -34,14 +34,14 @@ You are a senior Angular frontend engineer building a scalable, production-ready
   * `features/` — route-level features only: `features/admin/`, `features/auth/` (login/register/forgot-password PAGES — infra lives in `core/auth/`), `features/dashboard/`, `features/exercises/`, `features/settings/`, `features/workspace/`. Typical feature shape: route-component folders (`exercise-list/`, `exercise-form/`) plus feature-root service (`exercise.ts`), `*.model.ts`, `*.routes.ts`.
   * `shared/ui/` — dumb, stateless, reusable wrappers. Nothing business-aware (tenant/auth/feature services stay in `core/`).
 * **Do NOT add new root-level folders** at `src/app/` alongside these three — fit the work into an existing bucket.
-* **Conceptual model:** prefer matching the existing feature’s layout over introducing a second pattern.
+* **Conceptual model:** prefer matching the existing feature’s layout over introducing a second pattern. **Canonical layouts:** **`docs/ui-screen-patterns.md`** (list + full-page editor + sticky footer—aligned with `features/exercises/`).
 * Separation of concerns:
 
   * UI (components)
   * State / logic (containers/services)
   * Data models (interfaces)
 
-* **Documentation (same change):** If you change routes, shell/sidebar behavior, `core/layout/` module names or wiring, workspace flows, or cross-cutting patterns, update **`CLAUDE.md`**, **`docs/claude-context-short.md`**, and **`docs/claude-context.md`** (when rules/architecture change) in the same pass. Do not leave docs referencing removed paths, old selectors, or renamed types.
+* **Documentation (same change):** If you change routes, shell/sidebar behavior, `core/layout/` module names or wiring, workspace flows, or cross-cutting UI patterns, update **`CLAUDE.md`**, **`docs/claude-context-short.md`**, and **`docs/ui-screen-patterns.md`** (when list/editor/footer conventions change), plus **`docs/claude-context.md`** if it exists and engineering bullets change. Do not leave docs referencing removed paths, old selectors, or renamed types.
 
 # Forms Standard (VERY IMPORTANT)
 
@@ -62,7 +62,7 @@ You are a senior Angular frontend engineer building a scalable, production-ready
 
   * Actions → `app-button` (wraps `p-button`; do not use raw `p-button` in features)
   * Text field → `app-input` (except inside `p-iconfield`, where native `pInputText` is required)
-  * Select → `app-select` (`p-select` only; never `p-dropdown`)
+  * Select → `app-select` for **string** option lists (`p-select` under the hood; never `p-dropdown`). For **object** options (e.g. `{ id, name }`), use **`p-select`** from `primeng/select` inside `app-form-field` with `optionLabel` / `optionValue` + filter—see **`docs/ui-screen-patterns.md`** §4 and `plan-builder`.
   * Field chrome → `app-form-field`
   * Page header → `app-page-header`
   * List filter row → `app-filter-bar`
@@ -202,18 +202,10 @@ kebab-case filenames. **Class names keep their suffix** (`LoginComponent`, `Auth
 
 # UI Consistency Rules
 
-* All pages should follow the same layout pattern:
-
-  * Page header (shared: `app-page-header`)
-  * Filter bar (shared component when available)
-  * Content (`p-table` / shared data table wrapper, or reactive form)
-
-* Do not redesign layouts per page
-* Maintain consistent:
-
-  * Spacing
-  * Alignment
-  * Component usage
+* **New screens:** Read **`docs/ui-screen-patterns.md`** first. Match **`features/exercises/exercise-list`** (tables) and **`exercise-form`** (multi-section form + **`app-ui-page-sticky-footer`**) unless the product spec requires a documented deviation.
+* Default **list** layout: `app-page-header` → **`app-data-table`** (with `gap-inv-5` on `app-ui-page-container`).
+* Default **editor** layout: `section` (min-height + bottom padding for footer) → `app-ui-page-container` → stacked **`app-ui-panel-card`** sections → **`app-ui-page-sticky-footer`** (secondary outlined cancel/back + primary save with `pi-check`).
+* Do not redesign layouts per page; keep spacing, alignment, and shared component usage aligned with those references.
 
 # When Generating Code
 
@@ -241,11 +233,11 @@ kebab-case filenames. **Class names keep their suffix** (`LoginComponent`, `Auth
 
 | What you need | Read |
 |---|---|
-| Routes, services, component pattern | `../../docs/ui-structure.md` |
+| List / editor layout, sticky footer, shared UI checklist | `docs/ui-screen-patterns.md` (this repo) |
 | API endpoints | `../../docs/api-contracts.md` |
 | AI behavior rules | `../../docs/ai-rules.md` |
 
-After every change: new route/component → update `../../docs/ui-structure.md`.
+After every change: new route or cross-cutting UI pattern → update **`docs/ui-screen-patterns.md`** (if the pattern is new or amended) and **`docs/claude-context-short.md`** when behavior visible to AI/context changes.
 
 # Goal
 

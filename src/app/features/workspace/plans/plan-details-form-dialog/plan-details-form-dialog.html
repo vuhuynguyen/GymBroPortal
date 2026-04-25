@@ -1,0 +1,74 @@
+<ng-template #dialogTpl>
+  <div
+    class="ui-plan-details-dialog ui-dialog-animate-in w-full max-w-lg overflow-hidden rounded-xl bg-inv-surface-base shadow-lg"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="titleDomId"
+    (click)="$event.stopPropagation()">
+    <form id="plan-details-dialog-form" class="flex max-h-[85vh] min-w-0 flex-col" [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+      <div class="shrink-0 border-b border-inv-border-card px-6 py-4">
+        <h2 [id]="titleDomId" class="m-0 text-lg font-semibold text-inv-grey-900">{{ heading() }}</h2>
+        <p class="m-0 mt-1 text-inv-body-sm leading-snug text-inv-grey-500">{{ subheading() }}</p>
+      </div>
+
+      <div class="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+        <div class="ui-plan-details-dialog__fields flex min-w-0 flex-col gap-4">
+          <app-form-field label="Name" forId="pdd-name" [required]="true" [errorMessage]="fieldError('name')">
+            <app-input
+              inputId="pdd-name"
+              formControlName="name"
+              placeholder="e.g. Upper / Lower 4-day"
+              autocomplete="off" />
+          </app-form-field>
+
+          <app-form-field label="Description" forId="pdd-desc" [errorMessage]="fieldError('description')">
+            <app-input
+              inputId="pdd-desc"
+              formControlName="description"
+              [multiline]="true"
+              [rows]="3"
+              placeholder="Intent, equipment, or notes (optional)"
+              autocomplete="off" />
+          </app-form-field>
+
+          <app-ui-form-grid>
+            <app-form-field label="Duration (weeks)" forId="pdd-weeks">
+              <app-input inputId="pdd-weeks" type="number" formControlName="durationWeeks" placeholder="e.g. 4" />
+            </app-form-field>
+            <app-form-field label="Workouts per week" forId="pdd-per-week">
+              <app-input inputId="pdd-per-week" type="number" formControlName="workoutsPerWeek" placeholder="e.g. 5" />
+            </app-form-field>
+          </app-ui-form-grid>
+
+          <p class="m-0 text-inv-body-mini leading-relaxed text-inv-grey-500">
+            Optional hints only (about 2–4 weeks and 3–6 sessions per week). Leave blank if you are not sure yet.
+          </p>
+
+          <div
+            class="flex flex-wrap items-center gap-2 rounded-inv-md border border-inv-border-card bg-inv-grey-0 px-3 py-2.5 text-inv-body-mini text-inv-grey-600">
+            <i class="pi pi-tag text-inv-grey-400" aria-hidden="true"></i>
+            <span>Template assignment is not available here yet — use your plan list when supported.</span>
+          </div>
+        </div>
+      </div>
+
+      <div
+        class="flex shrink-0 flex-wrap items-center justify-end gap-3 border-t border-inv-border-card bg-inv-grey-0 px-6 py-4">
+        <app-button
+          label="Cancel"
+          severity="secondary"
+          [outlined]="true"
+          type="button"
+          [disabled]="primaryBusy()"
+          (clicked)="onCancel()" />
+        <app-button
+          [label]="primaryLabel()"
+          icon="pi pi-check"
+          severity="primary"
+          type="submit"
+          [loading]="primaryBusy()"
+          [disabled]="primaryBusy()" />
+      </div>
+    </form>
+  </div>
+</ng-template>

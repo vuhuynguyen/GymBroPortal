@@ -1,0 +1,25 @@
+:host {
+  display: block;
+}
+
+.pa-badge {
+  border: 1px solid var(--inv-border-card);
+  background: var(--inv-surface-base);
+  color: var(--inv-grey-700);
+  border-radius: var(--inv-radius-md);
+  padding: 0.125rem 0.5rem;
+  font-size: var(--inv-text-body-mini);
+  font-weight: 600;
+}
+
+.pa-badge--custom {
+  border-color: var(--inv-primary-100);
+  background: var(--inv-primary-0);
+  color: var(--inv-primary-700);
+}
+
+.pa-badge--warn {
+  border-color: var(--inv-warning-100);
+  background: var(--inv-warning-0);
+  color: var(--inv-warning-700);
+}

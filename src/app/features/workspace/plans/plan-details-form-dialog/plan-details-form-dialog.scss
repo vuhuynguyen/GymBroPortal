@@ -1,0 +1,10 @@
+@use '../../../../shared/ui/dialog/dialog-shared';
+
+:host {
+  display: contents;
+}
+
+.ui-plan-details-dialog :where(button):focus-visible {
+  outline: 2px solid var(--inv-primary-500);
+  outline-offset: 2px;
+}

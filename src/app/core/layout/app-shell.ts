@@ -36,7 +36,7 @@ export interface NavItem {
   route: string;
   activeMatch?: 'prefix';
   section: 'general' | 'trainer' | 'trainee' | 'admin';
-  /** Opens the Invite GymBro side panel instead of navigating to `route`. */
+  /** Opens the Invite to GymBro side panel instead of navigating to `route`. */
   opensInviteGymBroPanel?: boolean;
   /** Opens the Join GymBro side panel instead of navigating to `route`. */
   opensJoinGymBroPanel?: boolean;
@@ -68,6 +68,12 @@ export class AppShellComponent {
   readonly ownTenant = this.tenantService.ownTenant;
   readonly hasClients = this.tenantService.hasClients;
   readonly trainerWorkspaces = this.tenantService.trainerWorkspaces;
+  readonly coachingWorkspaceIds = computed<string[]>(() => {
+    const trainerIds = this.trainerWorkspaces().map((w) => w.id);
+    if (trainerIds.length > 0) return trainerIds;
+    const ownId = this.ownTenant()?.id;
+    return ownId ? [ownId] : [];
+  });
 
   readonly showProfilePanel = signal(false);
   readonly showChangePasswordPanel = signal(false);
@@ -115,13 +121,21 @@ export class AppShellComponent {
 
     // Trainer section — invite always visible; clients only once someone has joined
     if (this.ownTenant()) {
+      items.push({
+        label: 'Plan Assignments',
+        icon: 'pi pi-sitemap',
+        route: '/workspace/plan-assignments',
+        activeMatch: 'prefix',
+        section: 'general'
+      });
+
       if (this.hasClients()) {
         items.push(
-          { label: 'People', icon: 'pi pi-users', route: '/workspace/clients', activeMatch: 'prefix', section: 'trainer' }
+          { label: 'GymBros', icon: 'pi pi-users', route: '/workspace/clients', activeMatch: 'prefix', section: 'trainer' }
         );
       }
       items.push({
-        label: 'Invite GymBro',
+        label: 'Invite to GymBro',
         icon: 'pi pi-user-plus',
         route: '__invite_gymbro_panel__',
         section: 'trainer',
@@ -163,10 +177,7 @@ export class AppShellComponent {
     const trainers = this.trainerWorkspaces();
     if (hasClients && trainers.length > 0) return 'Trainer & Trainee';
     if (hasClients) return 'Trainer';
-    if (trainers.length > 0) {
-      const name = trainers[0].ownerName;
-      return name ? `Training with ${name}` : 'Training with a coach';
-    }
+    if (trainers.length > 0) return 'Trainee';
     return 'Personal Training';
   });
 
@@ -248,8 +259,13 @@ export class AppShellComponent {
     if (url.startsWith('/exercises/create')) return [{ label: 'Exercises', link: '/exercises' }, { label: 'Create', link: null }];
     if (/\/exercises\/edit\//.test(url)) return [{ label: 'Exercises', link: '/exercises' }, { label: 'Edit', link: null }];
     if (url.startsWith('/exercises')) return [{ label: 'Exercises', link: null }];
-    if (url.startsWith('/workspace/clients')) return [{ label: 'People', link: null }];
+    if (url.startsWith('/workspace/clients')) return [{ label: 'GymBro', link: null }];
     if (url.startsWith('/workspace/members')) return [{ label: 'Team', link: null }];
+    if (url.startsWith('/workspace/plans/'))
+      return [
+        { label: 'My Plans', link: '/workspace/plans' },
+        { label: 'Plan', link: null }
+      ];
     if (url.startsWith('/workspace/plans')) return [{ label: 'My Plans', link: null }];
     if (url.startsWith('/workspace/logs')) return [{ label: 'Workout Log', link: null }];
     if (url.startsWith('/workspace/trainer')) return [{ label: 'Assigned Plans', link: null }];

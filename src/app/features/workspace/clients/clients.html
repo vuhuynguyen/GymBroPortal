@@ -9,14 +9,14 @@
 <app-ui-page-container class="flex flex-col gap-inv-5">
 
   <app-page-header
-    title="People"
+    title="GymBro"
     [subtitle]="clients().length > 0 ? (clients().length + (clients().length === 1 ? ' person' : ' people')) : 'No one yet'">
     @if (!loading() && clients().length > 0) {
       <div class="ui-page-actions flex flex-wrap items-center gap-4">
         <app-button
-          label="Invite GymBro"
+          label="Invite to GymBro"
           icon="pi pi-user-plus"
-          ariaLabel="Invite GymBro — open panel to share an invite code"
+          ariaLabel="Invite to GymBro — open panel to share an invite code"
           (clicked)="openInviteGymBroPanel()" />
       </div>
     }
@@ -39,9 +39,9 @@
         Create an invite code in the panel, share it with them, and they join your workspace once.
       </p>
       <app-button
-        label="Invite GymBro"
+        label="Invite to GymBro"
         icon="pi pi-user-plus"
-        ariaLabel="Invite GymBro — open panel to share an invite code"
+        ariaLabel="Invite to GymBro — open panel to share an invite code"
         (clicked)="openInviteGymBroPanel()" />
     </div>
 

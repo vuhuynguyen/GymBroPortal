@@ -11,7 +11,7 @@ alwaysApply: false
 
 # UI consistency (GymBroPortal)
 
-Complements `angular-frontend.mdc`, `figma-design-system.mdc`, and `design-system-enforcer.mdc`. Prefer **global and shared** fixes over feature one-offs.
+Complements **`angular-frontend.mdc`**, **`figma-design-system.mdc`**, and **`design-system-enforcer.mdc`**. **Screen-level checklist** (list vs editor, sticky footer, shared components): **`docs/ui-screen-patterns.md`**. Prefer **global and shared** fixes over feature one-offs.
 
 ## Enforce
 

@@ -34,7 +34,7 @@ src/app/
 | Task | Read |
 |---|---|
 | Any UI work | `docs/claude-context-short.md` |
-| New page / component | `docs/claude-context-short.md` → `../docs/ui-structure.md` |
+| New page / component | `docs/claude-context-short.md` → **`docs/ui-screen-patterns.md`** (list + editor + sticky footer) |
 | API calls | `../docs/api-contracts.md` |
 | Figma Make export | `docs/figma-workflow.md` (full) or `../docs/figma-to-angular.md` (summary) |
 | Design tokens / spacing | `docs/design-system.md` |
@@ -78,14 +78,18 @@ export class MyPageComponent implements OnInit {
 }
 ```
 
+**List page (table):** mirror **`features/exercises/exercise-list`**.
+
 ```html
 <app-ui-page-container class="flex flex-col gap-inv-5">
   <app-page-header title="..." subtitle="...">
     <div class="ui-page-actions"><app-button .../></div>
   </app-page-header>
-  <!-- content -->
+  <app-data-table ... />
 </app-ui-page-container>
 ```
+
+**Full-page editor (save / cancel):** mirror **`features/exercises/exercise-form`** — outer `<section>` with bottom padding for the bar, `app-ui-page-container`, stacked **`app-ui-panel-card`** sections, then **`app-ui-page-sticky-footer`** with **outlined secondary** cancel/back and **primary** save (`pi-check`). Details and exceptions: **`docs/ui-screen-patterns.md`**.
 
 ---
 
