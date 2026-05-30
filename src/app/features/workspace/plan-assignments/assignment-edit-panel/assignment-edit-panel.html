@@ -1,0 +1,60 @@
+@if (open() && assignment(); as current) {
+  <aside class="pa-edit-panel">
+    <header class="pa-edit-panel__header">
+      <div>
+        <h3 class="m-0 text-inv-body-lg font-semibold text-inv-grey-900">Edit assignment</h3>
+        <p class="m-0 mt-1 text-inv-body-sm text-inv-grey-500">
+          Version v{{ current.planVersion }}
+          @if (current.hasNewerVersion) {
+            <span class="pa-version-warning"> · New version available (v{{ current.latestPlanVersion }})</span>
+          }
+        </p>
+      </div>
+      <button type="button" class="pa-edit-panel__close" (click)="close()" aria-label="Close edit panel">×</button>
+    </header>
+
+    <form class="pa-edit-panel__body" [formGroup]="form" autocomplete="off">
+      <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+        <app-form-field label="Start date">
+          <app-input type="date" formControlName="startDate" />
+        </app-form-field>
+        <app-form-field label="Days per week">
+          <select id="assignment-edit-frequency" class="pa-native-select" formControlName="frequencyDaysPerWeek">
+            @for (option of frequencyOptions; track option) {
+              <option [value]="option">{{ option }}</option>
+            }
+          </select>
+        </app-form-field>
+      </div>
+
+      <fieldset class="pa-fieldset">
+        <legend>Visibility mode</legend>
+        <label><input type="radio" formControlName="visibilityMode" value="Full" /> Full access</label>
+        <label><input type="radio" formControlName="visibilityMode" value="Guided" /> Guided</label>
+        <label><input type="radio" formControlName="visibilityMode" value="Blind" /> Blind</label>
+      </fieldset>
+
+      <div class="pa-check-list">
+        <label><input type="checkbox" formControlName="hideExercises" /> Hide exercises</label>
+        <label><input type="checkbox" formControlName="hideSetsReps" /> Hide sets/reps</label>
+        <label><input type="checkbox" formControlName="hideFutureWorkouts" /> Hide future workouts</label>
+        <label><input type="checkbox" formControlName="disableTraineeEditing" /> Disable trainee editing</label>
+      </div>
+
+      <div class="pa-warning">
+        ⚠ If assignment structure is edited directly in future versions, it will break sync from the original template.
+      </div>
+    </form>
+
+    <footer class="pa-edit-panel__footer">
+      @if (current.hasNewerVersion) {
+        <app-button
+          [label]="'Update to v' + current.latestPlanVersion"
+          severity="secondary"
+          [outlined]="true"
+          (clicked)="applyLatest.emit()" />
+      }
+      <app-button label="Save changes" icon="pi pi-check" [loading]="saving()" [disabled]="saving()" (clicked)="save()" />
+    </footer>
+  </aside>
+}

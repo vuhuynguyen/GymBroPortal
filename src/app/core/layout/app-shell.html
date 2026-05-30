@@ -38,38 +38,59 @@
 
       <div class="app-shell-sidebar-scroll">
 
-        <!-- My Training (always visible for regular users) -->
+        <!-- Training -->
         @if (generalNavItems().length > 0) {
-          @if (!isPlatformAdmin()) {
-            <p class="app-shell-section-label">My Training</p>
-          }
-          <nav class="app-shell-nav" aria-label="My Training">
+          <p class="app-shell-section-label">Training</p>
+          <nav class="app-shell-nav" aria-label="Training">
             @for (item of generalNavItems(); track item.route) {
-              <a
-                [routerLink]="item.route"
-                routerLinkActive="app-shell-nav-link--active"
-                [routerLinkActiveOptions]="item.activeMatch === 'prefix' ? { exact: false } : { exact: true }"
-                class="app-shell-nav-link"
-                (click)="isMobile() && closeMobileSidebar()">
-                <i [class]="item.icon" aria-hidden="true"></i>
-                <span class="app-shell-nav-link-label">{{ item.label }}</span>
-              </a>
+              @if (
+                item.route === '/workspace/plans' ||
+                item.route === '/workspace/plan-assignments' ||
+                item.route === '/exercises'
+              ) {
+                <a
+                  [routerLink]="item.route"
+                  routerLinkActive="app-shell-nav-link--active"
+                  [routerLinkActiveOptions]="item.activeMatch === 'prefix' ? { exact: false } : { exact: true }"
+                  class="app-shell-nav-link"
+                  (click)="isMobile() && closeMobileSidebar()">
+                  <i [class]="item.icon" aria-hidden="true"></i>
+                  <span class="app-shell-nav-link-label">
+                    @if (item.route === '/workspace/plans') {
+                      Plans
+                    } @else {
+                      {{ item.label }}
+                    }
+                  </span>
+                </a>
+              }
             }
           </nav>
         }
 
-        <!-- Coaching: plans from your coach -->
-        @for (ws of trainerWorkspaces(); track ws.id) {
+        <!-- Coaching: always available (trainer workspace or own workspace fallback) -->
+        @if (coachingWorkspaceIds().length > 0) {
           <p class="app-shell-section-label">Coaching</p>
           <nav class="app-shell-nav" aria-label="Coaching">
+            @for (workspaceId of coachingWorkspaceIds(); track workspaceId) {
+              <a
+                [routerLink]="['/workspace/trainer', workspaceId, 'plans']"
+                routerLinkActive="app-shell-nav-link--active"
+                [routerLinkActiveOptions]="{ exact: false }"
+                class="app-shell-nav-link"
+                (click)="isMobile() && closeMobileSidebar()">
+                <i class="pi pi-calendar" aria-hidden="true"></i>
+                <span class="app-shell-nav-link-label">Assigned Plans</span>
+              </a>
+            }
             <a
-              [routerLink]="['/workspace/trainer', ws.id, 'plans']"
+              routerLink="/workspace/logs"
               routerLinkActive="app-shell-nav-link--active"
               [routerLinkActiveOptions]="{ exact: false }"
               class="app-shell-nav-link"
               (click)="isMobile() && closeMobileSidebar()">
-              <i class="pi pi-calendar" aria-hidden="true"></i>
-              <span class="app-shell-nav-link-label">Assigned Plans</span>
+              <i class="pi pi-history" aria-hidden="true"></i>
+              <span class="app-shell-nav-link-label">Workout Log</span>
             </a>
           </nav>
         }

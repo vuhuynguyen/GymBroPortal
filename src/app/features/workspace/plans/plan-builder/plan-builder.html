@@ -1,0 +1,360 @@
+<section class="plan-builder-page flex min-h-[calc(100dvh-6rem)] min-w-0 flex-col bg-[var(--dashboard-page-bg)] pb-24 md:min-h-[calc(100dvh-6.5rem)] md:pb-[5.5rem]">
+  <app-ui-page-container class="flex w-full min-w-0 flex-1 flex-col gap-6">
+    @if (loading()) {
+      <div class="flex justify-center py-8">
+        <i class="pi pi-spin pi-spinner text-2xl text-inv-grey-500" aria-hidden="true"></i>
+      </div>
+    } @else {
+      <form id="plan-builder-form" class="flex min-w-0 flex-col gap-6" [formGroup]="form" novalidate>
+        <div class="grid min-w-0 grid-cols-1 items-start gap-8 lg:grid-cols-12 lg:gap-10">
+          <div class="order-2 flex min-w-0 flex-col gap-8 lg:order-none lg:col-span-8">
+            <header class="pb-plan-header min-w-0">
+              @if (canEdit()) {
+                <div class="flex min-w-0 flex-wrap items-center gap-2">
+                  <h1 class="pb-plan-header__title m-0 min-w-0 flex-1 text-inv-grey-900">
+                    {{ (form.get('name')?.value || '').toString().trim() || 'Untitled plan' }}
+                  </h1>
+                  <button
+                    type="button"
+                    class="pb-plan-header__icon-btn pb-plan-header__icon-btn--pencil"
+                    aria-label="Edit plan name and schedule"
+                    (click)="openPlanDetailsDialog()">
+                    <i class="pi pi-pencil text-inv-body-sm" aria-hidden="true"></i>
+                  </button>
+                </div>
+                <ul class="pb-plan-header__chips m-0 mt-3 flex list-none flex-wrap p-0" aria-label="Plan meta">
+                  @for (chip of planMetaChips(); track $index) {
+                    <li class="pb-plan-header__chip">
+                      <i [class]="chip.icon" aria-hidden="true"></i>
+                      <span>{{ chip.label }}</span>
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <h1 class="pb-plan-header__title m-0 text-inv-grey-900">{{ form.get('name')?.value || '—' }}</h1>
+                <ul class="pb-plan-header__chips m-0 mt-3 flex list-none flex-wrap p-0" aria-label="Plan meta">
+                  @for (chip of planMetaChips(); track $index) {
+                    <li class="pb-plan-header__chip">
+                      <i [class]="chip.icon" aria-hidden="true"></i>
+                      <span>{{ chip.label }}</span>
+                    </li>
+                  }
+                </ul>
+                @if (form.get('description')?.value) {
+                  <p class="m-0 mt-3 text-inv-body-sm leading-relaxed text-inv-grey-600">{{ form.get('description')?.value }}</p>
+                }
+              }
+            </header>
+
+            <div class="pb-workouts-region min-w-0">
+              <div class="mb-4 flex min-w-0 flex-wrap items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <h2 class="m-0 text-inv-body-lg font-semibold text-inv-grey-900">Workouts</h2>
+                  <p class="m-0 mt-1 text-inv-body-sm leading-snug text-inv-grey-500">
+                    Add and reorder workouts to build your program.
+                  </p>
+                </div>
+                @if (canEdit()) {
+                  <app-button
+                    class="shrink-0"
+                    label="Add Workout"
+                    icon="pi pi-plus"
+                    severity="primary"
+                    type="button"
+                    (clicked)="addWorkout()" />
+                }
+              </div>
+
+              @if (workouts().length === 0 && canEdit()) {
+                <button type="button" class="pb-add-workout-link" (click)="addWorkout()">+ Add workout</button>
+              } @else if (workouts().length === 0 && !canEdit()) {
+                <p class="m-0 text-inv-body-sm text-inv-grey-600">No workouts yet.</p>
+              } @else {
+                <div
+                  formArrayName="workouts"
+                  class="pb-workout-cards flex min-w-0 flex-col gap-4"
+                  cdkDropList
+                  [cdkDropListDisabled]="!canEdit()"
+                  (cdkDropListDropped)="onWorkoutsDropped($event)">
+                  @for (wg of workouts().controls; track workoutTrackId($index, wg); let wi = $index) {
+                    <section
+                      class="pb-workout-card"
+                      [class.pb-workout-card--open]="isWorkoutExpanded(wi)"
+                      cdkDrag
+                      [cdkDragDisabled]="!canEdit()"
+                      [formGroupName]="wi">
+                      <div class="pb-workout-card__head">
+                        @if (canEdit()) {
+                          <span
+                            class="pb-workout-card__grip"
+                            cdkDragHandle
+                            tabindex="0"
+                            role="button"
+                            [attr.aria-label]="'Drag to reorder workout ' + (wi + 1)">
+                            <i class="pi pi-bars" aria-hidden="true"></i>
+                          </span>
+                        } @else {
+                          <span class="pb-workout-card__grip pb-workout-card__grip--static" aria-hidden="true">
+                            <i class="pi pi-bars"></i>
+                          </span>
+                        }
+                        <span class="pb-workout-card__num" aria-hidden="true">{{ wi + 1 }}</span>
+                        <input
+                          type="text"
+                          class="pb-workout-card__name"
+                          formControlName="name"
+                          autocomplete="off"
+                          placeholder="Workout name"
+                          [attr.aria-label]="'Workout ' + (wi + 1) + ' name'"
+                          [disabled]="!canEdit()" />
+                        @if (canEdit()) {
+                          <div class="pb-workout-card__head-end">
+                            <button
+                              type="button"
+                              class="pb-workout-card__menu-btn inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-inv-sm border-0 bg-transparent text-inv-grey-500 hover:bg-inv-grey-25 hover:text-inv-grey-800"
+                              aria-label="Workout menu"
+                              (click)="openWorkoutMenu($event, wi)">
+                              <i class="pi pi-ellipsis-v" aria-hidden="true"></i>
+                            </button>
+                            <button
+                              type="button"
+                              class="pb-workout-card__chev inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-inv-sm border-0 bg-transparent text-inv-grey-500 hover:bg-inv-grey-25"
+                              [attr.aria-expanded]="isWorkoutExpanded(wi)"
+                              [attr.aria-label]="isWorkoutExpanded(wi) ? 'Collapse' : 'Expand'"
+                              (click)="toggleWorkoutExpanded(wi)">
+                              <i
+                                class="pi"
+                                [class.pi-chevron-up]="isWorkoutExpanded(wi)"
+                                [class.pi-chevron-down]="!isWorkoutExpanded(wi)"
+                                aria-hidden="true"></i>
+                            </button>
+                          </div>
+                        } @else {
+                          <button
+                            type="button"
+                            class="pb-workout-card__chev inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-inv-sm border-0 bg-transparent text-inv-grey-500"
+                            [attr.aria-expanded]="isWorkoutExpanded(wi)"
+                            (click)="toggleWorkoutExpanded(wi)">
+                            <i
+                              class="pi"
+                              [class.pi-chevron-up]="isWorkoutExpanded(wi)"
+                              [class.pi-chevron-down]="!isWorkoutExpanded(wi)"
+                              aria-hidden="true"></i>
+                          </button>
+                        }
+                      </div>
+
+                      @if (isWorkoutExpanded(wi)) {
+                        <div class="pb-workout-card__body flex flex-col gap-4" [formArrayName]="'exercises'">
+                          @for (eg of exercisesAt(wi).controls; track eg; let ei = $index) {
+                            <div class="pb-exercise-block flex flex-col gap-3 rounded-inv-md border border-inv-border-card bg-white p-4" [formGroupName]="ei">
+                              <!-- Exercise header: thumb + name + remove -->
+                              <div class="flex items-center gap-3">
+                                <span class="pb-ex-grid-row__thumb" aria-hidden="true">
+                                  @if (exerciseImageForId(eg.get('exerciseId')?.value); as img) {
+                                    <img [src]="img" alt="" loading="lazy" />
+                                  } @else {
+                                    <i class="pi pi-bullseye"></i>
+                                  }
+                                </span>
+                                <span class="flex-1 min-w-0 flex flex-col">
+                                  <span class="text-inv-body-sm font-semibold text-inv-grey-900 truncate">{{ exerciseNameForId(eg.get('exerciseId')?.value) }}</span>
+                                  @if (exerciseMuscleForId(eg.get('exerciseId')?.value); as mg) {
+                                    <span class="text-inv-body-mini text-inv-grey-500">{{ mg }}</span>
+                                  }
+                                </span>
+                                @if (canEdit()) {
+                                  <app-button
+                                    type="button"
+                                    icon="pi pi-trash"
+                                    size="small"
+                                    severity="danger"
+                                    [text]="true"
+                                    [rounded]="true"
+                                    ariaLabel="Remove exercise"
+                                    (clicked)="removeExercise(wi, ei)" />
+                                }
+                              </div>
+
+                              <!-- Per-set table -->
+                              <div class="pb-set-grid flex flex-col gap-1.5" [formArrayName]="'sets'">
+                                <div class="pb-set-grid__head grid items-center gap-2 px-1 text-inv-body-mini font-medium uppercase tracking-wider text-inv-grey-500"
+                                     style="grid-template-columns: 28px minmax(96px, 1fr) 76px 88px 76px 84px 36px;"
+                                     aria-hidden="true">
+                                  <span>#</span>
+                                  <span>Type</span>
+                                  <span class="text-center">Reps</span>
+                                  <span class="text-center">Weight</span>
+                                  <span class="text-center inline-flex items-center justify-center gap-1 cursor-help"
+                                        pTooltip="Rate of Perceived Exertion — how hard the set felt on a 1–10 scale (10 = max effort, no reps left in the tank)."
+                                        tooltipPosition="top">
+                                    RPE
+                                    <i class="pi pi-info-circle text-inv-grey-400 text-[10px]" aria-hidden="true"></i>
+                                  </span>
+                                  <span class="text-center">Rest</span>
+                                  <span></span>
+                                </div>
+                                @for (sg of setsAt(wi, ei).controls; track setTrackKey($index, sg); let si = $index) {
+                                  <div class="pb-set-grid__row grid items-center gap-2"
+                                       style="grid-template-columns: 28px minmax(96px, 1fr) 76px 88px 76px 84px 36px;"
+                                       [formGroupName]="si">
+                                    <span class="text-inv-body-sm font-semibold text-inv-grey-700 tabular-nums">{{ si + 1 }}</span>
+
+                                    <select formControlName="setType" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-inv-body-sm text-inv-grey-900 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' type'">
+                                      @for (opt of setTypeOptions; track opt.value) {
+                                        <option [value]="opt.value">{{ opt.label }}</option>
+                                      }
+                                    </select>
+
+                                    <input type="number" inputmode="numeric" min="1" max="99" formControlName="targetReps" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' reps'" />
+
+                                    <input type="number" inputmode="decimal" step="0.5" min="0" placeholder="—" formControlName="targetWeightKg" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 placeholder:text-inv-grey-400 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' weight (kg)'" />
+
+                                    <input type="number" inputmode="numeric" min="1" max="10" placeholder="—" formControlName="targetRpe" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 placeholder:text-inv-grey-400 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' RPE'" />
+
+                                    <div class="flex items-center justify-center gap-1">
+                                      <input type="number" inputmode="numeric" min="0" max="600" formControlName="restSeconds" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' rest seconds'" />
+                                    </div>
+
+                                    @if (canEdit() && setsAt(wi, ei).length > 1) {
+                                      <button type="button"
+                                              class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-inv-sm border-0 bg-transparent text-inv-grey-400 transition-colors hover:bg-inv-error-0 hover:text-inv-error-300"
+                                              [attr.aria-label]="'Remove set ' + (si + 1)"
+                                              (click)="removeSet(wi, ei, si)">
+                                        <i class="pi pi-times text-inv-body-mini"></i>
+                                      </button>
+                                    } @else {
+                                      <span></span>
+                                    }
+                                  </div>
+                                }
+                              </div>
+
+                              @if (canEdit()) {
+                                <button type="button"
+                                        class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-inv-sm border-2 border-dashed border-inv-border-field bg-transparent px-4 py-2 text-inv-body-sm font-medium text-inv-grey-600 transition-colors hover:border-inv-primary-500 hover:bg-inv-primary-0 hover:text-inv-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                        [disabled]="setsAt(wi, ei).length >= 20"
+                                        (click)="addSet(wi, ei)">
+                                  <i class="pi pi-plus" aria-hidden="true"></i>
+                                  Add Set
+                                </button>
+                              }
+                            </div>
+                          }
+                          @if (canEdit()) {
+                            <button type="button" class="pb-add-exercise" (click)="openExercisePicker(wi)">+ Add Exercise</button>
+                          }
+                        </div>
+                      } @else {
+                        <p class="pb-workout-card__collapsed m-0 text-inv-body-sm text-inv-grey-500">
+                          @if (workoutExerciseCount(wi) === 0) {
+                            <span>No exercises</span>
+                          } @else {
+                            <span class="font-medium text-inv-grey-700">{{ workoutCollapsedPreview(wi) }}</span>
+                          }
+                        </p>
+                      }
+                    </section>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <aside
+            class="order-1 flex min-w-0 flex-col gap-5 lg:order-none lg:col-span-4 lg:self-start"
+            aria-label="Plan sidebar">
+            <app-ui-panel-card header="Plan summary">
+              <dl class="m-0 flex flex-col gap-2.5">
+                <div class="flex items-center justify-between gap-3 text-inv-body-sm">
+                  <dt class="m-0 font-medium text-inv-grey-500">Duration</dt>
+                  <dd class="m-0 font-semibold text-inv-grey-900">
+                    @if (planSummary().durationWeeks; as dw) {
+                      {{ dw }} {{ dw === 1 ? 'week' : 'weeks' }}
+                    } @else {
+                      Not set
+                    }
+                  </dd>
+                </div>
+                <div class="flex items-center justify-between gap-3 text-inv-body-sm">
+                  <dt class="m-0 font-medium text-inv-grey-500">Workouts / week</dt>
+                  <dd class="m-0 font-semibold text-inv-grey-900">{{ planSummary().workoutsPerWeek ?? 'Not set' }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-3 text-inv-body-sm">
+                  <dt class="m-0 font-medium text-inv-grey-500">Total workouts</dt>
+                  <dd class="m-0 font-semibold text-inv-grey-900">{{ planSummary().totalWorkouts }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-3 text-inv-body-sm">
+                  <dt class="m-0 font-medium text-inv-grey-500">Total exercises</dt>
+                  <dd class="m-0 font-semibold text-inv-grey-900">{{ planSummary().totalExercises }}</dd>
+                </div>
+              </dl>
+            </app-ui-panel-card>
+
+            <app-ui-panel-card header="Tips">
+              <div class="pb-insp-tips rounded-inv-md px-4 py-3 mt-2">
+                <p class="m-0 flex gap-2 text-inv-body-sm leading-relaxed text-inv-grey-700">
+                  <i class="pi pi-lightbulb mt-0.5 shrink-0 text-inv-primary-600" aria-hidden="true"></i>
+                  <span>A 2–4 week cycle works best. 3–6 workouts per week is ideal for most goals.</span>
+                </p>
+              </div>
+            </app-ui-panel-card>
+          </aside>
+        </div>
+      </form>
+
+      <app-plan-details-form-dialog
+        [open]="planDetailsDialogOpen()"
+        (openChange)="planDetailsDialogOpen.set($event)"
+        mode="edit"
+        [formSeed]="planDetailsDialogSeed()"
+        [initialValues]="planDetailsDialogSnapshot()"
+        (saved)="onPlanDetailsDialogSaved($event)" />
+    }
+  </app-ui-page-container>
+
+  <app-ui-page-sticky-footer>
+    <div class="flex min-w-0 items-center gap-3">
+      @if (canEdit()) {
+        @if (hasUnsavedChanges()) {
+          <span class="h-2 w-2 shrink-0 rounded-full bg-inv-warning-100" aria-hidden="true"></span>
+          <span class="text-inv-body-sm font-medium text-inv-grey-800">Unsaved changes</span>
+        } @else {
+          <span class="text-inv-body-sm text-inv-grey-500">No unsaved changes</span>
+        }
+      } @else {
+        <span class="text-inv-body-sm text-inv-grey-500">You can review this plan; edits are owner-only.</span>
+      }
+    </div>
+
+    <div class="flex shrink-0 flex-wrap items-center justify-end gap-3">
+      @if (canEdit()) {
+        <app-button
+          label="Cancel"
+          severity="secondary"
+          [outlined]="true"
+          type="button"
+          [disabled]="saving() || loading()"
+          (clicked)="onCancel()" />
+        <app-button
+          label="Save Plan"
+          icon="pi pi-check"
+          severity="primary"
+          type="button"
+          [loading]="saving()"
+          [disabled]="saving() || loading()"
+          (clicked)="savePlan()" />
+      }
+    </div>
+  </app-ui-page-sticky-footer>
+
+  <p-menu #workoutMenu [model]="workoutMenuModel()" [popup]="true" appendTo="body" />
+
+  @if (pickerWorkoutIndex() !== null) {
+    <app-exercise-picker-panel
+      [exercises]="exercises()"
+      [workoutLabel]="pickerTargetName()"
+      (closed)="cancelPicker()"
+      (added)="onExerciseAdded($event)" />
+  }
+</section>

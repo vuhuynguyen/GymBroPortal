@@ -1,0 +1,347 @@
+<section role="region" aria-label="Workout log" (click)="dateRangeOpen.set(false)">
+  <app-confirm-split-dialog
+    [open]="abandonTarget() !== null"
+    (openChange)="onAbandonDialogOpenChange($event)"
+    heading="Abandon session?"
+    [message]="abandonDialogMessage()"
+    confirmLabel="Abandon"
+    iconClass="pi pi-exclamation-triangle"
+    (confirmed)="onAbandonConfirmed()" />
+
+  <app-ui-page-container class="flex flex-col gap-5">
+
+    <!-- Header -->
+    <app-page-header
+      title="Workout Log"
+      [subtitle]="isOwner() ? 'Review training sessions across your gym' : 'Track and review your training sessions'">
+      <div class="ui-page-actions flex flex-wrap items-center gap-3">
+        <app-button
+          label="Start Workout"
+          icon="pi pi-plus"
+          [loading]="starting()"
+          (clicked)="startWorkout()" />
+      </div>
+    </app-page-header>
+
+    <!-- Weekly Stats -->
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-5">
+      <div class="bg-white rounded-xl border border-inv-border-card p-4 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-inv-primary-0 flex items-center justify-center flex-shrink-0">
+          <i class="pi pi-chart-line text-inv-primary-500"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-[10px] text-inv-grey-500 uppercase tracking-[0.06em] font-semibold">This Week</p>
+          <p class="text-lg font-bold text-inv-grey-900 leading-tight mt-1 truncate">
+            {{ weeklyStats().workouts }} workouts
+          </p>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-inv-border-card p-4 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-inv-sky-0 flex items-center justify-center flex-shrink-0">
+          <i class="pi pi-arrow-up-right text-inv-sky-300"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-[10px] text-inv-grey-500 uppercase tracking-[0.06em] font-semibold">Volume</p>
+          <p class="text-lg font-bold text-inv-grey-900 leading-tight mt-1 truncate">
+            {{ weeklyStats().totalSets * 4 }} kg
+          </p>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-inv-border-card p-4 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-inv-warning-0 flex items-center justify-center flex-shrink-0">
+          <i class="pi pi-bolt text-inv-warning-300"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-[10px] text-inv-grey-500 uppercase tracking-[0.06em] font-semibold">Calories</p>
+          <p class="text-lg font-bold text-inv-grey-900 leading-tight mt-1 truncate">
+            {{ weeklyStats().avgDurationMinutes * weeklyStats().workouts * 8 | number }}
+          </p>
+        </div>
+      </div>
+
+      <div class="bg-white rounded-xl border border-inv-border-card p-4 flex items-center gap-3">
+        <div class="w-10 h-10 rounded-lg bg-inv-success-0 flex items-center justify-center flex-shrink-0">
+          <i class="pi pi-clock text-inv-success-300"></i>
+        </div>
+        <div class="min-w-0 flex-1">
+          <p class="text-[10px] text-inv-grey-500 uppercase tracking-[0.06em] font-semibold">Avg Duration</p>
+          <p class="text-lg font-bold text-inv-grey-900 leading-tight mt-1 truncate">
+            {{ weeklyStats().avgDurationMinutes }} min
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Active Session Hero -->
+    <div *ngIf="heroSession() as hero"
+         class="rounded-xl p-6 text-white shadow-sm mb-5"
+         style="background: linear-gradient(135deg, var(--inv-primary-500) 0%, var(--inv-primary-700) 100%);">
+
+      <!-- Title row -->
+      <div class="flex items-start justify-between gap-4 mb-5">
+        <div class="flex items-center gap-4 min-w-0">
+          <div class="w-12 h-12 bg-white/20 backdrop-blur rounded-xl flex items-center justify-center flex-shrink-0">
+            <i class="pi pi-play text-white text-lg"></i>
+          </div>
+          <div class="min-w-0">
+            <span class="inline-block text-[10px] font-semibold bg-white/20 px-2 py-0.5 rounded-full uppercase tracking-[0.08em]">
+              In Progress
+            </span>
+            <h3 class="text-lg font-semibold mt-1.5 truncate leading-tight">{{ hero.title }}</h3>
+            <p class="text-white/80 text-sm truncate mt-0.5">{{ hero.subtitle }}</p>
+          </div>
+        </div>
+        <div class="text-right flex-shrink-0 leading-tight pt-0.5">
+          <div class="text-[28px] font-bold tabular-nums leading-none">{{ formatDuration(hero.durationSeconds) }}</div>
+          <p class="text-white/80 text-sm mt-1.5">Duration</p>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div class="mb-5">
+        <div class="flex items-center justify-between text-sm mb-2">
+          <span class="text-white/80">Progress</span>
+          <span class="font-medium">
+            {{ hero.completedSets }} / {{ hero.totalSets }} sets
+          </span>
+        </div>
+        <div class="h-2 bg-white/20 rounded-full overflow-hidden">
+          <div class="h-full bg-white rounded-full transition-all duration-300"
+               [style.width.%]="heroProgressPercent()"></div>
+        </div>
+      </div>
+
+      <!-- Inner stat tiles -->
+      <div class="grid grid-cols-4 gap-3 mb-5">
+        <div class="bg-white/10 backdrop-blur rounded-lg py-3 px-2 text-center">
+          <p class="text-2xl font-bold leading-none tabular-nums">{{ hero.exercises }}</p>
+          <p class="text-[11px] text-white/80 mt-1.5">Exercises</p>
+        </div>
+        <div class="bg-white/10 backdrop-blur rounded-lg py-3 px-2 text-center">
+          <p class="text-2xl font-bold leading-none tabular-nums">{{ hero.completedSets }}</p>
+          <p class="text-[11px] text-white/80 mt-1.5">Sets Done</p>
+        </div>
+        <div class="bg-white/10 backdrop-blur rounded-lg py-3 px-2 text-center">
+          <p class="text-2xl font-bold leading-none tabular-nums">{{ hero.volumeKg || '—' }}</p>
+          <p class="text-[11px] text-white/80 mt-1.5">Volume (kg)</p>
+        </div>
+        <div class="bg-white/10 backdrop-blur rounded-lg py-3 px-2 text-center">
+          <p class="text-2xl font-bold leading-none tabular-nums">{{ hero.estCalories }}</p>
+          <p class="text-[11px] text-white/80 mt-1.5">Calories</p>
+        </div>
+      </div>
+
+      <!-- Actions -->
+      <div class="flex justify-end gap-2">
+        <app-button
+          label="Pause"
+          icon="pi pi-pause"
+          severity="contrast"
+          ariaLabel="Pause"
+          styleClass="hero-cta-pause" />
+        <app-button
+          [label]="hero.canResume ? 'Resume Workout' : 'View Session'"
+          icon="pi pi-play"
+          severity="contrast"
+          [disabled]="!hero.canResume"
+          styleClass="hero-cta-resume"
+          (clicked)="hero.canResume && resumeHero(hero.id)" />
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="bg-white rounded-xl border border-inv-border-card p-4">
+      <div class="flex flex-col sm:flex-row gap-3">
+        <!-- Search -->
+        <div class="flex-1">
+          <p-iconfield iconPosition="left">
+            <p-inputicon><i class="pi pi-search" aria-hidden="true"></i></p-inputicon>
+            <input
+              pInputText
+              type="search"
+              autocomplete="off"
+              class="w-full"
+              placeholder="Search workout sessions..."
+              [formControl]="searchControl" />
+          </p-iconfield>
+        </div>
+
+        <!-- Status filter -->
+        <div class="sm:w-48">
+          <p-select
+            [options]="statusOptions"
+            optionLabel="label"
+            optionValue="value"
+            [formControl]="statusControl"
+            (onChange)="applyFilters()"
+            placeholder="All"
+            appendTo="body"
+            styleClass="w-full" />
+        </div>
+
+        <!-- Date range trigger + popover -->
+        <div class="relative" (click)="$event.stopPropagation()">
+          <app-button
+            label="Date Range"
+            icon="pi pi-calendar"
+            severity="secondary"
+            [outlined]="true"
+            (clicked)="dateRangeOpen.set(!dateRangeOpen())" />
+
+          <div *ngIf="dateRangeOpen()"
+               class="absolute right-0 top-full mt-2 w-72 bg-white rounded-lg shadow-lg border border-inv-border-card p-3 z-30">
+            <div class="flex flex-col gap-2.5">
+              <div>
+                <label class="block text-[11px] font-medium text-inv-grey-700 mb-1">From</label>
+                <p-datepicker
+                  [formControl]="fromControl"
+                  appendTo="body"
+                  dateFormat="yy-mm-dd"
+                  showIcon="true"
+                  iconDisplay="input"
+                  styleClass="w-full"
+                  (onSelect)="applyFilters()"
+                  (onClear)="applyFilters()" />
+              </div>
+              <div>
+                <label class="block text-[11px] font-medium text-inv-grey-700 mb-1">To</label>
+                <p-datepicker
+                  [formControl]="toControl"
+                  appendTo="body"
+                  dateFormat="yy-mm-dd"
+                  showIcon="true"
+                  iconDisplay="input"
+                  styleClass="w-full"
+                  (onSelect)="applyFilters()"
+                  (onClear)="applyFilters()" />
+              </div>
+              <div class="flex items-center justify-end gap-2 pt-1">
+                <app-button label="Clear" severity="secondary" [text]="true" size="small" (clicked)="clearFilters()" />
+                <app-button label="Apply" severity="primary" size="small" (clicked)="dateRangeOpen.set(false)" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- History List -->
+    <div class="space-y-2.5">
+      <h2 class="text-base font-semibold text-inv-grey-900 px-1">Workout History</h2>
+
+      <div *ngIf="loading()" class="bg-white rounded-xl border border-inv-border-card py-10 text-center">
+        <i class="pi pi-spin pi-spinner text-inv-grey-400 text-2xl"></i>
+        <p class="text-sm text-inv-grey-500 mt-2">Loading sessions…</p>
+      </div>
+
+      <ng-container *ngIf="!loading()">
+        <div
+          *ngFor="let session of filteredSessions(); trackBy: trackById"
+          class="bg-white rounded-xl border border-inv-border-card px-5 py-4 hover:border-inv-grey-300 hover:shadow-sm transition-all group">
+          <div class="flex items-center gap-4">
+            <div class="w-12 h-12 bg-inv-grey-0 rounded-xl flex items-center justify-center flex-shrink-0">
+              <i class="pi pi-stopwatch text-inv-grey-700 text-lg"></i>
+            </div>
+
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between gap-3">
+                <div class="min-w-0 flex-1">
+                  <h3 class="font-semibold text-inv-grey-900 text-[15px] leading-snug truncate">
+                    {{ session.workoutName ?? 'Ad-hoc workout' }}
+                  </h3>
+                  <p class="text-xs text-inv-grey-500 mt-0.5 truncate">
+                    {{ formatStartedAt(session.startedAt) }}
+                    <span *ngIf="isOwner() && session.traineeName" class="text-inv-grey-400">
+                      · {{ session.traineeName }}
+                    </span>
+                  </p>
+                </div>
+
+                <div class="flex items-center gap-1.5 flex-shrink-0">
+                  <span [class]="'inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-medium ' + statusBadgeClass(session.status)">
+                    <span [class]="'w-1.5 h-1.5 rounded-full ' + statusDotClass(session.status)"></span>
+                    {{ statusLabel(session.status) }}
+                  </span>
+                  <app-button
+                    icon="pi pi-ellipsis-v"
+                    severity="secondary"
+                    [text]="true"
+                    [rounded]="true"
+                    size="small"
+                    [ariaLabel]="'Actions for ' + (session.workoutName ?? 'session')"
+                    styleClass="opacity-0 group-hover:opacity-100"
+                    (clicked)="openRowMenu($event, session)" />
+                </div>
+              </div>
+
+              <div class="flex flex-wrap items-center gap-x-5 gap-y-1.5 mt-2.5">
+                <div class="flex items-center gap-1.5 text-xs">
+                  <i class="pi pi-clock text-inv-grey-400 text-[11px]"></i>
+                  <span class="text-inv-grey-700">{{ formatDuration(session.durationSeconds) }}</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-xs">
+                  <i class="pi pi-list text-inv-grey-400 text-[11px]"></i>
+                  <span class="text-inv-grey-700">{{ session.totalExercises }} exercises</span>
+                </div>
+                <div class="flex items-center gap-1.5 text-xs">
+                  <i class="pi pi-bars text-inv-grey-400 text-[11px]"></i>
+                  <span class="text-inv-grey-700">{{ session.totalSets }} sets</span>
+                </div>
+                <div *ngIf="session.rpeOverall != null"
+                     class="flex items-center gap-1.5 text-xs cursor-help"
+                     pTooltip="Rate of Perceived Exertion — how hard the session felt overall on a 1–10 scale (10 = max effort)."
+                     tooltipPosition="top">
+                  <i class="pi pi-chart-line text-inv-grey-400 text-[11px]"></i>
+                  <span class="text-inv-grey-700">RPE {{ session.rpeOverall }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div *ngIf="filteredSessions().length === 0" class="bg-white rounded-xl border border-inv-border-card py-12 text-center">
+          <i class="pi pi-inbox text-inv-grey-300 text-3xl"></i>
+          <p class="text-inv-grey-500 font-medium mt-2 text-sm">No workout sessions found</p>
+          <p class="text-xs text-inv-grey-400 mt-1">
+            {{ isOwner() ? 'No sessions match the current filters.' : 'Start a new workout to begin tracking.' }}
+          </p>
+        </div>
+      </ng-container>
+    </div>
+
+    <!-- Pagination -->
+    <div *ngIf="totalCount() > pageSize()" class="bg-white rounded-xl border border-inv-border-card px-4 py-3">
+      <div class="flex items-center justify-between">
+        <p class="text-xs text-inv-grey-700">
+          Page <span class="font-medium">{{ page() }}</span> of {{ totalPages() }}
+          · {{ totalCount() }} total
+        </p>
+        <div class="flex items-center gap-2">
+          <app-button
+            label="Previous"
+            severity="secondary"
+            [outlined]="true"
+            size="small"
+            [disabled]="page() === 1"
+            (clicked)="prevPage()" />
+          <app-button
+            label="Next"
+            severity="secondary"
+            [outlined]="true"
+            size="small"
+            [disabled]="page() >= totalPages()"
+            (clicked)="nextPage()" />
+        </div>
+      </div>
+    </div>
+  </app-ui-page-container>
+
+  <p-menu #rowMenu [model]="rowMenuModel()" [popup]="true" appendTo="body" />
+
+  <app-start-session-dialog
+    [(open)]="startDialogOpen"
+    [starting]="starting()"
+    (started)="onStartSessionConfirmed($event)" />
+</section>

@@ -1,0 +1,54 @@
+<app-data-table
+  [columns]="columns"
+  [data]="rowData()"
+  [loading]="loading()"
+  [globalFilterExtraFields]="['visibility']"
+  globalSearchPlaceholder="Search by trainee or plan"
+  emptyMessage="No assignments yet. Use Assign Plan to get started."
+  loadingMessage="Loading assignments..."
+  itemLabel="assignments">
+  <ng-template appDataTableCell="status" let-row>
+    <div class="flex flex-wrap items-center gap-2">
+      @if (row['isCustomized']) {
+        <span class="pa-badge pa-badge--custom">Customized</span>
+      }
+      @if (row['hasNewerVersion']) {
+        <span class="pa-badge pa-badge--warn">New v{{ row['latestPlanVersion'] }}</span>
+      }
+      @if (!row['isCustomized'] && !row['hasNewerVersion']) {
+        <span class="pa-badge">In sync</span>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template appDataTableCell="actions" let-row>
+    <div class="flex flex-nowrap items-center justify-end gap-2">
+      <app-button
+        icon="pi pi-pencil"
+        size="small"
+        [rounded]="true"
+        [text]="true"
+        severity="secondary"
+        [ariaLabel]="'Edit assignment for ' + row['trainee']"
+        (clicked)="editClicked.emit($any(row['id']) || '')" />
+      @if (row['hasNewerVersion']) {
+        <app-button
+          icon="pi pi-refresh"
+          size="small"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          [ariaLabel]="'Update assignment to v' + row['latestPlanVersion']"
+          (clicked)="applyLatestClicked.emit($any(row['id']) || '')" />
+      }
+      <app-button
+        icon="pi pi-trash"
+        size="small"
+        [rounded]="true"
+        [text]="true"
+        severity="danger"
+        [ariaLabel]="'Revoke assignment for ' + row['trainee']"
+        (clicked)="revokeClicked.emit($any(row['id']) || '')" />
+    </div>
+  </ng-template>
+</app-data-table>

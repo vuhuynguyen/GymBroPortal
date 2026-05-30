@@ -6,6 +6,7 @@ import {
   contentChildren,
   effect,
   input,
+  output,
   signal,
   viewChild
 } from '@angular/core';
@@ -69,6 +70,10 @@ export class DataTableComponent {
   readonly cardSubheader = input<string>();
   readonly itemLabel = input<string>('rows');
   readonly showFilteredCount = input(true);
+  readonly lazy = input(false);
+  readonly totalRecords = input(0);
+  readonly globalFilterDebounceMs = input(500);
+  readonly lazyLoad = output<unknown>();
 
   private readonly tableRef = viewChild<Table<any>>('dt');
   private readonly cellTemplateDirectives = contentChildren(DataTableCellTemplateDirective);
@@ -77,6 +82,7 @@ export class DataTableComponent {
   private readonly filteredRowCount = signal<number | null>(null);
 
   protected readonly searchValue = signal('');
+  private globalFilterDebounceHandle: ReturnType<typeof setTimeout> | null = null;
 
   readonly globalFilterFields = computed((): string[] => {
     const cols = this.columns();
@@ -94,6 +100,7 @@ export class DataTableComponent {
   );
 
   readonly displayRowCount = computed(() => {
+    if (this.lazy()) return this.totalRecords();
     const n = this.filteredRowCount();
     return n !== null ? n : this.data().length;
   });
@@ -160,18 +167,50 @@ export class DataTableComponent {
   onGlobalFilterInput(event: Event): void {
     const value = (event.target as HTMLInputElement).value;
     this.searchValue.set(value);
-    this.tableRef()?.filterGlobal(value, 'contains');
+
+    if (this.globalFilterDebounceHandle) {
+      clearTimeout(this.globalFilterDebounceHandle);
+    }
+
+    this.globalFilterDebounceHandle = setTimeout(() => {
+      this.tableRef()?.filterGlobal(value, 'contains');
+      this.globalFilterDebounceHandle = null;
+    }, this.globalFilterDebounceMs());
   }
 
   onTableFilter(event: TableFilterEvent): void {
+    if (this.lazy()) {
+      this.filteredRowCount.set(null);
+      return;
+    }
+
     const fv = event.filteredValue;
     this.filteredRowCount.set(Array.isArray(fv) ? fv.length : null);
+  }
+
+  onTableLazyLoad(event: unknown): void {
+    this.lazyLoad.emit(event);
   }
 
   constructor() {
     effect(() => {
       void this.data();
       this.filteredRowCount.set(null);
+    });
+
+    effect((onCleanup) => {
+      const debounceMs = this.globalFilterDebounceMs();
+      if (debounceMs < 0 && this.globalFilterDebounceHandle) {
+        clearTimeout(this.globalFilterDebounceHandle);
+        this.globalFilterDebounceHandle = null;
+      }
+
+      onCleanup(() => {
+        if (this.globalFilterDebounceHandle) {
+          clearTimeout(this.globalFilterDebounceHandle);
+          this.globalFilterDebounceHandle = null;
+        }
+      });
     });
   }
 }

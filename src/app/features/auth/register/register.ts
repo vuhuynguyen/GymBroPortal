@@ -8,7 +8,6 @@ import {
 import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { AuthService } from '../../../core/auth/auth';
-import { FeaturesService } from '../../../core/feature-flags/feature-flags';
 import { TenantService } from '../../../core/tenant/tenant';
 
 @Component({
@@ -23,7 +22,6 @@ export class RegisterComponent {
   private readonly auth = inject(AuthService);
   private readonly router = inject(Router);
   private readonly tenantService = inject(TenantService);
-  readonly features = inject(FeaturesService);
 
   readonly name = signal('');
   readonly email = signal('');

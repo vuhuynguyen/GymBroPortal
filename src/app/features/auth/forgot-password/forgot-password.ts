@@ -1,6 +1,8 @@
-import { ChangeDetectionStrategy, Component, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
+import { finalize } from 'rxjs';
+import { AuthService } from '../../../core/auth/auth';
 
 @Component({
   selector: 'app-forgot-password',
@@ -11,22 +13,28 @@ import { RouterLink } from '@angular/router';
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class ForgotPasswordComponent {
+  private readonly auth = inject(AuthService);
+
   readonly email = signal('');
   readonly loading = signal(false);
   readonly emailSent = signal(false);
+  readonly error = signal<string | null>(null);
 
   submit(): void {
-    if (!this.email().trim()) return;
+    const value = this.email().trim();
+    if (!value) return;
     this.loading.set(true);
-    // Simulated — wire to a real endpoint when available
-    setTimeout(() => {
-      this.loading.set(false);
-      this.emailSent.set(true);
-    }, 1200);
+    this.error.set(null);
+    this.auth
+      .forgotPassword(value)
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: () => this.emailSent.set(true),
+        error: () => this.error.set('Unable to process request. Please try again.')
+      });
   }
 
   resend(): void {
-    this.loading.set(true);
-    setTimeout(() => this.loading.set(false), 1200);
+    this.submit();
   }
 }

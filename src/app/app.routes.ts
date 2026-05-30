@@ -1,7 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/auth-guard';
 import { noAuthGuard } from './core/auth/no-auth-guard';
-import { adminGuard } from './core/auth/role-guard';
+import { adminGuard, roleGuard } from './core/auth/role-guard';
 
 export const routes: Routes = [
   {
@@ -31,6 +31,13 @@ export const routes: Routes = [
     canActivate: [authGuard],
     children: [
       { path: '', redirectTo: 'workspace/plans', pathMatch: 'full' },
+      /** Short URLs (spec / bookmarks) → canonical workspace routes */
+      { path: 'workout-log', redirectTo: 'workspace/logs', pathMatch: 'full' },
+      {
+        path: 'workout-log/active/:id',
+        redirectTo: 'workspace/logs/session/:id',
+        pathMatch: 'full'
+      },
       {
         path: 'settings',
         loadComponent: () =>
@@ -47,8 +54,30 @@ export const routes: Routes = [
         children: [
           {
             path: 'plans',
+            // Owner-only: plan list + create/builder (defense-in-depth; API is the boundary)
+            canActivate: [roleGuard(['Owner'])],
+            children: [
+              {
+                path: '',
+                loadComponent: () =>
+                  import('./features/workspace/plans/plans-list/plans-list').then((m) => m.PlansListComponent)
+              },
+              { path: 'new', redirectTo: '', pathMatch: 'full' },
+              {
+                path: ':planId',
+                loadComponent: () =>
+                  import('./features/workspace/plans/plan-builder/plan-builder').then((m) => m.PlanBuilderComponent)
+              }
+            ]
+          },
+          {
+            path: 'plan-assignments',
+            // Owner-only: plan assignment management
+            canActivate: [roleGuard(['Owner'])],
             loadComponent: () =>
-              import('./features/workspace/plans/plans').then((m) => m.PlansComponent)
+              import('./features/workspace/plan-assignments/plan-assignments').then(
+                (m) => m.PlanAssignmentsComponent
+              )
           },
           {
             path: 'logs',
@@ -56,13 +85,19 @@ export const routes: Routes = [
               import('./features/workspace/logs/logs').then((m) => m.LogsComponent)
           },
           {
+            path: 'logs/session/:id',
+            loadComponent: () =>
+              import('./features/workspace/logs/active-session/active-session').then(
+                (m) => m.ActiveSessionComponent
+              )
+          },
+          {
             path: 'clients',
+            // Owner-only: clients/members management + invite generation
+            canActivate: [roleGuard(['Owner'])],
             loadComponent: () =>
               import('./features/workspace/clients/clients').then((m) => m.ClientsComponent)
           },
-          { path: 'invite', redirectTo: 'clients', pathMatch: 'full' },
-          // legacy redirect
-          { path: 'members', redirectTo: 'clients', pathMatch: 'full' },
           {
             path: 'trainer/:trainerId/plans',
             loadComponent: () =>

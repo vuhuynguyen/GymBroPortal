@@ -2,20 +2,10 @@ import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { tap } from 'rxjs/operators';
-import { AuthResponse, AuthUser, LoginRequest } from './auth.model';
+import { AuthResponse, AuthUser, LoginRequest, MeDto } from './auth.model';
 import { TenantService } from '../tenant/tenant';
 
 const TOKEN_KEY = 'gymbro_token';
-const NAME_KEY = 'gymbro_name';
-
-function decodeJwtPayload(token: string): Record<string, unknown> {
-  try {
-    const base64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
-    return JSON.parse(atob(base64));
-  } catch {
-    return {};
-  }
-}
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -24,24 +14,20 @@ export class AuthService {
   private readonly tenantService = inject(TenantService);
 
   private readonly token = signal<string | null>(localStorage.getItem(TOKEN_KEY));
-  private readonly displayName = signal<string | null>(localStorage.getItem(NAME_KEY));
+  private readonly profile = signal<MeDto | null>(null);
 
   readonly isAuthenticated = computed(() => !!this.token());
 
-  readonly isPlatformAdmin = computed<boolean>(() => {
-    const t = this.token();
-    if (!t) return false;
-    return decodeJwtPayload(t)['is_admin'] === 'true';
-  });
+  readonly isPlatformAdmin = computed<boolean>(() => this.profile()?.isPlatformAdmin ?? false);
 
   readonly currentUser = computed<AuthUser | null>(() => {
-    const t = this.token();
-    if (!t) return null;
-    const payload = decodeJwtPayload(t);
-    const email = String(payload['email'] ?? payload['sub'] ?? '');
-    const name = this.displayName() ?? String(payload['name'] ?? email.split('@')[0] ?? 'User');
-    const isPlatformAdmin = payload['is_admin'] === 'true';
-    return { email, name, isPlatformAdmin };
+    const me = this.profile();
+    if (!me) return null;
+    return {
+      email: me.email ?? '',
+      name: me.name,
+      isPlatformAdmin: me.isPlatformAdmin
+    };
   });
 
   login(email: string, password: string) {
@@ -50,42 +36,48 @@ export class AuthService {
       .pipe(tap((res) => this.storeToken(res.token)));
   }
 
-  requestOtp(phoneNumber: string) {
-    return this.http.post<void>('/api/auth/request-otp', { phoneNumber });
-  }
-
-  verifyOtp(phoneNumber: string, otp: string) {
+  register(email: string, password: string, name?: string) {
     return this.http
-      .post<AuthResponse>('/api/auth/verify-otp', { phoneNumber, otp })
+      .post<AuthResponse>('/api/auth/register', {
+        email,
+        password,
+        fullName: name?.trim() ?? ''
+      })
       .pipe(tap((res) => this.storeToken(res.token)));
   }
 
-  register(email: string, password: string, name?: string) {
-    return this.http
-      .post<AuthResponse>('/api/auth/register', { email, password })
-      .pipe(
-        tap((res) => {
-          this.storeToken(res.token);
-          if (name) {
-            localStorage.setItem(NAME_KEY, name);
-            this.displayName.set(name);
-          }
-        })
-      );
+  forgotPassword(email: string) {
+    return this.http.post<void>('/api/auth/forgot-password', { email });
+  }
+
+  resetPassword(email: string, token: string, newPassword: string) {
+    return this.http.post<void>('/api/auth/reset-password', { email, token, newPassword });
+  }
+
+  loadProfile() {
+    if (!this.token()) {
+      this.profile.set(null);
+      return;
+    }
+    this.http.get<MeDto>('/api/auth/me').subscribe({
+      next: (me) => this.profile.set(me),
+      error: () => this.profile.set(null)
+    });
   }
 
   logout(): void {
     localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(NAME_KEY);
     this.tenantService.clear();
     this.token.set(null);
-    this.displayName.set(null);
+    this.profile.set(null);
     void this.router.navigateByUrl('/login');
   }
 
   updateDisplayName(name: string): void {
-    localStorage.setItem(NAME_KEY, name);
-    this.displayName.set(name);
+    const current = this.profile();
+    if (current) {
+      this.profile.set({ ...current, name });
+    }
   }
 
   changePassword(currentPassword: string, newPassword: string) {
@@ -99,5 +91,6 @@ export class AuthService {
   private storeToken(token: string): void {
     localStorage.setItem(TOKEN_KEY, token);
     this.token.set(token);
+    this.loadProfile();
   }
 }
