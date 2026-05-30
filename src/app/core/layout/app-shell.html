@@ -40,12 +40,14 @@
 
         <!-- Training -->
         @if (generalNavItems().length > 0) {
-          @if (!isPlatformAdmin()) {
-            <p class="app-shell-section-label">Training</p>
-          }
+          <p class="app-shell-section-label">Training</p>
           <nav class="app-shell-nav" aria-label="Training">
             @for (item of generalNavItems(); track item.route) {
-              @if (item.route === '/workspace/plans' || item.route === '/workspace/plan-assignments') {
+              @if (
+                item.route === '/workspace/plans' ||
+                item.route === '/workspace/plan-assignments' ||
+                item.route === '/exercises'
+              ) {
                 <a
                   [routerLink]="item.route"
                   routerLinkActive="app-shell-nav-link--active"
@@ -70,15 +72,6 @@
         @if (coachingWorkspaceIds().length > 0) {
           <p class="app-shell-section-label">Coaching</p>
           <nav class="app-shell-nav" aria-label="Coaching">
-            <a
-              [routerLink]="'/workspace/logs'"
-              routerLinkActive="app-shell-nav-link--active"
-              [routerLinkActiveOptions]="{ exact: false }"
-              class="app-shell-nav-link"
-              (click)="isMobile() && closeMobileSidebar()">
-              <i class="pi pi-history" aria-hidden="true"></i>
-              <span class="app-shell-nav-link-label">Workout Log</span>
-            </a>
             @for (workspaceId of coachingWorkspaceIds(); track workspaceId) {
               <a
                 [routerLink]="['/workspace/trainer', workspaceId, 'plans']"
@@ -90,6 +83,15 @@
                 <span class="app-shell-nav-link-label">Assigned Plans</span>
               </a>
             }
+            <a
+              routerLink="/workspace/logs"
+              routerLinkActive="app-shell-nav-link--active"
+              [routerLinkActiveOptions]="{ exact: false }"
+              class="app-shell-nav-link"
+              (click)="isMobile() && closeMobileSidebar()">
+              <i class="pi pi-history" aria-hidden="true"></i>
+              <span class="app-shell-nav-link-label">Workout Log</span>
+            </a>
           </nav>
         }
 

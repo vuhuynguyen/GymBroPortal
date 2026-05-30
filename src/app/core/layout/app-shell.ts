@@ -157,7 +157,7 @@ export class AppShellComponent {
       items.push({
         label: trainerName,
         icon: 'pi pi-bolt',
-        route: `/workspace/trainer/${ws.id}`,
+        route: `/workspace/trainer/${ws.id}/plans`,
         activeMatch: 'prefix',
         section: 'trainee'
       });
@@ -267,7 +267,18 @@ export class AppShellComponent {
         { label: 'Plan', link: null }
       ];
     if (url.startsWith('/workspace/plans')) return [{ label: 'My Plans', link: null }];
-    if (url.startsWith('/workspace/logs')) return [{ label: 'Workout Log', link: null }];
+    if (url.startsWith('/workspace/logs/session/'))
+      return [
+        { label: 'Home', link: '/' },
+        { label: 'Workout Log', link: '/workspace/logs' },
+        { label: 'Session', link: null }
+      ];
+    if (url.startsWith('/workspace/logs'))
+      return [
+        { label: 'Home', link: '/' },
+        { label: 'Dashboard', link: '/workspace/plans' },
+        { label: 'Workout Log', link: null }
+      ];
     if (url.startsWith('/workspace/trainer')) return [{ label: 'Assigned Plans', link: null }];
     if (url.startsWith('/admin/tenants')) return [{ label: 'Admin', link: null }, { label: 'Tenants', link: null }];
     if (url.startsWith('/admin/users')) return [{ label: 'Admin', link: null }, { label: 'Users', link: null }];

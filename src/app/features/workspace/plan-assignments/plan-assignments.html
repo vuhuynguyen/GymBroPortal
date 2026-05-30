@@ -1,3 +1,11 @@
+<app-confirm-split-dialog
+  [open]="revokeTarget() !== null"
+  (openChange)="!$event && revokeTarget.set(null)"
+  heading="Revoke assignment?"
+  [message]="revokeDialogMessage()"
+  confirmLabel="Revoke"
+  (confirmed)="onRevokeConfirm()" />
+
 <app-ui-page-container class="flex flex-col gap-inv-5">
   <app-page-header
     title="Plan assignments"
@@ -13,6 +21,7 @@
     [plans]="plans()"
     [trainees]="trainees()"
     (editClicked)="onEditRequested($event)"
+    (revokeClicked)="onRevokeRequested($event)"
     (applyLatestClicked)="onApplyLatestById($event)" />
 </app-ui-page-container>
 

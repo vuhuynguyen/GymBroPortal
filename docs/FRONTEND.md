@@ -1,0 +1,62 @@
+# GymBroPortal — Frontend Guide
+
+> **Purpose:** The one necessary frontend doc — stack, structure, UI/design rules, state & HTTP, routing, and the Figma workflow.
+> **Read when:** Building or changing any Angular page, component, service, route, or design token.
+> **Answers:** How is the SPA structured? What are the non-negotiable UI rules? Which wrappers/patterns do I reuse? How do I wire tenant + auth?
+> **Related (system facts live in the central SSOT):** [`../../docs/README.md`](../../docs/README.md) → MODULES (endpoints), PERMISSIONS (who-can-do-what), USER_FLOWS, BUSINESS_RULES. Repo conventions: [`../CLAUDE.md`](../CLAUDE.md).
+> The exhaustive component catalog and token list are **not** duplicated here — the source of truth is the code: `src/app/shared/ui/`, `src/styles.scss`, and `src/app/core/config/prime-ng.config.ts`.
+
+## Stack
+Angular 21 · standalone components · **signals** · `ChangeDetectionStrategy.OnPush` · PrimeNG 21 (Aura preset remapped to **blue**) · Tailwind with `--inv-*` design tokens. Zone-based change detection (not zoneless). API base is the relative `/api` prefix via `proxy.conf.json` (dev) — no `environment*.ts`.
+
+## Structure (three buckets only — do not add new top-level folders)
+```
+src/app/
+├── core/      # singletons: auth/ (service, JWT decode, authInterceptor, guards), tenant/, layout/ (shell + side panels), config/ (prime-ng.config.ts)
+├── features/  # route-level pages: auth/, exercises/ (admin-gated), workspace/ (plans + plan-builder, plan-assignments, logs + active-session, clients/invites, trainer-plans), admin/, settings/
+└── shared/ui/ # dumb, stateless wrapper components
+```
+Auth **pages** live in `features/auth/`; auth **infra** (guards, interceptor, service) in `core/auth/`.
+**Dead/unrouted (do not extend):** `features/dashboard/`, `features/workspace/workout-plans/`, `workspace/members`+`invite` (redirect to `clients`).
+
+## Hard rules
+- **`inv-*` design tokens only** — no hex colors in feature code. Blue primary (no purple as brand).
+- **No raw PrimeNG** (`p-button`, `p-dropdown`, …) in feature templates — always use a `shared/ui/` wrapper.
+- **Reactive forms only** (`FormBuilder` + typed `FormGroup`) — no template-driven forms.
+- **Signals + OnPush + standalone** — no `NgModule`, no `BehaviorSubject` + `async` pipe for new code.
+- **State in services** (`signal`/`computed`); components stay thin and read service signals.
+
+## Mandatory shared UI wrappers (`src/app/shared/ui/` — check here before writing a component)
+`app-button`, `app-input`, `app-select` (string lists; **never `p-dropdown`**), `app-form-field`,
+`app-page-header`, `app-ui-page-container`, `app-ui-page-sticky-footer`, `app-ui-panel-card`,
+`app-data-table` + `appDataTableCell`, `app-filter-bar`, `app-ui-form-grid`, `app-ui-form-inline`,
+`app-chip-removable-list`, `app-confirm-split-dialog`, `app-success-dialog`, `app-info-dialog`.
+
+## Page patterns
+```ts
+@Component({ standalone: true, changeDetection: ChangeDetectionStrategy.OnPush, imports: [...] })
+export class MyPageComponent implements OnInit {
+  private readonly service = inject(MyService);
+  readonly data = this.service.data;       // signal
+  readonly loading = this.service.loading; // signal
+  ngOnInit() { this.service.load(); }
+}
+```
+- **List/table page:** mirror `features/exercises/exercise-list` — `app-ui-page-container` → `app-page-header` (actions in `.ui-page-actions`) → `app-data-table`.
+- **Full-page editor (save/cancel):** mirror `features/exercises/exercise-form` — outer `<section>` with bottom padding → `app-ui-page-container` → stacked `app-ui-panel-card` sections → `app-ui-page-sticky-footer` (outlined-secondary cancel/back + primary save `pi-check`).
+
+## State, HTTP & tenancy
+- Core service signals: `AuthService` (`token`, computed `isAuthenticated`/`isPlatformAdmin`/`currentUser` from client-side JWT decode — no `/me`), `TenantService` (`tenants[]`, `activeTenantId`, computed `currentRole`/`activeTenant`/`ownTenant`/`trainerWorkspaces`), `FeaturesService` (boot flags), plus per-feature services.
+- `authInterceptor` adds `Authorization: Bearer` + `X-Tenant-Id` (from `TenantService.activeTenant()`) automatically.
+- **Tenant context:** `selectOwnWorkspace()` on trainer/management screens; `selectTrainerWorkspace(id)` before loading a coach's assigned plans (trainee view). `loadTenants()` runs after login and preserves a still-valid stored tenant.
+- ⚠ **Gap:** only `authInterceptor` is registered — **no HTTP error interceptor**, so a 401/expired token is not auto-handled. Add one before relying on long sessions.
+
+## Routing & guards (`app.routes.ts`)
+Lazy routes. Public: `noAuthGuard` (`/login`, `/register`, `/forgot-password` — the last is a **fake**, no backend). Shell: `authGuard`. `adminGuard()` gates `/exercises` and `/admin/*` (catalog management is **platform-admin-only in the UI**). ⚠ `roleGuard` exists but is **never wired** → any authed non-admin can reach every `/workspace/*` route; the API is the only role gate (see [`../../docs/PERMISSIONS.md`](../../docs/PERMISSIONS.md)). Keep the UI permission model in `core/auth/permission.ts` **in sync with the backend** `PermissionService`.
+
+## Figma Make workflow (critical)
+Figma Make exports **React + Tailwind**; this app is Angular. Never convert JSX directly:
+1. Extract **visual intent** from `App.tsx` (layout, spacing, section order).
+2. Map to `shared/ui/` components + `inv-*` tokens (no hex, no raw PrimeNG).
+3. Build with Angular patterns (reactive forms, signals, standalone).
+4. After adding new Tailwind responsive classes: `rm -rf .angular/cache && ng serve`.

@@ -1,0 +1,277 @@
+<section role="region" aria-label="Active workout session" class="session-root">
+  <app-confirm-split-dialog
+    [open]="showFinishConfirm()"
+    (openChange)="onFinishOpenChange($event)"
+    heading="Finish workout?"
+    message="Once finished, the session is sealed and can no longer be edited."
+    confirmLabel="Finish workout"
+    iconClass="pi pi-check-circle"
+    (confirmed)="finishWorkout()" />
+
+  <app-confirm-split-dialog
+    [open]="showAbandonConfirm()"
+    (openChange)="onAbandonOpenChange($event)"
+    heading="Abandon workout?"
+    message="Logged sets will be kept but the session will be marked as abandoned."
+    confirmLabel="Abandon"
+    iconClass="pi pi-exclamation-triangle"
+    (confirmed)="abandonWorkout()" />
+
+  @if (loading()) {
+    <div class="session-loading">
+      <i class="pi pi-spin pi-spinner"></i>
+    </div>
+  } @else if (session(); as s) {
+    <app-ui-page-container>
+      <div class="session-stack">
+
+      <!-- ── Page header ───────────────────────────────────────────── -->
+      <app-page-header [title]="workoutTitle()" [subtitle]="headerSubtitle()">
+        <div class="ui-page-actions session-actions">
+          <app-button
+            [label]="isPaused() ? 'Resume workout' : 'Pause workout'"
+            [icon]="isPaused() ? 'pi pi-play' : 'pi pi-pause'"
+            severity="secondary"
+            [outlined]="true"
+            (clicked)="togglePause()" />
+          <app-button
+            label="Finish workout"
+            icon="pi pi-check"
+            [loading]="saving()"
+            (clicked)="requestFinish()" />
+        </div>
+      </app-page-header>
+
+      <!-- ── KPI strip ─────────────────────────────────────────────── -->
+      <div class="kpi-grid">
+        <div class="kpi kpi--primary">
+          <span class="kpi__ico"><i class="pi pi-clock" aria-hidden="true"></i></span>
+          <div>
+            <div class="kpi__l">Elapsed</div>
+            <div class="kpi__v num">{{ formatTime(elapsedSeconds()) }}</div>
+          </div>
+        </div>
+        <div class="kpi kpi--success">
+          <span class="kpi__ico"><i class="pi pi-check-circle" aria-hidden="true"></i></span>
+          <div>
+            <div class="kpi__l">Sets Done</div>
+            <div class="kpi__v num">{{ completedSets() }} / {{ totalSets() }}</div>
+          </div>
+        </div>
+        <div class="kpi kpi--sky">
+          <span class="kpi__ico"><i class="pi pi-arrow-up-right" aria-hidden="true"></i></span>
+          <div>
+            <div class="kpi__l">Volume</div>
+            <div class="kpi__v num">{{ totalVolumeKg() | number }} kg</div>
+          </div>
+        </div>
+        <div class="kpi kpi--warning">
+          <span class="kpi__ico">
+            <i [class]="resting() ? 'pi pi-stopwatch' : 'pi pi-chart-line'" aria-hidden="true"></i>
+          </span>
+          <div>
+            <div class="kpi__l">{{ resting() ? 'Resting' : 'Avg RPE' }}</div>
+            <div class="kpi__v num">{{ resting() ? formatRest(restRemaining()) : (avgRpe() ?? 'Not set') }}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── Two-column grid ───────────────────────────────────────── -->
+      <div class="session-grid">
+
+        <!-- Active exercise panel -->
+        @if (activeExercise(); as ax) {
+          <app-ui-panel-card cardClass="session-card" class="ax-panel">
+            <header class="ax-panel__head">
+              <div class="ax-panel__heading">
+                <div class="ax-panel__eyebrow">Exercise {{ activeIndex() }} of {{ exercises().length }} · Current</div>
+                <h2 class="ax-panel__title">{{ exerciseName(ax) }}</h2>
+                @if (exerciseEquipment(ax) || activeExerciseSub(ax)) {
+                  <p class="ax-panel__sub">
+                    @if (exerciseEquipment(ax); as eq) { <span>{{ eq }}</span> }
+                    @if (exerciseEquipment(ax) && activeExerciseSub(ax)) { <span class="sep"> · </span> }
+                    @if (activeExerciseSub(ax); as sub) { <span class="num">{{ sub }}</span> }
+                  </p>
+                }
+              </div>
+              <div class="ax-panel__actions">
+                <app-button label="Replace" icon="pi pi-refresh" severity="secondary" [outlined]="true" size="small" (clicked)="openReplace()" />
+                <app-button label="Skip" icon="pi pi-forward" severity="secondary" [outlined]="true" size="small" (clicked)="skipExercise()" />
+              </div>
+            </header>
+
+            <!-- Coach note (only when the exercise carries a note) -->
+            @if (ax.notes?.trim(); as note) {
+              <div class="coach-note">
+                <span class="coach-note__avatar">C</span>
+                <div class="coach-note__copy"><b>Coach:</b> {{ note }}</div>
+              </div>
+            }
+
+            <!-- Rest banner -->
+            @if (resting()) {
+              <div class="rest-banner">
+                <span class="rest-banner__ico"><i class="pi pi-stopwatch" aria-hidden="true"></i></span>
+                <div class="rest-banner__copy">
+                  <div class="rest-banner__label">Resting</div>
+                  <div class="rest-banner__time">
+                    {{ formatRest(restRemaining()) }}
+                    <span class="of">/ {{ formatRest(restTarget()) }}@if (restNextSet()) { · next set {{ restNextSet() }} }</span>
+                  </div>
+                </div>
+                <div class="rest-banner__actions">
+                  <app-button label="−15s" severity="secondary" [outlined]="true" size="small" (clicked)="adjustRest(-15)" />
+                  <app-button label="+15s" severity="secondary" [outlined]="true" size="small" (clicked)="adjustRest(15)" />
+                  <app-button label="Skip rest" severity="secondary" size="small" (clicked)="skipRest()" />
+                </div>
+                <div class="rest-banner__bar" [style.width.%]="restProgress"></div>
+              </div>
+            }
+
+            <!-- Sets table -->
+            <form [formGroup]="setForm" (ngSubmit)="logSet()">
+              <table class="set-table">
+                <thead>
+                  <tr>
+                    <th class="col-n">Set</th>
+                    <th class="col-last">Last time</th>
+                    <th class="col-w">Weight</th>
+                    <th class="col-r">Reps</th>
+                    <th class="col-rpe">RPE</th>
+                    <th class="col-status action">&nbsp;</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @for (row of activeSetRows(); track trackRow($index, row)) {
+                    @switch (row.kind) {
+                      @case ('done') {
+                        <tr class="set-row--done">
+                          <td class="col-n"><span class="set-num">{{ row.setNumber }}</span></td>
+                          <td class="col-last">{{ row.lastTime }}</td>
+                          <td class="col-w">{{ row.set.weightKg ?? 0 }} <span class="unit-label">kg</span></td>
+                          <td class="col-r num">{{ row.set.reps ?? 0 }}</td>
+                          <td class="col-rpe">{{ row.set.rpe ?? '—' }}</td>
+                          <td class="col-status">
+                            <span class="set-status"><i class="pi pi-check" aria-hidden="true"></i> Logged</span>
+                            <button type="button" class="set-del" [attr.aria-label]="'Delete set ' + row.setNumber" (click)="removeSet(row.set)">
+                              <i class="pi pi-trash" aria-hidden="true"></i>
+                            </button>
+                          </td>
+                        </tr>
+                      }
+                      @case ('active') {
+                        <tr class="set-row--active">
+                          <td class="col-n"><span class="set-num">{{ row.setNumber }}</span></td>
+                          <td class="col-last">{{ row.lastTime }}</td>
+                          <td class="col-w">
+                            <div class="stepper">
+                              <button type="button" aria-label="Decrease weight" (click)="bumpWeight(-2.5)"><i class="pi pi-minus" aria-hidden="true"></i></button>
+                              <input type="number" formControlName="weightKg" inputmode="decimal" aria-label="Weight in kilograms" />
+                              <span class="unit">kg</span>
+                              <button type="button" aria-label="Increase weight" (click)="bumpWeight(2.5)"><i class="pi pi-plus" aria-hidden="true"></i></button>
+                            </div>
+                          </td>
+                          <td class="col-r">
+                            <div class="stepper">
+                              <button type="button" aria-label="Decrease reps" (click)="bumpReps(-1)"><i class="pi pi-minus" aria-hidden="true"></i></button>
+                              <input type="number" formControlName="reps" inputmode="numeric" aria-label="Reps" />
+                              <span class="unit">reps</span>
+                              <button type="button" aria-label="Increase reps" (click)="bumpReps(1)"><i class="pi pi-plus" aria-hidden="true"></i></button>
+                            </div>
+                          </td>
+                          <td class="col-rpe">
+                            <app-select [options]="rpeOptions" placeholder="RPE" formControlName="rpe" inputId="rpe-select" />
+                          </td>
+                          <td class="col-status">
+                            <app-button label="Log set" icon="pi pi-check" size="small" type="submit" [loading]="saving()" [disabled]="saving()" styleClass="session-log-btn" />
+                          </td>
+                        </tr>
+                      }
+                      @case ('pending') {
+                        <tr class="set-row--pending">
+                          <td class="col-n"><span class="set-num">{{ row.setNumber }}</span></td>
+                          <td class="col-last">{{ row.lastTime }}</td>
+                          <td class="col-w">{{ row.target?.targetWeightKg ?? '—' }} <span class="unit-label">kg</span></td>
+                          <td class="col-r num">{{ row.target?.targetReps ?? '—' }}</td>
+                          <td class="col-rpe">{{ row.target?.targetRpe ?? '—' }}</td>
+                          <td class="col-status"><span class="set-status muted">—</span></td>
+                        </tr>
+                      }
+                    }
+                  }
+                </tbody>
+              </table>
+            </form>
+
+            <div class="set-table-foot">
+              <button type="button" class="set-add-btn" (click)="resetActiveSet()">
+                <i class="pi pi-plus" aria-hidden="true"></i> Add set
+              </button>
+              <div class="hint">
+                <i class="pi pi-info-circle" aria-hidden="true"></i>
+                Defaults pulled from last set. Tap any value to adjust.
+              </div>
+            </div>
+          </app-ui-panel-card>
+        } @else {
+          <app-ui-panel-card cardClass="session-card" class="ax-panel">
+            <div class="ax-panel--empty">
+              <i class="pi pi-info-circle"></i>
+              <p>No exercises yet. Add one from the catalog to start logging.</p>
+              <app-button label="Add exercise" icon="pi pi-plus" (clicked)="openAdd()" />
+            </div>
+          </app-ui-panel-card>
+        }
+
+        <!-- Workout outline (right rail) -->
+        <div class="session-outline-wrap">
+          <app-ui-panel-card cardClass="session-card" class="panel--outline">
+            <header class="outline-head">
+              <div class="outline-head__row">
+                <h3>Workout outline</h3>
+                <span class="outline-head__count num">{{ completedSets() }} / {{ totalSets() }} sets</span>
+              </div>
+              <div class="outline-head__bar"><div [style.width.%]="progressPercent()"></div></div>
+            </header>
+            <div class="outline-list">
+              @for (ex of exercises(); track trackExerciseById($index, ex)) {
+                <div
+                  class="outline-row"
+                  [class.outline-row--active]="exerciseStatusKind(ex) === 'active'"
+                  [class.outline-row--done]="exerciseStatusKind(ex) === 'done'"
+                  (click)="setActive(ex.id)">
+                  <span class="outline-row__num" aria-hidden="true">
+                    @if (exerciseStatusKind(ex) === 'done') { <i class="pi pi-check"></i> } @else { {{ $index + 1 }} }
+                  </span>
+                  <div class="outline-row__body">
+                    <div class="outline-row__name">{{ exerciseName(ex) }}</div>
+                    <div class="outline-row__meta">{{ outlineMeta(ex) }}</div>
+                  </div>
+                  <div class="outline-row__progress" [attr.aria-label]="exerciseName(ex) + ' progress'">
+                    @for (dot of outlineDots(ex); track $index) { <span [class]="dot"></span> }
+                  </div>
+                  <button class="outline-row__menu" [attr.aria-label]="'Replace ' + exerciseName(ex)" (click)="$event.stopPropagation(); setActive(ex.id); openReplace()">
+                    <i class="pi pi-refresh" aria-hidden="true"></i>
+                  </button>
+                </div>
+              }
+              <button class="outline-add" (click)="openAdd()">
+                <i class="pi pi-plus" aria-hidden="true"></i> Add exercise
+              </button>
+            </div>
+          </app-ui-panel-card>
+        </div>
+      </div>
+      </div>
+    </app-ui-page-container>
+
+    <!-- ── Replace / add exercise — shared picker panel ────────────── -->
+    @if (pickerOpen()) {
+      <app-exercise-picker-panel
+        [exercises]="catalogExercises()"
+        [workoutLabel]="pickerMode() === 'replace' ? exerciseName(activeExercise()) : workoutTitle()"
+        (closed)="closePicker()"
+        (added)="onExercisePicked($event)" />
+    }
+  }
+</section>

@@ -30,7 +30,7 @@ You are a senior Angular frontend engineer building a scalable, production-ready
 # Architecture Rules
 
 * **Three top-level buckets under `src/app/`:**
-  * `core/` — app-wide singletons / infrastructure: `core/auth/` (guards, interceptor, auth service, permissions), `core/config/` (PrimeNG preset at `core/config/prime-ng.config.ts`), `core/feature-flags/`, `core/layout/` (`app-shell`, `invite-gymbro-panel/`, `join-gymbro-panel/`, profile/change-password panels), `core/tenant/`.
+  * `core/` — app-wide singletons / infrastructure: `core/auth/` (guards, interceptor, auth service, permissions), `core/config/` (PrimeNG preset at `core/config/prime-ng.config.ts`), `core/layout/` (`app-shell`, `invite-gymbro-panel/`, `join-gymbro-panel/`, profile/change-password panels), `core/tenant/`.
   * `features/` — route-level features only: `features/admin/`, `features/auth/` (login/register/forgot-password PAGES — infra lives in `core/auth/`), `features/dashboard/`, `features/exercises/`, `features/settings/`, `features/workspace/`. Typical feature shape: route-component folders (`exercise-list/`, `exercise-form/`) plus feature-root service (`exercise.ts`), `*.model.ts`, `*.routes.ts`.
   * `shared/ui/` — dumb, stateless, reusable wrappers. Nothing business-aware (tenant/auth/feature services stay in `core/`).
 * **Do NOT add new root-level folders** at `src/app/` alongside these three — fit the work into an existing bucket.
@@ -234,8 +234,8 @@ kebab-case filenames. **Class names keep their suffix** (`LoginComponent`, `Auth
 | What you need | Read |
 |---|---|
 | List / editor layout, sticky footer, shared UI checklist | `docs/ui-screen-patterns.md` (this repo) |
-| API endpoints | `../../docs/api-contracts.md` |
-| AI behavior rules | `../../docs/ai-rules.md` |
+| API surface | `../../docs/backend-api.md` |
+| Doc index + patterns | `../../docs/README.md` · `../../docs/coding-patterns.md` |
 
 After every change: new route or cross-cutting UI pattern → update **`docs/ui-screen-patterns.md`** (if the pattern is new or amended) and **`docs/claude-context-short.md`** when behavior visible to AI/context changes.
 

@@ -145,19 +145,11 @@
                       </div>
 
                       @if (isWorkoutExpanded(wi)) {
-                        <div class="pb-workout-card__body" [formArrayName]="'exercises'">
-                          @if (exercisesAt(wi).length > 0) {
-                            <div class="pb-ex-grid-head" aria-hidden="true">
-                              <span class="pb-ex-grid-head__ex">Exercise</span>
-                              <span class="pb-ex-grid-head__col">Sets</span>
-                              <span class="pb-ex-grid-head__col">Reps</span>
-                              <span class="pb-ex-grid-head__col">Rest</span>
-                              <span class="pb-ex-grid-head__sp"></span>
-                            </div>
-                          }
+                        <div class="pb-workout-card__body flex flex-col gap-4" [formArrayName]="'exercises'">
                           @for (eg of exercisesAt(wi).controls; track eg; let ei = $index) {
-                            <div class="pb-ex-grid-row" [formGroupName]="ei">
-                              <div class="pb-ex-grid-row__ex">
+                            <div class="pb-exercise-block flex flex-col gap-3 rounded-inv-md border border-inv-border-card bg-white p-4" [formGroupName]="ei">
+                              <!-- Exercise header: thumb + name + remove -->
+                              <div class="flex items-center gap-3">
                                 <span class="pb-ex-grid-row__thumb" aria-hidden="true">
                                   @if (exerciseImageForId(eg.get('exerciseId')?.value); as img) {
                                     <img [src]="img" alt="" loading="lazy" />
@@ -165,40 +157,13 @@
                                     <i class="pi pi-bullseye"></i>
                                   }
                                 </span>
-                                <span class="pb-ex-grid-row__label">
-                                  <span class="pb-ex-grid-row__title">{{ exerciseNameForId(eg.get('exerciseId')?.value) }}</span>
+                                <span class="flex-1 min-w-0 flex flex-col">
+                                  <span class="text-inv-body-sm font-semibold text-inv-grey-900 truncate">{{ exerciseNameForId(eg.get('exerciseId')?.value) }}</span>
                                   @if (exerciseMuscleForId(eg.get('exerciseId')?.value); as mg) {
-                                    <span class="pb-ex-grid-row__sub">{{ mg }}</span>
+                                    <span class="text-inv-body-mini text-inv-grey-500">{{ mg }}</span>
                                   }
                                 </span>
-                              </div>
-                              <label class="pb-ex-grid-row__cell">
-                                <span class="sr-only">Sets</span>
-                                <app-input
-                                  [inputId]="'sets-' + wi + '-' + ei"
-                                  type="number"
-                                  formControlName="sets"
-                                  [disabled]="!canEdit()" />
-                              </label>
-                              <label class="pb-ex-grid-row__cell">
-                                <span class="sr-only">Reps</span>
-                                <app-input
-                                  [inputId]="'reps-' + wi + '-' + ei"
-                                  type="number"
-                                  formControlName="reps"
-                                  [disabled]="!canEdit()" />
-                              </label>
-                              <label class="pb-ex-grid-row__cell pb-ex-grid-row__cell--rest">
-                                <span class="sr-only">Rest</span>
-                                <app-input
-                                  [inputId]="'rest-' + wi + '-' + ei"
-                                  type="number"
-                                  formControlName="restSeconds"
-                                  [disabled]="!canEdit()" />
-                                <span class="pb-ex-grid-row__suf" aria-hidden="true">s</span>
-                              </label>
-                              @if (canEdit()) {
-                                <div class="pb-ex-grid-row__del">
+                                @if (canEdit()) {
                                   <app-button
                                     type="button"
                                     icon="pi pi-trash"
@@ -208,7 +173,71 @@
                                     [rounded]="true"
                                     ariaLabel="Remove exercise"
                                     (clicked)="removeExercise(wi, ei)" />
+                                }
+                              </div>
+
+                              <!-- Per-set table -->
+                              <div class="pb-set-grid flex flex-col gap-1.5" [formArrayName]="'sets'">
+                                <div class="pb-set-grid__head grid items-center gap-2 px-1 text-inv-body-mini font-medium uppercase tracking-wider text-inv-grey-500"
+                                     style="grid-template-columns: 28px minmax(96px, 1fr) 76px 88px 76px 84px 36px;"
+                                     aria-hidden="true">
+                                  <span>#</span>
+                                  <span>Type</span>
+                                  <span class="text-center">Reps</span>
+                                  <span class="text-center">Weight</span>
+                                  <span class="text-center inline-flex items-center justify-center gap-1 cursor-help"
+                                        pTooltip="Rate of Perceived Exertion — how hard the set felt on a 1–10 scale (10 = max effort, no reps left in the tank)."
+                                        tooltipPosition="top">
+                                    RPE
+                                    <i class="pi pi-info-circle text-inv-grey-400 text-[10px]" aria-hidden="true"></i>
+                                  </span>
+                                  <span class="text-center">Rest</span>
+                                  <span></span>
                                 </div>
+                                @for (sg of setsAt(wi, ei).controls; track setTrackKey($index, sg); let si = $index) {
+                                  <div class="pb-set-grid__row grid items-center gap-2"
+                                       style="grid-template-columns: 28px minmax(96px, 1fr) 76px 88px 76px 84px 36px;"
+                                       [formGroupName]="si">
+                                    <span class="text-inv-body-sm font-semibold text-inv-grey-700 tabular-nums">{{ si + 1 }}</span>
+
+                                    <select formControlName="setType" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-inv-body-sm text-inv-grey-900 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' type'">
+                                      @for (opt of setTypeOptions; track opt.value) {
+                                        <option [value]="opt.value">{{ opt.label }}</option>
+                                      }
+                                    </select>
+
+                                    <input type="number" inputmode="numeric" min="1" max="99" formControlName="targetReps" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' reps'" />
+
+                                    <input type="number" inputmode="decimal" step="0.5" min="0" placeholder="—" formControlName="targetWeightKg" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 placeholder:text-inv-grey-400 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' weight (kg)'" />
+
+                                    <input type="number" inputmode="numeric" min="1" max="10" placeholder="—" formControlName="targetRpe" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 placeholder:text-inv-grey-400 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' RPE'" />
+
+                                    <div class="flex items-center justify-center gap-1">
+                                      <input type="number" inputmode="numeric" min="0" max="600" formControlName="restSeconds" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' rest seconds'" />
+                                    </div>
+
+                                    @if (canEdit() && setsAt(wi, ei).length > 1) {
+                                      <button type="button"
+                                              class="inline-flex h-8 w-8 cursor-pointer items-center justify-center rounded-inv-sm border-0 bg-transparent text-inv-grey-400 transition-colors hover:bg-inv-error-0 hover:text-inv-error-300"
+                                              [attr.aria-label]="'Remove set ' + (si + 1)"
+                                              (click)="removeSet(wi, ei, si)">
+                                        <i class="pi pi-times text-inv-body-mini"></i>
+                                      </button>
+                                    } @else {
+                                      <span></span>
+                                    }
+                                  </div>
+                                }
+                              </div>
+
+                              @if (canEdit()) {
+                                <button type="button"
+                                        class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-inv-sm border-2 border-dashed border-inv-border-field bg-transparent px-4 py-2 text-inv-body-sm font-medium text-inv-grey-600 transition-colors hover:border-inv-primary-500 hover:bg-inv-primary-0 hover:text-inv-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
+                                        [disabled]="setsAt(wi, ei).length >= 20"
+                                        (click)="addSet(wi, ei)">
+                                  <i class="pi pi-plus" aria-hidden="true"></i>
+                                  Add Set
+                                </button>
                               }
                             </div>
                           }

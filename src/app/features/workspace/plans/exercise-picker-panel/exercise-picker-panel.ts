@@ -8,7 +8,9 @@ import {
   signal
 } from '@angular/core';
 import {
+  FormArray,
   FormControl,
+  FormGroup,
   NonNullableFormBuilder,
   ReactiveFormsModule,
   Validators
@@ -18,15 +20,24 @@ import { startWith } from 'rxjs';
 import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
-import { ButtonComponent, InputComponent } from '../../../../shared/ui';
+import { Tooltip } from 'primeng/tooltip';
+import { ButtonComponent } from '../../../../shared/ui';
 import type { ExerciseDto } from '../../../exercises/exercise.model';
 import { MUSCLE_GROUPS } from '../../../exercises/exercise.model';
+import type { PlanSetTypeApi } from '../workout-plan.model';
+
+/** A prescribed set as configured in the picker — consumer turns it into a PlanSetRequest. */
+export interface ExercisePickerSetSeed {
+  setType: PlanSetTypeApi;
+  targetReps: number;
+  targetWeightKg: number | null;
+  targetRpe: number | null;
+  restSeconds: number;
+}
 
 export interface ExercisePickerAddPayload {
   exerciseId: string;
-  sets: number;
-  reps: number;
-  restSeconds: number;
+  sets: ExercisePickerSetSeed[];
   addAnother: boolean;
 }
 
@@ -34,17 +45,10 @@ export interface ExercisePickerAddPayload {
 const ALL_MUSCLES = 'All' as const;
 type MuscleTab = typeof ALL_MUSCLES | (typeof MUSCLE_GROUPS)[number];
 
-/**
- * Side-panel catalog picker used by the workout plan builder.
- *
- * Acts as a lightweight tool, not a blocking modal: the user picks an exercise,
- * tunes sets/reps/rest, then confirms. With "Add another" checked the panel
- * stays open so coaches can batch-add exercises quickly.
- */
 @Component({
   selector: 'app-exercise-picker-panel',
   standalone: true,
-  imports: [ReactiveFormsModule, IconField, InputIcon, InputTextModule, ButtonComponent, InputComponent],
+  imports: [ReactiveFormsModule, IconField, InputIcon, InputTextModule, Tooltip, ButtonComponent],
   templateUrl: './exercise-picker-panel.html',
   styleUrl: './exercise-picker-panel.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -69,12 +73,62 @@ export class ExercisePickerPanelComponent {
     { initialValue: '' }
   );
 
+  readonly setTypeOptions: ReadonlyArray<{ value: PlanSetTypeApi; label: string }> = [
+    { value: 'warmup', label: 'Warmup' },
+    { value: 'working', label: 'Working' },
+    { value: 'drop', label: 'Drop' },
+    { value: 'amrap', label: 'AMRAP' }
+  ];
+
   readonly detailsForm = this.fb.group({
-    sets: [3, [Validators.required, Validators.min(1), Validators.max(20)]],
-    reps: [10, [Validators.required, Validators.min(1), Validators.max(99)]],
-    restSeconds: [60, [Validators.required, Validators.min(0), Validators.max(600)]],
-    addAnother: [true]
+    sets: this.fb.array<FormGroup>([this.createSetGroup()]),
+    addAnother: this.fb.control<boolean>(true)
   });
+
+  get setsArray(): FormArray<FormGroup> {
+    return this.detailsForm.get('sets') as FormArray<FormGroup>;
+  }
+
+  private createSetGroup(seed?: Partial<ExercisePickerSetSeed>): FormGroup {
+    return this.fb.group({
+      key: [crypto.randomUUID()],
+      setType: [seed?.setType ?? ('working' as PlanSetTypeApi), Validators.required],
+      targetReps: [seed?.targetReps ?? 10, [Validators.required, Validators.min(1), Validators.max(99)]],
+      targetWeightKg: this.fb.control<number | null>(seed?.targetWeightKg ?? null, [Validators.min(0)]),
+      targetRpe: this.fb.control<number | null>(seed?.targetRpe ?? null, [Validators.min(1), Validators.max(10)]),
+      restSeconds: [seed?.restSeconds ?? 60, [Validators.required, Validators.min(0), Validators.max(600)]]
+    });
+  }
+
+  setTrackKey = (_index: number, group: FormGroup): string => {
+    const k = group.get('key')?.value;
+    return typeof k === 'string' ? k : `set-${_index}`;
+  };
+
+  addSet(): void {
+    if (this.setsArray.length >= 20) return;
+    const last = this.setsArray.length > 0
+      ? (this.setsArray.at(this.setsArray.length - 1).value as Record<string, unknown>)
+      : null;
+    this.setsArray.push(
+      this.createSetGroup(
+        last
+          ? {
+              setType: last['setType'] as PlanSetTypeApi,
+              targetReps: last['targetReps'] as number,
+              targetWeightKg: last['targetWeightKg'] as number | null,
+              targetRpe: last['targetRpe'] as number | null,
+              restSeconds: last['restSeconds'] as number
+            }
+          : {}
+      )
+    );
+  }
+
+  removeSet(index: number): void {
+    if (this.setsArray.length <= 1) return;
+    this.setsArray.removeAt(index);
+  }
 
   /** Filtered catalog: muscle tab first, then free-text search across name / equipment / type. */
   readonly filtered = computed<ExerciseDto[]>(() => {
@@ -118,22 +172,38 @@ export class ExercisePickerPanelComponent {
     return this.selectedId() === id;
   }
 
+  private resetSetsToDefault(): void {
+    while (this.setsArray.length > 0) this.setsArray.removeAt(0);
+    this.setsArray.push(this.createSetGroup());
+  }
+
   submit(): void {
     this.detailsForm.markAllAsTouched();
     if (!this.selectedId() || this.detailsForm.invalid) return;
 
     const v = this.detailsForm.getRawValue();
+    const seeds: ExercisePickerSetSeed[] = (v.sets as Array<Record<string, unknown>>).map((row) => ({
+      setType: row['setType'] as PlanSetTypeApi,
+      targetReps: Number(row['targetReps']),
+      targetWeightKg:
+        row['targetWeightKg'] === '' || row['targetWeightKg'] == null
+          ? null
+          : Number(row['targetWeightKg']),
+      targetRpe:
+        row['targetRpe'] === '' || row['targetRpe'] == null ? null : Number(row['targetRpe']),
+      restSeconds: Number(row['restSeconds'])
+    }));
+
     this.added.emit({
       exerciseId: this.selectedId()!,
-      sets: Number(v.sets),
-      reps: Number(v.reps),
-      restSeconds: Number(v.restSeconds),
+      sets: seeds,
       addAnother: !!v.addAnother
     });
 
     if (v.addAnother) {
       this.selectedId.set(null);
       this.searchControl.setValue('');
+      this.resetSetsToDefault();
     }
   }
 }

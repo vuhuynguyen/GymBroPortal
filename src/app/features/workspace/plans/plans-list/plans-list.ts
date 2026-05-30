@@ -87,6 +87,7 @@ export class PlansListComponent {
 
   constructor() {
     effect(() => {
+      this.tenantService.selectOwnWorkspace();
       const id = this.tenantService.activeTenantId();
       if (!id) {
         this.lastFetchedTenantId = null;

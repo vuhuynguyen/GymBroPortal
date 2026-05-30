@@ -133,17 +133,6 @@
 
       </form>
 
-      <!-- Phone option (feature-flagged) -->
-      @if (features.phoneLoginEnabled()) {
-        <div class="reg-divider">
-          <span class="reg-divider-label">Or sign up with</span>
-        </div>
-        <button class="reg-phone-btn" type="button" disabled title="Coming soon">
-          Sign up with Phone Number
-        </button>
-      }
-
-      <!-- Already have account -->
       <p class="reg-signin">
         Already have an account?&nbsp;
         <a class="reg-link" routerLink="/login">Sign in</a>

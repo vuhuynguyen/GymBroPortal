@@ -1,0 +1,145 @@
+@if (open()) {
+  <div class="ssd-backdrop" (click)="cancel()" role="presentation">
+    <div class="ssd-modal" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" aria-labelledby="ssd-title">
+      <header class="ssd-header">
+        <div>
+          <h3 id="ssd-title" class="m-0 text-inv-body-lg font-semibold text-inv-grey-900">Start Workout</h3>
+          <p class="m-0 mt-1 text-inv-body-mini text-inv-grey-500">
+            Pick a session type. You can finish or abandon at any time.
+          </p>
+        </div>
+        <button type="button" class="ssd-close" (click)="cancel()" aria-label="Close">×</button>
+      </header>
+
+      <div class="ssd-body">
+        <!-- Mode selector -->
+        <div class="ssd-mode-row" role="radiogroup" aria-label="Session source">
+          <button
+            type="button"
+            class="ssd-mode-card"
+            role="radio"
+            [attr.aria-checked]="mode() === 'Adhoc'"
+            [class.ssd-mode-card--active]="mode() === 'Adhoc'"
+            (click)="setMode('Adhoc')">
+            <i class="pi pi-bolt" aria-hidden="true"></i>
+            <span class="ssd-mode-card__title">Ad-hoc</span>
+            <span class="ssd-mode-card__sub">Free-form session, log exercises as you go.</span>
+          </button>
+          <button
+            type="button"
+            class="ssd-mode-card"
+            role="radio"
+            [attr.aria-checked]="mode() === 'FromAssignment'"
+            [class.ssd-mode-card--active]="mode() === 'FromAssignment'"
+            (click)="setMode('FromAssignment')">
+            <i class="pi pi-calendar-clock" aria-hidden="true"></i>
+            <span class="ssd-mode-card__title">From a plan</span>
+            <span class="ssd-mode-card__sub">Run a workout from one of your assigned plans.</span>
+          </button>
+        </div>
+
+        <!-- Plan picker -->
+        @if (mode() === 'FromAssignment') {
+          <section class="ssd-section">
+            <h4 class="ssd-section__title">Select plan</h4>
+            @if (loadingAssignments()) {
+              <div class="ssd-empty">
+                <i class="pi pi-spin pi-spinner text-inv-grey-400 text-xl"></i>
+                <p class="m-0 mt-2 text-inv-body-sm text-inv-grey-500">Loading your plans…</p>
+              </div>
+            } @else if (assignmentRows().length === 0) {
+              <div class="ssd-empty">
+                <i class="pi pi-info-circle text-inv-grey-300 text-2xl"></i>
+                <p class="m-0 mt-2 text-inv-body-sm text-inv-grey-500">
+                  You have no assigned plans. Switch to Ad-hoc to start logging.
+                </p>
+              </div>
+            } @else {
+              <ul class="ssd-list" role="radiogroup" aria-label="Assigned plans">
+                @for (row of assignmentRows(); track row.assignmentId) {
+                  <li>
+                    <button
+                      type="button"
+                      class="ssd-list-item"
+                      role="radio"
+                      [attr.aria-checked]="selectedAssignmentId() === row.assignmentId"
+                      [class.ssd-list-item--active]="selectedAssignmentId() === row.assignmentId"
+                      (click)="selectAssignment(row.assignmentId)">
+                      <span class="ssd-list-item__title">{{ row.planName }}</span>
+                      <span class="ssd-list-item__sub">{{ row.workoutCount }} workouts</span>
+                      @if (selectedAssignmentId() === row.assignmentId) {
+                        <i class="pi pi-check ssd-list-item__check" aria-hidden="true"></i>
+                      }
+                    </button>
+                  </li>
+                }
+              </ul>
+            }
+          </section>
+
+          <!-- Workout picker -->
+          @if (selectedAssignment()) {
+            <section class="ssd-section">
+              <h4 class="ssd-section__title">Select workout</h4>
+              @if (availableWorkouts().length === 0) {
+                <div class="ssd-empty">
+                  <p class="m-0 text-inv-body-sm text-inv-grey-500">This plan has no workouts.</p>
+                </div>
+              } @else {
+                <ul class="ssd-list" role="radiogroup" aria-label="Workouts in plan">
+                  @for (w of availableWorkouts(); track w.id) {
+                    <li>
+                      <button
+                        type="button"
+                        class="ssd-list-item"
+                        role="radio"
+                        [attr.aria-checked]="selectedWorkoutId() === w.id"
+                        [class.ssd-list-item--active]="selectedWorkoutId() === w.id"
+                        (click)="selectWorkout(w.id)">
+                        <span class="ssd-list-item__title">{{ w.name }}</span>
+                        <span class="ssd-list-item__sub">
+                          {{ w.exercises.length }} {{ w.exercises.length === 1 ? 'exercise' : 'exercises' }}
+                          · {{ totalSets(w) }} {{ totalSets(w) === 1 ? 'set' : 'sets' }}
+                        </span>
+                        @if (w.exercises.length) {
+                          <span class="ssd-list-item__preview">{{ exerciseNames(w) }}</span>
+                        }
+                        @if (selectedWorkoutId() === w.id) {
+                          <i class="pi pi-check ssd-list-item__check" aria-hidden="true"></i>
+                        }
+                      </button>
+                    </li>
+                  }
+                </ul>
+              }
+            </section>
+          }
+        }
+
+        <!-- Optional bodyweight -->
+        <section class="ssd-section">
+          <app-form-field label="Bodyweight (kg)" forId="ssd-bw">
+            <app-input
+              inputId="ssd-bw"
+              type="number"
+              [ngModel]="bodyweightKg()"
+              (ngModelChange)="bodyweightKg.set($event)"
+              placeholder="Optional"
+              autocomplete="off" />
+          </app-form-field>
+        </section>
+      </div>
+
+      <footer class="ssd-footer">
+        <app-button label="Cancel" severity="secondary" [outlined]="true" (clicked)="cancel()" />
+        <app-button
+          label="Start Workout"
+          icon="pi pi-play"
+          severity="primary"
+          [disabled]="!canStart()"
+          [loading]="starting()"
+          (clicked)="start()" />
+      </footer>
+    </div>
+  </div>
+}

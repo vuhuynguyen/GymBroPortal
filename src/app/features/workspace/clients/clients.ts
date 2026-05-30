@@ -34,6 +34,7 @@ export class ClientsComponent {
     effect(() => {
       const id = this.ownWorkspaceId();
       if (!id) return;
+      this.tenantService.selectOwnWorkspace();
       this.workspaceService.loadMembers(id);
     });
   }

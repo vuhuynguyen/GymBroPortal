@@ -41,11 +41,10 @@ If the **structure is wrong** (layout, component choice, spacing outside the sys
 
 | What you need | Read |
 |---|---|
-| Angular structure, routes, signals | `../../docs/ui-structure.md` |
-| API endpoints this page calls | `../../docs/api-contracts.md` |
-| AI behavior rules | `../../docs/ai-rules.md` |
-| Figma → Angular (summary) | `../../docs/figma-to-angular.md` |
-| Figma → Angular (full workflow) | `docs/figma-workflow.md` |
+| Angular structure, routes, signals | `../../docs/frontend-structure.md` |
+| API surface this page calls | `../../docs/backend-api.md` |
+| Doc index + patterns | `../../docs/README.md` · `../../docs/coding-patterns.md` |
+| Figma → Angular workflow | `docs/figma-workflow.md` |
 | Design tokens | `docs/design-system.md` |
 
-After every change: new route/component → update `../../docs/ui-structure.md`.
+After every change: new workspace route or shell nav → update `../../docs/frontend-structure.md` when behavior is user-visible.

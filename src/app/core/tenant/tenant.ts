@@ -34,12 +34,14 @@ export class TenantService {
     return this.http.get<TenantDto[]>('/api/tenants/mine').pipe(
       tap((tenants) => {
         this.tenants.set(tenants);
-        // Always prefer own (Owner) tenant as active
-        const ownTenant = tenants.find((t) => t.role === 'Owner');
         const stored = this.activeTenantId();
+        if (stored && tenants.some((t) => t.id === stored)) {
+          return;
+        }
+        const ownTenant = tenants.find((t) => t.role === 'Owner');
         if (ownTenant) {
           this.setActiveTenant(ownTenant.id);
-        } else if (tenants.length > 0 && !tenants.find((t) => t.id === stored)) {
+        } else if (tenants.length > 0) {
           this.setActiveTenant(tenants[0].id);
         }
       })
@@ -49,6 +51,25 @@ export class TenantService {
   setActiveTenant(id: string): void {
     localStorage.setItem(TENANT_KEY, id);
     this.activeTenantId.set(id);
+  }
+
+  /** Use the user's owned workspace (trainer templates, assignments, clients). */
+  selectOwnWorkspace(): void {
+    const own = this.ownTenant();
+    if (own) this.setActiveTenant(own.id);
+  }
+
+  /**
+   * Scope API calls to a coach workspace the user joined as Client.
+   * Returns false if the id is not a known membership.
+   */
+  selectTrainerWorkspace(trainerTenantId: string): boolean {
+    const id = trainerTenantId?.trim();
+    if (!id) return false;
+    const list = this.tenants();
+    if (!list.some((t) => t.id === id)) return false;
+    this.setActiveTenant(id);
+    return true;
   }
 
   clear(): void {

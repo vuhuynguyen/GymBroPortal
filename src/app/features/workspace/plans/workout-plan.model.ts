@@ -36,14 +36,26 @@ export interface MyPlanDto {
   daysPerWeek?: number | null;
 }
 
+/** Serialized with `System.Text.Json` + camelCase string enums (`working`, `warmup`, …). */
+export type PlanSetTypeApi = 'warmup' | 'working' | 'drop' | 'amrap';
+
+export interface PlanSetDetailDto {
+  id: string;
+  order: number;
+  setType: PlanSetTypeApi;
+  targetReps: number | null;
+  targetWeightKg: number | null;
+  targetRpe: number | null;
+  targetDurationSeconds: number | null;
+  restSeconds: number;
+}
+
 export interface PlanWorkoutExerciseDetailDto {
   id: string;
   exerciseId: string;
   exerciseName: string | null;
-  sets: number;
-  reps: number;
-  restSeconds: number;
   order: number;
+  sets: PlanSetDetailDto[];
 }
 
 export interface PlanWorkoutDetailDto {
@@ -79,12 +91,21 @@ export interface UpdateWorkoutPlanRequest {
   workoutsPerWeek?: number | null;
 }
 
-export interface PlanWorkoutExerciseRequest {
-  exerciseId: string;
-  sets: number;
-  reps: number;
+/** PUT `/api/workout-plans/{id}/structure` — each exercise has a list of prescribed sets. */
+export interface PlanSetRequest {
+  setType: PlanSetTypeApi;
+  targetReps?: number | null;
+  targetWeightKg?: number | null;
+  targetRpe?: number | null;
+  targetDurationSeconds?: number | null;
   restSeconds: number;
   order: number;
+}
+
+export interface PlanWorkoutExerciseRequest {
+  exerciseId: string;
+  order: number;
+  sets: PlanSetRequest[];
 }
 
 export interface PlanWorkoutStructureRequest {

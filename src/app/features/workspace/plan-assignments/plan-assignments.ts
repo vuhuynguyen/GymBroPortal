@@ -1,7 +1,12 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { forkJoin } from 'rxjs';
 import { MessageService } from 'primeng/api';
-import { ButtonComponent, PageContainerComponent, PageHeaderComponent } from '../../../shared/ui';
+import {
+  ButtonComponent,
+  ConfirmSplitDialogComponent,
+  PageContainerComponent,
+  PageHeaderComponent
+} from '../../../shared/ui';
 import { TenantService } from '../../../core/tenant/tenant';
 import { WorkspaceService } from '../workspace';
 import type { MemberDto } from '../workspace.model';
@@ -24,6 +29,7 @@ import { PlanAssignmentService } from './plan-assignment.service';
     PageContainerComponent,
     PageHeaderComponent,
     ButtonComponent,
+    ConfirmSplitDialogComponent,
     AssignmentListComponent,
     AssignPlanModalComponent,
     AssignmentEditPanelComponent
@@ -43,15 +49,24 @@ export class PlanAssignmentsComponent {
   readonly saving = signal(false);
   readonly assignmentModalOpen = signal(false);
   readonly editAssignment = signal<PlanAssignmentSummaryDto | null>(null);
+  readonly revokeTarget = signal<PlanAssignmentSummaryDto | null>(null);
 
   readonly plans = signal<WorkoutPlanSummaryDto[]>([]);
   readonly assignments = signal<PlanAssignmentSummaryDto[]>([]);
   readonly trainees = computed<MemberDto[]>(() => this.workspaceService.members());
+  readonly revokeDialogMessage = computed(() => {
+    const assignment = this.revokeTarget();
+    if (!assignment) return '';
+    const trainee = this.trainees().find((x) => x.userId === assignment.traineeId)?.name ?? 'this trainee';
+    const plan = this.plans().find((x) => x.id === assignment.planId)?.name ?? 'this plan';
+    return `Revoke "${plan}" for ${trainee}?`;
+  });
 
   constructor() {
     effect(() => {
       const ownTenant = this.tenantService.ownTenant();
       if (!ownTenant) return;
+      this.tenantService.selectOwnWorkspace();
       this.workspaceService.loadMembers(ownTenant.id);
       this.refresh();
     });
@@ -163,6 +178,42 @@ export class PlanAssignmentsComponent {
         this.saving.set(false);
         const msg = typeof err.error === 'string' ? err.error : 'Could not apply latest version.';
         this.messageService.add({ severity: 'error', summary: 'Update failed', detail: msg });
+      }
+    });
+  }
+
+  onRevokeRequested(assignmentId: string): void {
+    const assignment = this.assignments().find((x) => x.id === assignmentId);
+    if (!assignment) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Cannot revoke assignment',
+        detail: 'Assignment was not found in current list. Please refresh and try again.'
+      });
+      return;
+    }
+    this.revokeTarget.set(assignment);
+  }
+
+  onRevokeConfirm(): void {
+    const assignment = this.revokeTarget();
+    if (!assignment) return;
+    this.saving.set(true);
+    this.assignmentService.revoke(assignment.id).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.revokeTarget.set(null);
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Assignment revoked',
+          detail: 'Plan assignment was removed.'
+        });
+        this.refresh();
+      },
+      error: (err: { error?: unknown }) => {
+        this.saving.set(false);
+        const msg = typeof err.error === 'string' ? err.error : 'Could not revoke assignment.';
+        this.messageService.add({ severity: 'error', summary: 'Revoke failed', detail: msg });
       }
     });
   }

@@ -62,7 +62,21 @@ export class TrainerPlansComponent {
 
   constructor() {
     effect(() => {
-      this.trainerId();
+      const id = this.trainerId()?.trim() ?? '';
+      if (!id) {
+        this.plans.set([]);
+        return;
+      }
+      if (!this.tenantService.selectTrainerWorkspace(id)) {
+        this.plans.set([]);
+        this.messageService.add({
+          severity: 'warn',
+          summary: 'Workspace not found',
+          detail: 'You are not a member of this trainer workspace.'
+        });
+        void this.router.navigateByUrl('/workspace/plans');
+        return;
+      }
       this.refresh();
     });
   }

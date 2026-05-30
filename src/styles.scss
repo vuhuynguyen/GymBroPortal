@@ -424,3 +424,63 @@ app-ui-panel-card .p-card.ui-panel-card.exercise-editor-live-preview .p-card-con
   align-items: center;
   justify-content: center;
 }
+
+/* PrimeNG tooltip — light surface with dark text, soft shadow. */
+.p-tooltip .p-tooltip-text {
+  background: var(--inv-surface-base);
+  color: var(--inv-grey-700);
+  font-size: var(--inv-text-body-mini);
+  line-height: 1.45;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--inv-radius-sm);
+  border: 1px solid var(--inv-border-card);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.10);
+  max-width: 18rem;
+  font-weight: 600;
+}
+
+.p-tooltip.p-tooltip-top .p-tooltip-arrow {
+  border-top-color: var(--inv-surface-base);
+}
+.p-tooltip.p-tooltip-bottom .p-tooltip-arrow {
+  border-bottom-color: var(--inv-surface-base);
+}
+.p-tooltip.p-tooltip-left .p-tooltip-arrow {
+  border-left-color: var(--inv-surface-base);
+}
+.p-tooltip.p-tooltip-right .p-tooltip-arrow {
+  border-right-color: var(--inv-surface-base);
+}
+
+
+/* Workout-log hero CTAs: white-on-blue Resume + transparent Pause on the gradient hero card. */
+.p-button.hero-cta-resume {
+  background: #fff;
+  border-color: #fff;
+  color: var(--inv-primary-500);
+  font-weight: 600;
+}
+.p-button.hero-cta-resume:not(:disabled):hover {
+  background: var(--inv-primary-0);
+  border-color: var(--inv-primary-0);
+  color: var(--inv-primary-700);
+}
+
+.p-button.hero-cta-pause,
+.p-button.hero-cta-pause.p-button-contrast {
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-color: rgba(255, 255, 255, 0.32) !important;
+  color: #fff !important;
+  font-weight: 500;
+  backdrop-filter: blur(4px);
+}
+.p-button.hero-cta-pause:not(:disabled):hover,
+.p-button.hero-cta-pause.p-button-contrast:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.24) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  color: #fff !important;
+}
+.p-button.hero-cta-pause .p-button-icon,
+.p-button.hero-cta-pause .p-button-label {
+  color: #fff !important;
+}

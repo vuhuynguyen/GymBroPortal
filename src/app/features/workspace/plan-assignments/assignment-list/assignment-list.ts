@@ -24,6 +24,7 @@ export class AssignmentListComponent {
   readonly trainees = input<MemberDto[]>([]);
 
   readonly editClicked = output<string>();
+  readonly revokeClicked = output<string>();
   readonly applyLatestClicked = output<string>();
 
   readonly columns: TableColumn[] = [

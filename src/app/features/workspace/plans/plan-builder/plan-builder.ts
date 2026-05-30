@@ -6,10 +6,10 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import type { MenuItem } from 'primeng/api';
 import { Menu } from 'primeng/menu';
+import { Tooltip } from 'primeng/tooltip';
 import { concatMap, distinctUntilChanged, map, merge, startWith } from 'rxjs';
 import {
   ButtonComponent,
-  InputComponent,
   PageContainerComponent,
   PageStickyFooterComponent,
   PanelCardComponent
@@ -17,7 +17,12 @@ import {
 import { TenantService } from '../../../../core/tenant/tenant';
 import { ExerciseService } from '../../../exercises/exercise';
 import { WorkoutPlanService } from '../workout-plan.service';
-import type { PlanWorkoutStructureRequest, WorkoutPlanDetailDto } from '../workout-plan.model';
+import type {
+  PlanSetDetailDto,
+  PlanSetTypeApi,
+  PlanWorkoutStructureRequest,
+  WorkoutPlanDetailDto
+} from '../workout-plan.model';
 import {
   ExercisePickerPanelComponent,
   type ExercisePickerAddPayload
@@ -26,6 +31,7 @@ import {
   PlanDetailsFormDialogComponent,
   type PlanDetailsFormValue
 } from '../plan-details-form-dialog/plan-details-form-dialog';
+import { PLAN_BUILDER_SET_TYPE_OPTIONS } from './plan-set-options';
 
 /**
  * Workout plan builder — carded workouts + exercise table, meta chips, plan details dialog (pencil).
@@ -37,12 +43,12 @@ import {
     ReactiveFormsModule,
     PageContainerComponent,
     PanelCardComponent,
-    InputComponent,
     ButtonComponent,
     PageStickyFooterComponent,
     ExercisePickerPanelComponent,
     PlanDetailsFormDialogComponent,
     Menu,
+    Tooltip,
     DragDropModule
   ],
   templateUrl: './plan-builder.html',
@@ -152,20 +158,86 @@ export class PlanBuilderComponent {
     return this.workouts().at(workoutIndex).get('exercises') as FormArray<FormGroup>;
   }
 
-  /** Builds a form group for an exercise row. Always has a concrete exerciseId now. */
-  private createExerciseGroup(
-    exerciseId: string,
-    sets = 3,
-    reps = 10,
-    restSeconds = 60
-  ): FormGroup {
+  readonly setTypeOptions = PLAN_BUILDER_SET_TYPE_OPTIONS;
+
+  /** One prescribed set form group — fields mirror PlanSetRequest. */
+  private createSetGroup(seed?: Partial<PlanSetDetailDto>): FormGroup {
+    return this.fb.group({
+      key: [crypto.randomUUID()],
+      setType: [(seed?.setType as PlanSetTypeApi | undefined) ?? 'working', Validators.required],
+      targetReps: [seed?.targetReps ?? 10, [Validators.required, Validators.min(1), Validators.max(99)]],
+      targetWeightKg: [seed?.targetWeightKg ?? null, [Validators.min(0)]],
+      targetRpe: [seed?.targetRpe ?? null, [Validators.min(1), Validators.max(10)]],
+      restSeconds: [seed?.restSeconds ?? 60, [Validators.required, Validators.min(0), Validators.max(600)]]
+    });
+  }
+
+  /** Builds a form group for an exercise row with a per-set FormArray. */
+  private createExerciseGroup(exerciseId: string, sets: ReadonlyArray<Partial<PlanSetDetailDto>> = []): FormGroup {
+    const seedSets = sets.length > 0 ? sets : [{}, {}, {}]; // default 3 working sets
+    const setGroups = seedSets.map((s) => this.createSetGroup(s));
     return this.fb.group({
       key: [crypto.randomUUID()],
       exerciseId: [exerciseId, Validators.required],
-      sets: [sets, [Validators.required, Validators.min(1)]],
-      reps: [reps, [Validators.required, Validators.min(1)]],
-      restSeconds: [restSeconds, [Validators.required, Validators.min(0)]]
+      sets: this.fb.array<FormGroup>(setGroups, [Validators.required, Validators.minLength(1)])
     });
+  }
+
+  setsAt(workoutIndex: number, exerciseIndex: number): FormArray<FormGroup> {
+    return this.exercisesAt(workoutIndex).at(exerciseIndex).get('sets') as FormArray<FormGroup>;
+  }
+
+  addSet(workoutIndex: number, exerciseIndex: number): void {
+    if (!this.canEdit()) return;
+    const sets = this.setsAt(workoutIndex, exerciseIndex);
+    if (sets.length >= 20) return;
+    // Duplicate the last set's targets if available so adding a set is a one-click action.
+    const last = sets.length > 0 ? (sets.at(sets.length - 1).value as Record<string, unknown>) : null;
+    sets.push(
+      this.createSetGroup(
+        last
+          ? {
+              setType: last['setType'] as PlanSetTypeApi,
+              targetReps: last['targetReps'] as number | null,
+              targetWeightKg: last['targetWeightKg'] as number | null,
+              targetRpe: last['targetRpe'] as number | null,
+              restSeconds: last['restSeconds'] as number
+            }
+          : {}
+      )
+    );
+    this.form.markAsDirty();
+  }
+
+  removeSet(workoutIndex: number, exerciseIndex: number, setIndex: number): void {
+    if (!this.canEdit()) return;
+    const sets = this.setsAt(workoutIndex, exerciseIndex);
+    if (sets.length <= 1) return; // keep at least one
+    sets.removeAt(setIndex);
+    this.form.markAsDirty();
+  }
+
+  duplicateSet(workoutIndex: number, exerciseIndex: number, setIndex: number): void {
+    if (!this.canEdit()) return;
+    const sets = this.setsAt(workoutIndex, exerciseIndex);
+    if (sets.length >= 20) return;
+    const src = sets.at(setIndex).value as Record<string, unknown>;
+    sets.insert(
+      setIndex + 1,
+      this.createSetGroup({
+        setType: src['setType'] as PlanSetTypeApi,
+        targetReps: src['targetReps'] as number | null,
+        targetWeightKg: src['targetWeightKg'] as number | null,
+        targetRpe: src['targetRpe'] as number | null,
+        restSeconds: src['restSeconds'] as number
+      })
+    );
+    this.form.markAsDirty();
+  }
+
+  setTrackKey(_index: number, group: AbstractControl): string {
+    const k = (group as FormGroup).get('key')?.value;
+    return typeof k === 'string' ? k : `set-${_index}`;
   }
 
   private createWorkoutGroup(name = ''): FormGroup {
@@ -208,7 +280,8 @@ export class PlanBuilderComponent {
       const wg = this.createWorkoutGroup(w.name);
       const exArr = wg.get('exercises') as FormArray<FormGroup>;
       for (const ex of [...w.exercises].sort((a, b) => a.order - b.order)) {
-        exArr.push(this.createExerciseGroup(ex.exerciseId, ex.sets, ex.reps, ex.restSeconds));
+        const sortedSets = [...(ex.sets ?? [])].sort((a, b) => a.order - b.order);
+        exArr.push(this.createExerciseGroup(ex.exerciseId, sortedSets));
       }
       wArr.push(wg);
     }
@@ -324,9 +397,7 @@ export class PlanBuilderComponent {
   onExerciseAdded(payload: ExercisePickerAddPayload): void {
     const wi = this.pickerWorkoutIndex();
     if (wi == null || !this.canEdit()) return;
-    this.exercisesAt(wi).push(
-      this.createExerciseGroup(payload.exerciseId, payload.sets, payload.reps, payload.restSeconds)
-    );
+    this.exercisesAt(wi).push(this.createExerciseGroup(payload.exerciseId, payload.sets));
     if (!payload.addAnother) this.cancelPicker();
   }
 
@@ -585,12 +656,56 @@ export class PlanBuilderComponent {
         const exerciseId = (eg.get('exerciseId')?.value as string)?.trim() ?? '';
         if (!exerciseId) return { workouts: null, error: 'Select an exercise for every row.' };
 
+        const setsArr = eg.get('sets') as FormArray<FormGroup>;
+        if (!setsArr || setsArr.length < 1 || setsArr.length > 20) {
+          return {
+            workouts: null,
+            error: `Each exercise must have between 1 and 20 sets on "${name}".`
+          };
+        }
+
+        const prescribedSets = [];
+        for (let si = 0; si < setsArr.length; si++) {
+          const sg = setsArr.at(si);
+          const setType = (sg.get('setType')?.value as PlanSetTypeApi) ?? 'working';
+          const reps = Number(sg.get('targetReps')?.value);
+          const restSeconds = Number(sg.get('restSeconds')?.value);
+          const rawWeight = sg.get('targetWeightKg')?.value;
+          const rawRpe = sg.get('targetRpe')?.value;
+
+          if (!Number.isFinite(reps) || reps < 1) {
+            return { workouts: null, error: `Set ${si + 1} of an exercise on "${name}": reps must be at least 1.` };
+          }
+          if (!Number.isFinite(restSeconds) || restSeconds < 0) {
+            return { workouts: null, error: `Set ${si + 1} of an exercise on "${name}": rest must be 0 or more.` };
+          }
+
+          const targetWeightKg =
+            rawWeight === '' || rawWeight == null ? null : Number(rawWeight);
+          if (targetWeightKg != null && (!Number.isFinite(targetWeightKg) || targetWeightKg < 0)) {
+            return { workouts: null, error: `Set ${si + 1} of an exercise on "${name}": weight must be 0 or more.` };
+          }
+
+          const targetRpe = rawRpe === '' || rawRpe == null ? null : Number(rawRpe);
+          if (targetRpe != null && (!Number.isFinite(targetRpe) || targetRpe < 1 || targetRpe > 10)) {
+            return { workouts: null, error: `Set ${si + 1} of an exercise on "${name}": RPE must be between 1 and 10.` };
+          }
+
+          prescribedSets.push({
+            setType,
+            targetReps: reps,
+            targetWeightKg,
+            targetRpe,
+            targetDurationSeconds: null as number | null,
+            restSeconds,
+            order: si + 1
+          });
+        }
+
         exercises.push({
           exerciseId,
-          sets: Number(eg.get('sets')?.value),
-          reps: Number(eg.get('reps')?.value),
-          restSeconds: Number(eg.get('restSeconds')?.value),
-          order: ei + 1
+          order: ei + 1,
+          sets: prescribedSets
         });
       }
 

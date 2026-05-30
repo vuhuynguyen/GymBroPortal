@@ -41,6 +41,14 @@
           [ariaLabel]="'Update assignment to v' + row['latestPlanVersion']"
           (clicked)="applyLatestClicked.emit($any(row['id']) || '')" />
       }
+      <app-button
+        icon="pi pi-trash"
+        size="small"
+        [rounded]="true"
+        [text]="true"
+        severity="danger"
+        [ariaLabel]="'Revoke assignment for ' + row['trainee']"
+        (clicked)="revokeClicked.emit($any(row['id']) || '')" />
     </div>
   </ng-template>
 </app-data-table>
