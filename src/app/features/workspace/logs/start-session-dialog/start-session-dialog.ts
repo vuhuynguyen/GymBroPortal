@@ -54,6 +54,8 @@ export class StartSessionDialogComponent {
 
   readonly mode = signal<SessionSource>('Adhoc');
   readonly loadingAssignments = signal(false);
+  /** True after a fetch attempt finishes (even when the list is empty). Prevents effect loops. */
+  private readonly assignmentsFetched = signal(false);
   readonly assignmentRows = signal<AssignmentRow[]>([]);
   readonly selectedAssignmentId = signal<string | null>(null);
   readonly selectedWorkoutId = signal<string | null>(null);
@@ -84,9 +86,13 @@ export class StartSessionDialogComponent {
   });
 
   constructor() {
-    // Lazy-load the assignment list the first time the dialog opens with FromAssignment mode.
     effect(() => {
-      if (this.open() && this.mode() === 'FromAssignment' && this.assignmentRows().length === 0 && !this.loadingAssignments()) {
+      if (!this.open()) return;
+      if (
+        this.mode() === 'FromAssignment' &&
+        !this.assignmentsFetched() &&
+        !this.loadingAssignments()
+      ) {
         this.loadAssignments();
       }
     });
@@ -144,6 +150,8 @@ export class StartSessionDialogComponent {
     this.selectedAssignmentId.set(null);
     this.selectedWorkoutId.set(null);
     this.bodyweightKg.set('');
+    this.assignmentRows.set([]);
+    this.assignmentsFetched.set(false);
   }
 
   private parseNumber(v: string): number | null {
@@ -157,25 +165,25 @@ export class StartSessionDialogComponent {
     this.loadingAssignments.set(true);
     this.workoutPlanService
       .listMyAssignments()
-      .pipe(
-        catchError(() => of([] as MyAssignedPlanDto[])),
-        finalize(() => {})
-      )
+      .pipe(catchError(() => of([] as MyAssignedPlanDto[])))
       .subscribe((assignments) => {
         const withPlan = assignments.filter((a): a is MyAssignedPlanDto & { planId: string } => !!a.planId);
         if (withPlan.length === 0) {
           this.assignmentRows.set([]);
           this.loadingAssignments.set(false);
+          this.assignmentsFetched.set(true);
           return;
         }
 
-        // Fetch each plan's detail (in parallel) so we can show names + pick workouts.
         const detailRequests = withPlan.map((a) =>
           this.workoutPlanService.get(a.planId).pipe(catchError(() => of(null)))
         );
 
         forkJoin(detailRequests)
-          .pipe(finalize(() => this.loadingAssignments.set(false)))
+          .pipe(finalize(() => {
+            this.loadingAssignments.set(false);
+            this.assignmentsFetched.set(true);
+          }))
           .subscribe((details) => {
             const rows: AssignmentRow[] = [];
             withPlan.forEach((a, i) => {

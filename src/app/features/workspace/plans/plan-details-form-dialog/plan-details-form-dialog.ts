@@ -147,7 +147,14 @@ export class PlanDetailsFormDialogComponent {
 
   onSubmit(): void {
     this.form.markAllAsTouched();
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Check fields',
+        detail: 'Fix validation errors before saving.'
+      });
+      return;
+    }
 
     const raw = this.form.getRawValue();
     const durationTrim = raw.durationWeeks.trim();

@@ -7,7 +7,7 @@ import { TenantRole } from '../tenant/tenant.model';
 export function adminGuard(): CanActivateFn {
   return () => {
     if (inject(AuthService).isPlatformAdmin()) return true;
-    return inject(Router).createUrlTree(['/']);
+    return inject(Router).createUrlTree(['/workspace/logs']);
   };
 }
 
@@ -15,6 +15,6 @@ export function roleGuard(allowedRoles: TenantRole[]): CanActivateFn {
   return () => {
     const role = inject(TenantService).currentRole();
     if (role && allowedRoles.includes(role)) return true;
-    return inject(Router).createUrlTree(['/']);
+    return inject(Router).createUrlTree(['/workspace/logs']);
   };
 }

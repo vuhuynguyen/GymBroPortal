@@ -15,6 +15,10 @@ export interface PlanAssignmentSummaryDto {
   startDate: string;
   frequencyDaysPerWeek: number;
   visibilityMode: PlanVisibilityMode;
+  hideExercises: boolean;
+  hideSetsReps: boolean;
+  hideFutureWorkouts: boolean;
+  disableTraineeEditing: boolean;
   isCustomized: boolean;
 }
 

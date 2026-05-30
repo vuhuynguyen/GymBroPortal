@@ -339,6 +339,11 @@ export class ExerciseFormComponent implements OnInit {
   onSubmit(): void {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Check fields',
+        detail: 'Fix validation errors before saving.'
+      });
       return;
     }
 

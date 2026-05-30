@@ -46,13 +46,13 @@ export class MyPageComponent implements OnInit {
 - **Full-page editor (save/cancel):** mirror `features/exercises/exercise-form` — outer `<section>` with bottom padding → `app-ui-page-container` → stacked `app-ui-panel-card` sections → `app-ui-page-sticky-footer` (outlined-secondary cancel/back + primary save `pi-check`).
 
 ## State, HTTP & tenancy
-- Core service signals: `AuthService` (`token`, computed `isAuthenticated`/`isPlatformAdmin`/`currentUser` from client-side JWT decode — no `/me`), `TenantService` (`tenants[]`, `activeTenantId`, computed `currentRole`/`activeTenant`/`ownTenant`/`trainerWorkspaces`), `FeaturesService` (boot flags), plus per-feature services.
+- Core service signals: `AuthService` (`token`, `profile` from `GET /api/auth/me`, computed `isAuthenticated`/`isPlatformAdmin`/`currentUser` — `isPlatformAdmin` falls back to the JWT `is_admin` claim until `/me` returns), `TenantService` (`tenants[]`, `activeTenantId`, computed `currentRole`/`activeTenant`/`ownTenant`/`trainerWorkspaces`), plus per-feature services.
 - `authInterceptor` adds `Authorization: Bearer` + `X-Tenant-Id` (from `TenantService.activeTenant()`) automatically.
+- `errorInterceptor` logs the user out on **401** and shows a toast for other HTTP errors.
 - **Tenant context:** `selectOwnWorkspace()` on trainer/management screens; `selectTrainerWorkspace(id)` before loading a coach's assigned plans (trainee view). `loadTenants()` runs after login and preserves a still-valid stored tenant.
-- ⚠ **Gap:** only `authInterceptor` is registered — **no HTTP error interceptor**, so a 401/expired token is not auto-handled. Add one before relying on long sessions.
 
 ## Routing & guards (`app.routes.ts`)
-Lazy routes. Public: `noAuthGuard` (`/login`, `/register`, `/forgot-password` — the last is a **fake**, no backend). Shell: `authGuard`. `adminGuard()` gates `/exercises` and `/admin/*` (catalog management is **platform-admin-only in the UI**). ⚠ `roleGuard` exists but is **never wired** → any authed non-admin can reach every `/workspace/*` route; the API is the only role gate (see [`../../docs/PERMISSIONS.md`](../../docs/PERMISSIONS.md)). Keep the UI permission model in `core/auth/permission.ts` **in sync with the backend** `PermissionService`.
+Lazy routes. Public: `noAuthGuard` (`/login`, `/register`, `/forgot-password`, `/reset-password`). Shell: `authGuard` (profile loads once in `AuthService`, not per navigation). `adminGuard()` gates `/exercises` and `/admin/*` (catalog management is **platform-admin-only in the UI**). `roleGuard(['Owner'])` gates trainer-only workspace routes (`/workspace/plans`, `/workspace/plan-assignments`, `/workspace/clients`). Keep the UI permission model in `core/auth/permission.ts` **in sync with the backend** `PermissionService`.
 
 ## Figma Make workflow (critical)
 Figma Make exports **React + Tailwind**; this app is Angular. Never convert JSX directly:

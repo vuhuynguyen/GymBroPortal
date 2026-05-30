@@ -16,7 +16,52 @@
     </div>
 
     <div class="cp-body cp-body--flush">
-      <app-invite [embedded]="true" />
+      @if (loading()) {
+        <div class="invite-card invite-card--loading">
+          <i class="pi pi-spin pi-spinner"></i>
+        </div>
+      } @else if (activeCode(); as code) {
+        <div class="invite-card">
+          <p class="invite-card__label">Your invite code</p>
+          <div class="invite-code-row">
+            <span class="invite-code">{{ code.code }}</span>
+            <app-button
+              icon="pi pi-copy"
+              label="Copy"
+              severity="secondary"
+              (clicked)="copy()" />
+          </div>
+          @if (expiresInDays(); as days) {
+            <p class="invite-card__expiry">
+              @if (days === 0) { Expires today }
+              @else if (days === 1) { Expires tomorrow }
+              @else { Expires in {{ days }} days }
+            </p>
+          }
+        </div>
+
+        <div class="invite-new-row">
+          <app-button
+            label="Generate New Code"
+            icon="pi pi-refresh"
+            severity="secondary"
+            [loading]="generateLoading()"
+            (clicked)="generate()" />
+          <p class="invite-new-hint">This will replace the current code.</p>
+        </div>
+      } @else {
+        <div class="invite-empty">
+          <div class="invite-empty__icon">
+            <i class="pi pi-user-plus"></i>
+          </div>
+          <p class="invite-empty__text">No active invite code yet.</p>
+          <app-button
+            label="Generate Code"
+            icon="pi pi-plus"
+            [loading]="generateLoading()"
+            (clicked)="generate()" />
+        </div>
+      }
     </div>
   </div>
 </div>

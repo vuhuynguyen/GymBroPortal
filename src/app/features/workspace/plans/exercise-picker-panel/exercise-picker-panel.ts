@@ -16,7 +16,9 @@ import {
   Validators
 } from '@angular/forms';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { startWith } from 'rxjs';
+import { merge, startWith } from 'rxjs';
+import { map } from 'rxjs/operators';
+import { MessageService } from 'primeng/api';
 import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
@@ -55,6 +57,7 @@ type MuscleTab = typeof ALL_MUSCLES | (typeof MUSCLE_GROUPS)[number];
 })
 export class ExercisePickerPanelComponent {
   private readonly fb = inject(NonNullableFormBuilder);
+  private readonly messageService = inject(MessageService);
 
   readonly exercises = input.required<ExerciseDto[]>();
   /** Optional context label shown in the header subtitle (e.g. the workout name). */
@@ -84,6 +87,14 @@ export class ExercisePickerPanelComponent {
     sets: this.fb.array<FormGroup>([this.createSetGroup()]),
     addAnother: this.fb.control<boolean>(true)
   });
+
+  /** Reactive forms validity is not a signal — track it explicitly for canAdd. */
+  private readonly formValid = toSignal(
+    merge(this.detailsForm.statusChanges, this.detailsForm.valueChanges).pipe(
+      map(() => this.detailsForm.valid)
+    ),
+    { initialValue: this.detailsForm.valid }
+  );
 
   get setsArray(): FormArray<FormGroup> {
     return this.detailsForm.get('sets') as FormArray<FormGroup>;
@@ -148,7 +159,7 @@ export class ExercisePickerPanelComponent {
     });
   });
 
-  readonly canAdd = computed(() => !!this.selectedId() && this.detailsForm.valid);
+  readonly canAdd = computed(() => !!this.selectedId() && this.formValid() === true);
 
   readonly selectedExercise = computed<ExerciseDto | null>(() => {
     const id = this.selectedId();
@@ -179,7 +190,22 @@ export class ExercisePickerPanelComponent {
 
   submit(): void {
     this.detailsForm.markAllAsTouched();
-    if (!this.selectedId() || this.detailsForm.invalid) return;
+    if (!this.selectedId()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Select an exercise',
+        detail: 'Choose an exercise from the list above.'
+      });
+      return;
+    }
+    if (this.detailsForm.invalid) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Fix set details',
+        detail: 'Check reps, weight, RPE, and rest values before adding.'
+      });
+      return;
+    }
 
     const v = this.detailsForm.getRawValue();
     const seeds: ExercisePickerSetSeed[] = (v.sets as Array<Record<string, unknown>>).map((row) => ({

@@ -7,6 +7,20 @@ import { TenantService } from '../tenant/tenant';
 
 const TOKEN_KEY = 'gymbro_token';
 
+function readIsPlatformAdminFromToken(token: string | null): boolean {
+  if (!token) return false;
+  try {
+    const parts = token.split('.');
+    if (parts.length < 2) return false;
+    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/'))) as {
+      is_admin?: boolean | string;
+    };
+    return payload.is_admin === true || payload.is_admin === 'true';
+  } catch {
+    return false;
+  }
+}
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
   private readonly http = inject(HttpClient);
@@ -15,10 +29,15 @@ export class AuthService {
 
   private readonly token = signal<string | null>(localStorage.getItem(TOKEN_KEY));
   private readonly profile = signal<MeDto | null>(null);
+  private profileRequestToken: string | null = null;
 
   readonly isAuthenticated = computed(() => !!this.token());
 
-  readonly isPlatformAdmin = computed<boolean>(() => this.profile()?.isPlatformAdmin ?? false);
+  readonly isPlatformAdmin = computed<boolean>(() => {
+    const fromProfile = this.profile()?.isPlatformAdmin;
+    if (fromProfile !== undefined) return fromProfile;
+    return readIsPlatformAdminFromToken(this.token());
+  });
 
   readonly currentUser = computed<AuthUser | null>(() => {
     const me = this.profile();
@@ -29,6 +48,12 @@ export class AuthService {
       isPlatformAdmin: me.isPlatformAdmin
     };
   });
+
+  constructor() {
+    if (this.token()) {
+      this.loadProfile();
+    }
+  }
 
   login(email: string, password: string) {
     return this.http
@@ -54,14 +79,31 @@ export class AuthService {
     return this.http.post<void>('/api/auth/reset-password', { email, token, newPassword });
   }
 
-  loadProfile() {
-    if (!this.token()) {
+  loadProfile(force = false): void {
+    const token = this.token();
+    if (!token) {
       this.profile.set(null);
+      this.profileRequestToken = null;
       return;
     }
+    if (!force && this.profile() && this.profileRequestToken === token) {
+      return;
+    }
+    if (!force && this.profileRequestToken === token) {
+      return;
+    }
+
+    this.profileRequestToken = token;
     this.http.get<MeDto>('/api/auth/me').subscribe({
-      next: (me) => this.profile.set(me),
-      error: () => this.profile.set(null)
+      next: (me) => {
+        if (this.token() !== token) return;
+        this.profile.set(me);
+      },
+      error: () => {
+        if (this.token() !== token) return;
+        this.profile.set(null);
+        this.profileRequestToken = null;
+      }
     });
   }
 
@@ -70,6 +112,7 @@ export class AuthService {
     this.tenantService.clear();
     this.token.set(null);
     this.profile.set(null);
+    this.profileRequestToken = null;
     void this.router.navigateByUrl('/login');
   }
 
@@ -91,6 +134,7 @@ export class AuthService {
   private storeToken(token: string): void {
     localStorage.setItem(TOKEN_KEY, token);
     this.token.set(token);
-    this.loadProfile();
+    this.profileRequestToken = null;
+    this.loadProfile(true);
   }
 }

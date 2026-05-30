@@ -30,7 +30,7 @@ export const routes: Routes = [
       import('./core/layout/app-shell').then((m) => m.AppShellComponent),
     canActivate: [authGuard],
     children: [
-      { path: '', redirectTo: 'workspace/plans', pathMatch: 'full' },
+      { path: '', redirectTo: 'workspace/logs', pathMatch: 'full' },
       /** Short URLs (spec / bookmarks) → canonical workspace routes */
       { path: 'workout-log', redirectTo: 'workspace/logs', pathMatch: 'full' },
       {

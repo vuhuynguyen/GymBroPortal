@@ -228,8 +228,7 @@ export class AppShellComponent {
   }
 
   openInviteClient(): void {
-    this.userMenuOpen.set(false);
-    void this.router.navigateByUrl('/workspace/members');
+    this.openInviteGymBroPanel();
   }
 
   openJoinGymBroPanel(): void {

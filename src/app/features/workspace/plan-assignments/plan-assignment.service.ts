@@ -31,6 +31,10 @@ export class PlanAssignmentService {
           startDate: string;
           frequencyDaysPerWeek: number;
           visibilityMode: PlanVisibilityMode | number;
+          hideExercises: boolean;
+          hideSetsReps: boolean;
+          hideFutureWorkouts: boolean;
+          disableTraineeEditing: boolean;
           isCustomized: boolean;
         }>;
         page: number;

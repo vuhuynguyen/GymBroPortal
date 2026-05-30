@@ -1,5 +1,6 @@
-import { ChangeDetectionStrategy, Component, effect, input, output } from '@angular/core';
+import { ChangeDetectionStrategy, Component, effect, inject, input, output } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
+import { MessageService } from 'primeng/api';
 import { ButtonComponent, FormFieldComponent, InputComponent } from '../../../../shared/ui';
 import type {
   PlanAssignmentSummaryDto,
@@ -17,6 +18,7 @@ import type {
 })
 export class AssignmentEditPanelComponent {
   private readonly fb = new FormBuilder();
+  private readonly messageService = inject(MessageService);
 
   readonly assignment = input<PlanAssignmentSummaryDto | null>(null);
   readonly open = input(false);
@@ -32,8 +34,8 @@ export class AssignmentEditPanelComponent {
     visibilityMode: ['Guided' as PlanVisibilityMode, Validators.required],
     hideExercises: [false],
     hideSetsReps: [false],
-    hideFutureWorkouts: [true],
-    disableTraineeEditing: [true]
+    hideFutureWorkouts: [false],
+    disableTraineeEditing: [false]
   });
 
   readonly frequencyOptions = ['2', '3', '4', '5', '6', '7'];
@@ -46,10 +48,10 @@ export class AssignmentEditPanelComponent {
         startDate: assignment.startDate ?? '',
         frequencyDaysPerWeek: String(assignment.frequencyDaysPerWeek),
         visibilityMode: assignment.visibilityMode,
-        hideExercises: false,
-        hideSetsReps: false,
-        hideFutureWorkouts: true,
-        disableTraineeEditing: true
+        hideExercises: assignment.hideExercises,
+        hideSetsReps: assignment.hideSetsReps,
+        hideFutureWorkouts: assignment.hideFutureWorkouts,
+        disableTraineeEditing: assignment.disableTraineeEditing
       });
     });
   }
@@ -60,7 +62,14 @@ export class AssignmentEditPanelComponent {
 
   save(): void {
     this.form.markAllAsTouched();
-    if (this.form.invalid) return;
+    if (this.form.invalid) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Check fields',
+        detail: 'Fix validation errors before saving.'
+      });
+      return;
+    }
     const value = this.form.getRawValue();
     this.saved.emit({
       startDate: value.startDate || undefined,

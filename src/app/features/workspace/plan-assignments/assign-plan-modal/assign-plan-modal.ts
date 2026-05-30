@@ -1,6 +1,9 @@
-import { ChangeDetectionStrategy, Component, computed, input, model, output, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, input, model, output, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FormsModule } from '@angular/forms';
+import { toSignal } from '@angular/core/rxjs-interop';
+import { startWith } from 'rxjs';
+import { MessageService } from 'primeng/api';
 import { ButtonComponent, FormFieldComponent, InputComponent, PanelCardComponent } from '../../../../shared/ui';
 import type { WorkoutPlanSummaryDto } from '../../plans/workout-plan.model';
 import type { MemberDto } from '../../workspace.model';
@@ -23,6 +26,7 @@ import type { CreatePlanAssignmentRequest, PlanVisibilityMode } from '../plan-as
 })
 export class AssignPlanModalComponent {
   private readonly fb = new FormBuilder();
+  private readonly messageService = inject(MessageService);
 
   readonly open = model(false);
   readonly saving = input(false);
@@ -45,11 +49,16 @@ export class AssignPlanModalComponent {
     visibilityMode: ['Guided' as PlanVisibilityMode, Validators.required],
     hideExercises: [false],
     hideSetsReps: [false],
-    hideFutureWorkouts: [true],
-    disableTraineeEditing: [true]
+    hideFutureWorkouts: [false],
+    disableTraineeEditing: [false]
   });
 
   readonly frequencyOptions = ['2', '3', '4', '5', '6', '7'];
+
+  private readonly selectedPlanId = toSignal(
+    this.form.controls.planId.valueChanges.pipe(startWith(this.form.controls.planId.value)),
+    { initialValue: '' }
+  );
 
   readonly visibleTrainees = computed(() => {
     const q = this.traineeSearch().trim().toLowerCase();
@@ -58,7 +67,9 @@ export class AssignPlanModalComponent {
     return people.filter((t) => this.traineeLabel(t).toLowerCase().includes(q));
   });
 
-  readonly selectedPlan = computed(() => this.plans().find((p) => p.id === this.form.controls.planId.value) ?? null);
+  readonly selectedPlan = computed(
+    () => this.plans().find((p) => p.id === this.selectedPlanId()) ?? null
+  );
   readonly selectedTraineeNames = computed(() => {
     const ids = new Set(this.selectedTraineeIds());
     return this.trainees()
@@ -81,8 +92,8 @@ export class AssignPlanModalComponent {
       visibilityMode: 'Guided',
       hideExercises: false,
       hideSetsReps: false,
-      hideFutureWorkouts: true,
-      disableTraineeEditing: true
+      hideFutureWorkouts: false,
+      disableTraineeEditing: false
     });
   }
 
@@ -145,7 +156,14 @@ export class AssignPlanModalComponent {
   confirmAssignment(): void {
     this.attemptedConfirm.set(true);
     this.form.markAllAsTouched();
-    if (this.form.invalid || this.selectedTraineeIds().length === 0) return;
+    if (this.form.invalid || this.selectedTraineeIds().length === 0) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Check fields',
+        detail: 'Select a plan, at least one trainee, and a start date before confirming.'
+      });
+      return;
+    }
     const value = this.form.getRawValue();
     const payloads: CreatePlanAssignmentRequest[] = this.selectedTraineeIds().map((traineeId) => ({
       traineeId,

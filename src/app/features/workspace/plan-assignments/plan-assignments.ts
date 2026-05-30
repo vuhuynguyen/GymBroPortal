@@ -62,12 +62,20 @@ export class PlanAssignmentsComponent {
     return `Revoke "${plan}" for ${trainee}?`;
   });
 
+  /** Avoid refetching when tenants[] refreshes but own workspace id is unchanged. */
+  private lastFetchedOwnTenantId: string | null = null;
+
   constructor() {
     effect(() => {
-      const ownTenant = this.tenantService.ownTenant();
-      if (!ownTenant) return;
+      const id = this.tenantService.ownTenant()?.id ?? null;
+      if (!id) {
+        this.lastFetchedOwnTenantId = null;
+        return;
+      }
       this.tenantService.selectOwnWorkspace();
-      this.workspaceService.loadMembers(ownTenant.id);
+      if (this.lastFetchedOwnTenantId === id) return;
+      this.lastFetchedOwnTenantId = id;
+      this.workspaceService.loadMembers(id);
       this.refresh();
     });
   }

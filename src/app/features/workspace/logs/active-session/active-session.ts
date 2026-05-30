@@ -565,6 +565,8 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     if (!session) return;
     const order = this.exercises().length + 1;
     const matched = this.catalogExercises().find((e) => e.id === payload.exerciseId);
+    const firstSet = payload.sets[0];
+    this.saving.set(true);
     this.sessionService
       .addExercise(session.sessionId, {
         exerciseId: payload.exerciseId,
@@ -574,18 +576,35 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (created) => {
+          this.saving.set(false);
           const enriched: PerformedExerciseDto = {
             ...created,
-            exerciseName: created.exerciseName || matched?.name || 'Exercise'
+            exerciseName: created.exerciseName || matched?.name || 'Exercise',
+            sets: created.sets ?? []
           };
           this.session.update((s) =>
             s ? { ...s, exercises: [...s.exercises, enriched] } : s
           );
           this.setActive(enriched.id);
+          if (firstSet) {
+            this.setForm.reset({
+              weightKg: firstSet.targetWeightKg,
+              reps: firstSet.targetReps,
+              rpe: firstSet.targetRpe != null ? String(firstSet.targetRpe) : null
+            });
+          } else {
+            this.seedFormFromTargets();
+          }
           if (!payload.addAnother) this.pickerOpen.set(false);
         },
-        error: () =>
-          this.messageService.add({ severity: 'error', summary: 'Could not add exercise' })
+        error: (err: { error?: { message?: string } | string }) => {
+          this.saving.set(false);
+          const detail =
+            typeof err.error === 'string'
+              ? err.error
+              : err.error?.message ?? 'Could not add exercise.';
+          this.messageService.add({ severity: 'error', summary: 'Could not add exercise', detail });
+        }
       });
   }
 
@@ -613,11 +632,14 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   finishWorkout(): void {
     const session = this.session();
     if (!session) return;
+    const avg = this.avgRpe();
+    const rpeOverall =
+      avg != null ? Math.min(10, Math.max(1, Math.round(avg))) : null;
     this.saving.set(true);
     this.sessionService
       .complete(session.sessionId, {
         completedAt: new Date().toISOString(),
-        rpeOverall: this.avgRpe()
+        rpeOverall
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({

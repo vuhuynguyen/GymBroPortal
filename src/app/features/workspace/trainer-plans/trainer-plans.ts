@@ -60,23 +60,31 @@ export class TrainerPlansComponent {
     };
   });
 
+  private lastLoadedTrainerId: string | null = null;
+
   constructor() {
     effect(() => {
       const id = this.trainerId()?.trim() ?? '';
+      const tenants = this.tenantService.tenants();
       if (!id) {
         this.plans.set([]);
+        this.lastLoadedTrainerId = null;
         return;
       }
-      if (!this.tenantService.selectTrainerWorkspace(id)) {
+      if (tenants.length === 0) return;
+      if (!tenants.some((t) => t.id === id)) {
         this.plans.set([]);
         this.messageService.add({
           severity: 'warn',
           summary: 'Workspace not found',
           detail: 'You are not a member of this trainer workspace.'
         });
-        void this.router.navigateByUrl('/workspace/plans');
+        void this.router.navigateByUrl('/workspace/logs');
         return;
       }
+      if (this.lastLoadedTrainerId === id) return;
+      this.tenantService.selectTrainerWorkspace(id);
+      this.lastLoadedTrainerId = id;
       this.refresh();
     });
   }
