@@ -2,8 +2,11 @@ import { HttpInterceptorFn } from '@angular/common/http';
 import { inject } from '@angular/core';
 import { AuthService } from './auth';
 import { TenantService } from '../tenant/tenant';
+import { AUTH_HTTP } from './auth-http.context';
 
 export const authInterceptor: HttpInterceptorFn = (req, next) => {
+  if (req.context.get(AUTH_HTTP)) return next(req);
+
   const token = inject(AuthService).getToken();
   if (!token) return next(req);
 

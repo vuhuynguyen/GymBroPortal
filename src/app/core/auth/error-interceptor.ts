@@ -4,6 +4,7 @@ import { MessageService } from 'primeng/api';
 import { catchError, switchMap, throwError } from 'rxjs';
 import { AuthService } from './auth';
 import { TenantService } from '../tenant/tenant';
+import { AUTH_HTTP } from './auth-http.context';
 
 // Auth endpoints manage their own 401s — never try to silent-refresh these (the refresh call itself
 // 401ing must not recurse into another refresh).
@@ -27,6 +28,8 @@ function withFreshHeaders(
 }
 
 export const errorInterceptor: HttpInterceptorFn = (req, next) => {
+  if (req.context.get(AUTH_HTTP)) return next(req);
+
   const auth = inject(AuthService);
   const tenants = inject(TenantService);
   const messages = inject(MessageService);

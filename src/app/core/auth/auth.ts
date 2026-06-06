@@ -1,9 +1,12 @@
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpContext } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
 import { Observable, catchError, finalize, map, of, shareReplay, tap, throwError } from 'rxjs';
 import { AuthResponse, AuthUser, LoginRequest, MeDto } from './auth.model';
 import { TenantService } from '../tenant/tenant';
+import { AUTH_HTTP } from './auth-http.context';
+
+const authHttpContext = new HttpContext().set(AUTH_HTTP, true);
 
 function readIsPlatformAdminFromToken(token: string | null): boolean {
   if (!token) return false;
@@ -72,7 +75,8 @@ export class AuthService {
   login(email: string, password: string) {
     return this.http
       .post<AuthResponse>('/api/auth/login', { email, password } satisfies LoginRequest, {
-        withCredentials: true
+        withCredentials: true,
+        context: authHttpContext
       })
       .pipe(tap((res) => this.storeToken(res.token)));
   }
@@ -82,7 +86,7 @@ export class AuthService {
       .post<AuthResponse>(
         '/api/auth/register',
         { email, password, fullName: name?.trim() ?? '' },
-        { withCredentials: true }
+        { withCredentials: true, context: authHttpContext }
       )
       .pipe(tap((res) => this.storeToken(res.token)));
   }
@@ -95,7 +99,7 @@ export class AuthService {
     if (this.refreshInFlight) return this.refreshInFlight;
 
     this.refreshInFlight = this.http
-      .post<AuthResponse>('/api/auth/refresh', {}, { withCredentials: true })
+      .post<AuthResponse>('/api/auth/refresh', {}, { withCredentials: true, context: authHttpContext })
       .pipe(
         map((res) => res.token),
         tap((token) => this.storeToken(token)),
@@ -149,7 +153,7 @@ export class AuthService {
   logout(): void {
     // Revoke the refresh token server-side (clears the cookie too); local state is cleared regardless.
     this.http
-      .post<void>('/api/auth/logout', {}, { withCredentials: true })
+      .post<void>('/api/auth/logout', {}, { withCredentials: true, context: authHttpContext })
       .pipe(catchError(() => of(void 0)))
       .subscribe();
     this.clearSession();
