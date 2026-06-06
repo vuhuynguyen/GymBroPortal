@@ -22,14 +22,15 @@
     [trainees]="trainees()"
     (editClicked)="onEditRequested($event)"
     (revokeClicked)="onRevokeRequested($event)"
-    (applyLatestClicked)="onApplyLatestById($event)" />
+    (applyLatestClicked)="onApplyLatestById($event)"
+    (pauseToggled)="onPauseToggled($event)" />
 </app-ui-page-container>
 
 <app-assign-plan-modal
   [(open)]="assignmentModalOpen"
   [saving]="saving()"
   [plans]="plans()"
-  [trainees]="trainees()"
+  [trainees]="assignableTrainees()"
   (confirmed)="onAssignConfirmed($event)" />
 
 <app-assignment-edit-panel

@@ -35,7 +35,7 @@ export class PlanAssignmentService {
           hideSetsReps: boolean;
           hideFutureWorkouts: boolean;
           disableTraineeEditing: boolean;
-          isCustomized: boolean;
+          isActive: boolean;
         }>;
         page: number;
         pageSize: number;
@@ -68,6 +68,14 @@ export class PlanAssignmentService {
 
   revoke(assignmentId: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${assignmentId}`);
+  }
+
+  pause(assignmentId: string): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/${assignmentId}/pause`, {});
+  }
+
+  resume(assignmentId: string): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/${assignmentId}/resume`, {});
   }
 
   applyLatestVersion(assignmentId: string, snapshotJson?: string | null): Observable<{ updated: boolean }> {

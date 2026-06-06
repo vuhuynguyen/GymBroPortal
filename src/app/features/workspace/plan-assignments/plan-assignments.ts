@@ -54,6 +54,14 @@ export class PlanAssignmentsComponent {
   readonly plans = signal<WorkoutPlanSummaryDto[]>([]);
   readonly assignments = signal<PlanAssignmentSummaryDto[]>([]);
   readonly trainees = computed<MemberDto[]>(() => this.workspaceService.members());
+  /**
+   * Assignment is coach → client: the picker offers only Clients, never the coach themselves.
+   * A coach who wants to follow their own plan uses "Train this myself" on the Plans page, which
+   * self-assigns with full visibility — so they never need to pick themselves here.
+   */
+  readonly assignableTrainees = computed<MemberDto[]>(() =>
+    this.trainees().filter((m) => m.role !== 'Owner')
+  );
   readonly revokeDialogMessage = computed(() => {
     const assignment = this.revokeTarget();
     if (!assignment) return '';
@@ -138,6 +146,29 @@ export class PlanAssignmentsComponent {
       error: (err: { error?: unknown }) => {
         this.saving.set(false);
         const msg = typeof err.error === 'string' ? err.error : 'Could not update assignment.';
+        this.messageService.add({ severity: 'error', summary: 'Update failed', detail: msg });
+      }
+    });
+  }
+
+  onPauseToggled(event: { id: string; active: boolean }): void {
+    const request = event.active
+      ? this.assignmentService.resume(event.id)
+      : this.assignmentService.pause(event.id);
+
+    request.subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: event.active ? 'Resumed' : 'Paused',
+          detail: event.active
+            ? 'Assignment is active again.'
+            : 'Assignment paused — hidden from the trainee’s workout picker.'
+        });
+        this.refresh();
+      },
+      error: (err: { error?: unknown }) => {
+        const msg = typeof err?.error === 'string' ? err.error : 'Could not update the assignment.';
         this.messageService.add({ severity: 'error', summary: 'Update failed', detail: msg });
       }
     });

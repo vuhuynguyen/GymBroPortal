@@ -123,11 +123,11 @@ export class TrainerPlansComponent {
   }
 
   viewPlan(plan: TrainerPlanItem): void {
-    if (plan.visibilityMode !== 'Full') {
+    if (plan.visibilityMode === 'Blind') {
       this.messageService.add({
         severity: 'info',
         summary: 'Plan locked',
-        detail: 'Only plans with full visibility can be opened.'
+        detail: 'This plan is blind — start a workout to follow it.'
       });
       return;
     }
@@ -140,6 +140,6 @@ export class TrainerPlansComponent {
       });
       return;
     }
-    void this.router.navigate(['/workspace/plans', targetPlanId]);
+    void this.router.navigate(['/workspace/trainer', this.trainerId(), 'plans', targetPlanId]);
   }
 }

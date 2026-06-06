@@ -5,6 +5,7 @@ export type Permission =
   | 'PlanDelete'
   | 'PlanAssign'
   | 'PlanView'
+  | 'PlanViewAll'
   // Clients
   | 'ClientView'
   | 'ClientRemove'

@@ -10,6 +10,7 @@ export interface WorkoutPlanSummaryDto {
   workoutsPerWeek: number | null;
   createdOnUtc: string;
   workoutCount: number;
+  isArchived: boolean;
 }
 
 export interface WorkoutPlanListResponseDto {
@@ -27,7 +28,13 @@ export interface MyAssignedPlanDto {
   name?: string;
   coachName?: string | null;
   daysPerWeek?: number | null;
+  /** ISO date the coach set the plan to begin — drives the "Started" tile and week progress. */
+  startDate?: string | null;
   visibilityMode?: MyPlanVisibilityMode | null;
+  /** Per-assignment visibility options the coach set; reflected in the trainee plan view. */
+  hideExercises?: boolean;
+  hideSetsReps?: boolean;
+  hideFutureWorkouts?: boolean;
 }
 
 export interface MyPlanDto {

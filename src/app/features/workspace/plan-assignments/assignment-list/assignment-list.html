@@ -9,13 +9,12 @@
   itemLabel="assignments">
   <ng-template appDataTableCell="status" let-row>
     <div class="flex flex-wrap items-center gap-2">
-      @if (row['isCustomized']) {
-        <span class="pa-badge pa-badge--custom">Customized</span>
+      @if (!row['isActive']) {
+        <span class="pa-badge pa-badge--warn">Paused</span>
       }
       @if (row['hasNewerVersion']) {
         <span class="pa-badge pa-badge--warn">New v{{ row['latestPlanVersion'] }}</span>
-      }
-      @if (!row['isCustomized'] && !row['hasNewerVersion']) {
+      } @else {
         <span class="pa-badge">In sync</span>
       }
     </div>
@@ -40,6 +39,25 @@
           severity="secondary"
           [ariaLabel]="'Update assignment to v' + row['latestPlanVersion']"
           (clicked)="applyLatestClicked.emit($any(row['id']) || '')" />
+      }
+      @if (row['isActive']) {
+        <app-button
+          icon="pi pi-pause"
+          size="small"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          [ariaLabel]="'Pause assignment for ' + row['trainee']"
+          (clicked)="pauseToggled.emit({ id: $any(row['id']) || '', active: false })" />
+      } @else {
+        <app-button
+          icon="pi pi-play"
+          size="small"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          [ariaLabel]="'Resume assignment for ' + row['trainee']"
+          (clicked)="pauseToggled.emit({ id: $any(row['id']) || '', active: true })" />
       }
       <app-button
         icon="pi pi-trash"

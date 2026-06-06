@@ -19,7 +19,7 @@ export interface PlanAssignmentSummaryDto {
   hideSetsReps: boolean;
   hideFutureWorkouts: boolean;
   disableTraineeEditing: boolean;
-  isCustomized: boolean;
+  isActive: boolean;
 }
 
 export interface PlanAssignmentListResponseDto {

@@ -17,6 +17,16 @@ export interface SessionSummaryDto {
   rpeOverall: number | null;
   planAssignmentId: string | null;
   workoutName: string | null;
+  /** Working-set volume (Σ weight × reps), kg. */
+  totalVolumeKg: number;
+  /** Number of lifts that set a new estimated-1RM record in this session. */
+  prCount: number;
+  /** Owning program name when the session came from a plan assignment. */
+  programName: string | null;
+  /** 1-based plan week the session falls in (plan-sourced sessions only). */
+  planWeek: number | null;
+  /** Weekly session goal from the active plan's frequency (null for ad-hoc-only). */
+  weeklyGoal: number | null;
 }
 
 export interface SessionListResponseDto {
@@ -63,6 +73,8 @@ export interface PerformedSetDto {
   isCompleted: boolean;
   estimatedOneRepMaxKg: number | null;
   loggedAt: string;
+  /** True when this is the working set that set a new estimated-1RM PR for its lift. */
+  isPr: boolean;
 }
 
 export interface PerformedExerciseDto {
@@ -88,6 +100,15 @@ export interface ActiveSessionDto {
   planAssignmentId?: string | null;
 }
 
+export interface SessionPrDto {
+  exerciseId: string;
+  exerciseName: string | null;
+  weightKg: number;
+  reps: number;
+  estimatedOneRepMaxKg: number;
+  previousEstimatedOneRepMaxKg: number | null;
+}
+
 export interface SessionDetailDto {
   id: string;
   traineeId: string;
@@ -104,6 +125,14 @@ export interface SessionDetailDto {
   plannedWorkoutId: string | null;
   workoutNameSnapshot: string | null;
   exercises: PerformedExerciseDto[];
+  /** Working-set volume (Σ weight × reps), kg. */
+  totalVolumeKg: number;
+  /** Owning program name when the session came from a plan assignment. */
+  programName: string | null;
+  /** 1-based plan week the session falls in (plan-sourced sessions only). */
+  planWeek: number | null;
+  /** Lifts that set a new estimated-1RM record in this session. */
+  prs: SessionPrDto[];
 }
 
 export interface StartSessionRequest {

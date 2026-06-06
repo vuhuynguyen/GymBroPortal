@@ -14,6 +14,12 @@
         subtitle="Training templates: ordered workouts (Push, Pull, Legs). No fixed calendar—execution stays flexible.">
         @if (canManagePlans()) {
           <div class="ui-page-actions flex flex-wrap items-center gap-4">
+            <app-button
+              [label]="showArchived() ? 'Show active' : 'Show archived'"
+              icon="pi pi-inbox"
+              severity="secondary"
+              [outlined]="true"
+              (clicked)="toggleArchivedView()" />
             <app-button label="Create plan" icon="pi pi-plus" (clicked)="createPlan()" />
           </div>
         }
@@ -54,17 +60,53 @@
 
       <ng-template appDataTableCell="actions" let-row>
         <div class="flex flex-nowrap items-center justify-end gap-2">
-          <app-button
-            icon="pi pi-pencil"
-            size="small"
-            [rounded]="true"
-            [text]="true"
-            severity="secondary"
-            [disabled]="deleteInProgress()"
-            [ariaLabel]="'Edit ' + row['name']"
-            (clicked)="openPlanById(row['id'])" />
+          @if (canManagePlans() && !row['isArchived']) {
+            <app-button
+              icon="pi pi-play"
+              size="small"
+              [rounded]="true"
+              [text]="true"
+              severity="secondary"
+              [disabled]="deleteInProgress()"
+              [ariaLabel]="'Train ' + row['name'] + ' myself'"
+              (clicked)="trainThisMyself(row)" />
+          }
+
+          @if (!row['isArchived']) {
+            <app-button
+              icon="pi pi-pencil"
+              size="small"
+              [rounded]="true"
+              [text]="true"
+              severity="secondary"
+              [disabled]="deleteInProgress()"
+              [ariaLabel]="'Edit ' + row['name']"
+              (clicked)="openPlanById(row['id'])" />
+          }
 
           @if (canManagePlans()) {
+            @if (row['isArchived']) {
+              <app-button
+                icon="pi pi-undo"
+                size="small"
+                [rounded]="true"
+                [text]="true"
+                severity="secondary"
+                [disabled]="deleteInProgress()"
+                [ariaLabel]="'Restore ' + row['name']"
+                (clicked)="setArchived(row, false)" />
+            } @else {
+              <app-button
+                icon="pi pi-inbox"
+                size="small"
+                [rounded]="true"
+                [text]="true"
+                severity="secondary"
+                [disabled]="deleteInProgress()"
+                [ariaLabel]="'Archive ' + row['name']"
+                (clicked)="setArchived(row, true)" />
+            }
+
             <app-button
               icon="pi pi-trash"
               size="small"

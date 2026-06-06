@@ -18,8 +18,10 @@ import {
   type TableColumn
 } from '../../../../shared/ui';
 import { TenantService } from '../../../../core/tenant/tenant';
+import { AuthService } from '../../../../core/auth/auth';
 import { WorkoutPlanService } from '../workout-plan.service';
 import type { WorkoutPlanSummaryDto } from '../workout-plan.model';
+import { PlanAssignmentService } from '../../plan-assignments/plan-assignment.service';
 import {
   PlanDetailsFormDialogComponent,
   type PlanDetailsFormValue
@@ -42,7 +44,9 @@ import {
 })
 export class PlansListComponent {
   private readonly workoutPlanService = inject(WorkoutPlanService);
+  private readonly assignmentService = inject(PlanAssignmentService);
   private readonly tenantService = inject(TenantService);
+  private readonly auth = inject(AuthService);
   private readonly messageService = inject(MessageService);
   private readonly router = inject(Router);
 
@@ -53,6 +57,8 @@ export class PlansListComponent {
   readonly totalRecords = signal(0);
   readonly pageSize = signal(10);
   readonly loading = signal(false);
+  /** When true the list shows archived (retired) templates instead of active ones. */
+  readonly showArchived = signal(false);
 
   readonly canManagePlans = computed(() => this.tenantService.currentRole() === 'Owner');
 
@@ -111,7 +117,8 @@ export class PlansListComponent {
       workoutCount: p.workoutCount,
       durationWeeks: p.durationWeeks,
       workoutsPerWeek: p.workoutsPerWeek,
-      createdOnUtc: p.createdOnUtc
+      createdOnUtc: p.createdOnUtc,
+      isArchived: p.isArchived
     }))
   );
 
@@ -143,7 +150,7 @@ export class PlansListComponent {
 
   private loadPlans(query: { page: number; pageSize: number; search?: string }): void {
     this.loading.set(true);
-    this.workoutPlanService.list(query).subscribe({
+    this.workoutPlanService.list({ ...query, archived: this.showArchived() }).subscribe({
       next: (response) => {
         this.plans.set(response.items);
         this.totalRecords.set(response.totalCount);
@@ -223,6 +230,92 @@ export class PlansListComponent {
           summary: 'Navigation blocked',
           detail: 'Could not open plan builder. Try refreshing the page.'
         });
+      }
+    });
+  }
+
+  /**
+   * Self-train: assign this plan to the current coach (full visibility) so it shows up in their own
+   * Logs / start-workout flow. Replaces the awkward "assign a plan to yourself" picker path.
+   */
+  trainThisMyself(row: Record<string, unknown>): void {
+    const planId = String(row['id'] ?? '').trim();
+    const userId = this.auth.currentUser()?.userId;
+    if (!planId || !userId) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Cannot start',
+        detail: 'Please refresh and try again.'
+      });
+      return;
+    }
+
+    const perWeek = Number(row['workoutsPerWeek']);
+    const frequency = perWeek >= 1 && perWeek <= 7 ? perWeek : 3;
+    const today = new Date().toISOString().slice(0, 10);
+
+    this.assignmentService
+      .create({
+        traineeId: userId,
+        planId,
+        startDate: today,
+        frequencyDaysPerWeek: frequency,
+        visibilityMode: 'Full',
+        hideExercises: false,
+        hideSetsReps: false,
+        hideFutureWorkouts: false,
+        disableTraineeEditing: false,
+        snapshotJson: null
+      })
+      .subscribe({
+        next: () => {
+          this.messageService.add({
+            severity: 'success',
+            summary: 'Added to your workouts',
+            detail: 'Start it any time from the Logs page.'
+          });
+        },
+        error: (err: { error?: unknown; status?: number }) => {
+          const isDuplicate = err?.status === 409;
+          this.messageService.add({
+            severity: isDuplicate ? 'info' : 'error',
+            summary: isDuplicate ? 'Already added' : 'Could not start',
+            detail: isDuplicate
+              ? 'You are already training this plan.'
+              : typeof err?.error === 'string'
+                ? err.error
+                : 'Could not add this plan to your workouts.'
+          });
+        }
+      });
+  }
+
+  toggleArchivedView(): void {
+    this.showArchived.update((v) => !v);
+    this.refresh();
+  }
+
+  /** Archive (retire) or restore a plan template. */
+  setArchived(row: Record<string, unknown>, archived: boolean): void {
+    const id = String(row['id'] ?? '').trim();
+    if (!id) return;
+
+    const request = archived
+      ? this.workoutPlanService.archive(id)
+      : this.workoutPlanService.unarchive(id);
+
+    request.subscribe({
+      next: () => {
+        this.messageService.add({
+          severity: 'success',
+          summary: archived ? 'Archived' : 'Restored',
+          detail: archived ? 'Plan moved to the archive.' : 'Plan restored to active.'
+        });
+        this.refresh();
+      },
+      error: (err: { error?: unknown }) => {
+        const msg = typeof err?.error === 'string' ? err.error : 'Could not update the plan.';
+        this.messageService.add({ severity: 'error', summary: 'Update failed', detail: msg });
       }
     });
   }

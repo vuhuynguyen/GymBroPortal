@@ -67,7 +67,9 @@ export class SessionService {
   }
 
   start(body: StartSessionRequest): Observable<StartSessionResponse> {
-    return this.http.post<StartSessionResponse>(this.baseUrl, body);
+    return this.http.post<StartSessionResponse>(this.baseUrl, body).pipe(
+      tap(() => this.activeSession.set(null))
+    );
   }
 
   addExercise(sessionId: string, body: AddExerciseRequest): Observable<PerformedExerciseDto> {
@@ -92,10 +94,22 @@ export class SessionService {
   }
 
   complete(sessionId: string, body: CompleteSessionRequest): Observable<void> {
-    return this.http.post<void>(`${this.baseUrl}/${sessionId}/complete`, body);
+    return this.http.post<void>(`${this.baseUrl}/${sessionId}/complete`, body).pipe(
+      tap(() => {
+        if (this.activeSession()?.sessionId === sessionId) {
+          this.activeSession.set(null);
+        }
+      })
+    );
   }
 
   abandon(sessionId: string): Observable<void> {
-    return this.http.post<void>(`${this.baseUrl}/${sessionId}/abandon`, {});
+    return this.http.post<void>(`${this.baseUrl}/${sessionId}/abandon`, {}).pipe(
+      tap(() => {
+        if (this.activeSession()?.sessionId === sessionId) {
+          this.activeSession.set(null);
+        }
+      })
+    );
   }
 }

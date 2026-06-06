@@ -17,12 +17,26 @@ export class WorkoutPlanService {
   private readonly http = inject(HttpClient);
   private readonly baseUrl = '/api/workout-plans';
 
-  list(params?: { search?: string; page?: number; pageSize?: number }): Observable<WorkoutPlanListResponseDto> {
+  list(params?: {
+    search?: string;
+    page?: number;
+    pageSize?: number;
+    archived?: boolean;
+  }): Observable<WorkoutPlanListResponseDto> {
     let query = new HttpParams();
     if (params?.search?.trim()) query = query.set('search', params.search.trim());
     if (params?.page) query = query.set('page', String(params.page));
     if (params?.pageSize) query = query.set('pageSize', String(params.pageSize));
+    if (params?.archived) query = query.set('archived', 'true');
     return this.http.get<WorkoutPlanListResponseDto>(this.baseUrl, { params: query });
+  }
+
+  archive(id: string): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/${id}/archive`, {});
+  }
+
+  unarchive(id: string): Observable<void> {
+    return this.http.put<void>(`${this.baseUrl}/${id}/unarchive`, {});
   }
 
   listMyAssignments(): Observable<MyAssignedPlanDto[]> {
@@ -31,17 +45,28 @@ export class WorkoutPlanService {
         items?: Array<{
           id: string;
           planId: string;
+          startDate?: string;
           frequencyDaysPerWeek?: number;
           visibilityMode?: MyAssignedPlanDto['visibilityMode'] | number;
+          hideExercises?: boolean;
+          hideSetsReps?: boolean;
+          hideFutureWorkouts?: boolean;
         }>;
-      }>(`${this.baseUrl}/assignments`, { params: new HttpParams().set('pageSize', '200') })
+      }>(`${this.baseUrl}/assignments`, {
+        // Only active assignments belong in the start-workout picker; paused ones stay hidden.
+        params: new HttpParams().set('pageSize', '200').set('activeOnly', 'true')
+      })
       .pipe(
         map((response) =>
           (response.items ?? []).map((item) => ({
             id: item.id,
             planId: item.planId,
             daysPerWeek: item.frequencyDaysPerWeek ?? null,
-            visibilityMode: this.normalizeVisibilityMode(item.visibilityMode)
+            startDate: item.startDate ?? null,
+            visibilityMode: this.normalizeVisibilityMode(item.visibilityMode),
+            hideExercises: item.hideExercises ?? false,
+            hideSetsReps: item.hideSetsReps ?? false,
+            hideFutureWorkouts: item.hideFutureWorkouts ?? false
           }))
         )
       );

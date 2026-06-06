@@ -12,6 +12,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
+import { filter, map, switchMap } from 'rxjs/operators';
+import { catchError, of } from 'rxjs';
 import { MessageService } from 'primeng/api';
 import {
   ButtonComponent,
@@ -33,7 +35,8 @@ import type {
   PerformedExerciseDto,
   PerformedSetDto,
   SessionSnapshotExerciseDto,
-  SessionSnapshotSetDto
+  SessionSnapshotSetDto,
+  SessionStatus
 } from '../session.model';
 
 /** One rendered row in the active exercise's set table. */
@@ -106,6 +109,14 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   readonly rpeOptions = ['5', '6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10'];
 
   private timerHandle: ReturnType<typeof setInterval> | null = null;
+  /** Wall-clock anchor for elapsed time — reset whenever a different session loads. */
+  private sessionStartMs: number | null = null;
+  /** Accumulated pause time subtracted from wall-clock elapsed. */
+  private pausedOffsetMs = 0;
+  /** When pause began; used to extend `pausedOffsetMs` on resume. */
+  private pauseStartedAtMs: number | null = null;
+  /** Route session id currently being loaded — guards against stale HTTP responses. */
+  private currentSessionId: string | null = null;
 
   // ── Derived ──────────────────────────────────────────────────────────
   readonly workoutTitle = computed(() => {
@@ -139,19 +150,25 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     return this.exercises().findIndex((e) => e.id === active.id) + 1;
   });
 
-  readonly totalSets = computed(() => {
-    const performed = this.exercises().reduce((sum, ex) => sum + ex.sets.length, 0);
-    const planned = this.snapshotExercises().reduce((sum, e) => sum + (e.sets?.length ?? 0), 0);
-    return Math.max(performed, planned);
-  });
+  readonly loggedSets = computed(() =>
+    this.exercises().reduce((sum, ex) => sum + ex.sets.length, 0)
+  );
 
-  readonly completedSets = computed(() =>
-    this.exercises().reduce((sum, ex) => sum + ex.sets.filter((s) => s.isCompleted).length, 0)
+  readonly totalSets = computed(() =>
+    this.exercises().reduce((sum, ex) => {
+      const isActive = ex.id === this.activeExercise()?.id;
+      return sum + this.targetSetCountForExercise(ex, isActive);
+    }, 0)
   );
 
   readonly totalVolumeKg = computed(() =>
     this.exercises().reduce(
-      (sum, ex) => sum + ex.sets.reduce((s, set) => s + (set.weightKg ?? 0) * (set.reps ?? 0), 0),
+      (sum, ex) =>
+        sum +
+        ex.sets.reduce((s, set) => {
+          if (!set.isCompleted) return s;
+          return s + (set.weightKg ?? 0) * (set.reps ?? 0);
+        }, 0),
       0
     )
   );
@@ -159,7 +176,9 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   readonly avgRpe = computed(() => {
     const rpes: number[] = [];
     for (const ex of this.exercises()) {
-      for (const set of ex.sets) if (set.rpe != null) rpes.push(set.rpe);
+      for (const set of ex.sets) {
+        if (set.isCompleted && set.rpe != null) rpes.push(set.rpe);
+      }
     }
     if (rpes.length === 0) return null;
     return Math.round((rpes.reduce((a, b) => a + b, 0) / rpes.length) * 10) / 10;
@@ -167,7 +186,15 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
 
   readonly progressPercent = computed(() => {
     const total = this.totalSets();
-    return total > 0 ? Math.round((this.completedSets() / total) * 100) : 0;
+    if (total <= 0) return 0;
+    return Math.min(100, Math.round((this.loggedSets() / total) * 100));
+  });
+
+  /** KPI-friendly set counter — hides meaningless `0 / 0` before the workout has targets. */
+  readonly setsKpiValue = computed(() => {
+    const total = this.totalSets();
+    if (total <= 0) return '—';
+    return `${this.loggedSets()} / ${total}`;
   });
 
   /** Rendered rows for the active exercise's set table: done → active → pending. */
@@ -254,10 +281,8 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
 
   /** Set-progress dots for an outline row. */
   outlineDots(ex: PerformedExerciseDto): Array<'done' | 'active' | ''> {
-    const snap = this.snapshotForExercise(ex);
-    const planned = snap?.sets?.length ?? 0;
-    const total = Math.max(planned, ex.sets.length, 1);
     const isActive = ex.id === this.activeExercise()?.id;
+    const total = this.targetSetCountForExercise(ex, isActive);
     const dots: Array<'done' | 'active' | ''> = [];
     for (let i = 0; i < total; i++) {
       if (i < ex.sets.length) dots.push('done');
@@ -269,15 +294,24 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
 
   outlineMeta(ex: PerformedExerciseDto): string {
     const eq = this.exerciseEquipment(ex);
-    const snap = this.snapshotForExercise(ex);
-    const planned = snap?.sets?.length ?? ex.sets.length;
-    const done = ex.sets.filter((s) => s.isCompleted).length;
-    const progress = `${done}/${planned || ex.sets.length} sets`;
+    const isActive = ex.id === this.activeExercise()?.id;
+    const total = this.targetSetCountForExercise(ex, isActive);
+    const done = ex.sets.length;
+    const progress = `${done}/${total} sets`;
     return eq ? `${eq} · ${progress}` : progress;
   }
 
   snapshotForExercise(ex: PerformedExerciseDto): SessionSnapshotExerciseDto | undefined {
     return this.snapshotExercises().find((s) => s.exerciseId === ex.exerciseId);
+  }
+
+  /** Planned sets, logged sets, or the in-progress entry row — whichever is highest. */
+  private targetSetCountForExercise(ex: PerformedExerciseDto, includeActiveRow: boolean): number {
+    const snap = this.snapshotForExercise(ex);
+    const planned = snap?.sets?.length ?? 0;
+    const logged = ex.sets.length;
+    if (includeActiveRow) return Math.max(planned, logged + 1, 1);
+    return Math.max(planned, logged);
   }
 
   isExerciseComplete(ex: PerformedExerciseDto): boolean {
@@ -304,30 +338,54 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
 
   // ── Lifecycle ────────────────────────────────────────────────────────
   ngOnInit(): void {
-    const id = this.route.snapshot.paramMap.get('id');
-    if (!id) {
-      void this.router.navigate(['/workspace/logs']);
-      return;
-    }
-
     if (this.catalogExercises().length === 0) this.exerciseService.load('', 200);
 
-    this.sessionService
-      .getActive()
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe({
-        next: (active) => {
-          if (active && active.sessionId === id) this.applySession(active);
-          else this.loadFromDetail(id);
-        },
-        error: () => this.loadFromDetail(id)
+    this.route.paramMap
+      .pipe(
+        map((p) => p.get('id')),
+        filter((id): id is string => !!id),
+        switchMap((id) => {
+          this.currentSessionId = id;
+          this.resetSessionState();
+          this.loading.set(true);
+          return this.sessionService.getActive().pipe(
+            map((active) => ({ id, active })),
+            catchError(() => of({ id, active: null as ActiveSessionDto | null }))
+          );
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(({ id, active }) => {
+        if (active && active.sessionId === id) {
+          this.applySession(active);
+        } else {
+          this.loadFromDetail(id);
+        }
       });
 
     this.startTimer();
   }
 
   ngOnDestroy(): void {
-    if (this.timerHandle) clearInterval(this.timerHandle);
+    this.stopTimer();
+  }
+
+  /** Clear UI state so a route change never carries over timer / pause / rest from a prior session. */
+  private resetSessionState(): void {
+    this.session.set(null);
+    this.elapsedSeconds.set(0);
+    this.isPaused.set(false);
+    this.sessionStartMs = null;
+    this.pausedOffsetMs = 0;
+    this.pauseStartedAtMs = null;
+    this.resting.set(false);
+    this.restRemaining.set(0);
+    this.restTarget.set(DEFAULT_REST_SECONDS);
+    this.restNextSet.set(null);
+    this.activeExerciseId.set(null);
+    this.showFinishConfirm.set(false);
+    this.showAbandonConfirm.set(false);
+    this.pickerOpen.set(false);
   }
 
   private loadFromDetail(id: string): void {
@@ -336,6 +394,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (detail) => {
+          if (this.currentSessionId !== id) return;
           this.applySession({
             sessionId: detail.id,
             status: detail.status,
@@ -350,6 +409,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
           });
         },
         error: () => {
+          if (this.currentSessionId !== id) return;
           this.loading.set(false);
           this.messageService.add({ severity: 'error', summary: 'Could not load session' });
           void this.router.navigate(['/workspace/logs']);
@@ -360,19 +420,50 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   private applySession(s: ActiveSessionDto): void {
     this.session.set(s);
     this.loading.set(false);
+
     const startMs = Date.parse(s.startedAt);
-    if (!Number.isNaN(startMs)) {
-      this.elapsedSeconds.set(Math.max(0, Math.floor((Date.now() - startMs) / 1000)));
+    this.sessionStartMs = Number.isNaN(startMs) ? null : startMs;
+    this.pausedOffsetMs = 0;
+    this.pauseStartedAtMs = null;
+    this.isPaused.set(false);
+    this.syncElapsed();
+
+    const inProgress = this.normalizeStatus(s.status) === 'InProgress';
+    if (inProgress) {
+      this.startTimer();
+    } else {
+      this.stopTimer();
     }
+
     // Land on the first not-yet-complete exercise, else the first.
     const firstIncomplete = s.exercises.find((e) => !this.isExerciseComplete(e));
     this.activeExerciseId.set(firstIncomplete?.id ?? s.exercises[0]?.id ?? null);
     this.seedFormFromTargets();
   }
 
+  /** Derive elapsed from session start (minus accumulated pauses) instead of blind +1 ticks. */
+  private syncElapsed(): void {
+    if (this.sessionStartMs == null) {
+      this.elapsedSeconds.set(0);
+      return;
+    }
+    if (this.isPaused()) return;
+    this.elapsedSeconds.set(
+      Math.max(0, Math.floor((Date.now() - this.sessionStartMs - this.pausedOffsetMs) / 1000))
+    );
+  }
+
+  private stopTimer(): void {
+    if (this.timerHandle) {
+      clearInterval(this.timerHandle);
+      this.timerHandle = null;
+    }
+  }
+
   private startTimer(): void {
+    this.stopTimer();
     this.timerHandle = setInterval(() => {
-      if (!this.isPaused()) this.elapsedSeconds.update((v) => v + 1);
+      this.syncElapsed();
       if (this.resting()) {
         this.restRemaining.update((v) => Math.max(0, v - 1));
         if (this.restRemaining() === 0) this.resting.set(false);
@@ -380,9 +471,26 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     }, 1000);
   }
 
+  private normalizeStatus(status: ActiveSessionDto['status'] | string | number | null | undefined): SessionStatus {
+    const s = String(status ?? '').toLowerCase().replace(/[_\s]/g, '');
+    if (s === 'inprogress' || s === '1') return 'InProgress';
+    if (s === 'abandoned' || s === '3') return 'Abandoned';
+    return 'Completed';
+  }
+
   // ── Navigation / chrome actions ──────────────────────────────────────
   togglePause(): void {
-    this.isPaused.update((v) => !v);
+    if (this.isPaused()) {
+      if (this.pauseStartedAtMs != null) {
+        this.pausedOffsetMs += Date.now() - this.pauseStartedAtMs;
+        this.pauseStartedAtMs = null;
+      }
+      this.isPaused.set(false);
+      this.syncElapsed();
+    } else {
+      this.pauseStartedAtMs = Date.now();
+      this.isPaused.set(true);
+    }
   }
 
   setActive(exerciseId: string): void {
@@ -646,6 +754,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
         next: () => {
           this.saving.set(false);
           this.showFinishConfirm.set(false);
+          this.stopTimer();
           this.messageService.add({ severity: 'success', summary: 'Workout completed' });
           void this.router.navigate(['/workspace/logs']);
         },
@@ -675,6 +784,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
         next: () => {
           this.saving.set(false);
           this.showAbandonConfirm.set(false);
+          this.stopTimer();
           this.messageService.add({ severity: 'success', summary: 'Session abandoned' });
           void this.router.navigate(['/workspace/logs']);
         },

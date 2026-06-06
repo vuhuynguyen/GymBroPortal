@@ -1,11 +1,9 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { tap } from 'rxjs/operators';
+import { Observable, catchError, finalize, map, of, shareReplay, tap, throwError } from 'rxjs';
 import { AuthResponse, AuthUser, LoginRequest, MeDto } from './auth.model';
 import { TenantService } from '../tenant/tenant';
-
-const TOKEN_KEY = 'gymbro_token';
 
 function readIsPlatformAdminFromToken(token: string | null): boolean {
   if (!token) return false;
@@ -27,9 +25,22 @@ export class AuthService {
   private readonly router = inject(Router);
   private readonly tenantService = inject(TenantService);
 
-  private readonly token = signal<string | null>(localStorage.getItem(TOKEN_KEY));
+  // The access token lives ONLY in memory — never localStorage. On a full reload it is restored by a
+  // silent refresh against the httpOnly refresh-token cookie. This keeps the long-lived credential
+  // (the refresh token) out of reach of any XSS.
+  private readonly token = signal<string | null>(null);
   private readonly profile = signal<MeDto | null>(null);
   private profileRequestToken: string | null = null;
+
+  // A single in-flight refresh shared by bootstrap and the error interceptor, so concurrent 401s
+  // trigger exactly one /api/auth/refresh call.
+  private refreshInFlight: Observable<string> | null = null;
+
+  // Bootstrap state so route guards can wait for the initial silent refresh to settle before deciding.
+  private readonly bootstrapping = signal(true);
+  readonly isBootstrapping = this.bootstrapping.asReadonly();
+  private resolveReady!: () => void;
+  readonly ready = new Promise<void>((resolve) => (this.resolveReady = resolve));
 
   readonly isAuthenticated = computed(() => !!this.token());
 
@@ -43,6 +54,7 @@ export class AuthService {
     const me = this.profile();
     if (!me) return null;
     return {
+      userId: me.userId,
       email: me.email ?? '',
       name: me.name,
       isPlatformAdmin: me.isPlatformAdmin
@@ -50,25 +62,52 @@ export class AuthService {
   });
 
   constructor() {
-    if (this.token()) {
-      this.loadProfile();
-    }
+    // Attempt to restore a session from the refresh cookie. Either outcome unblocks the guards.
+    this.refresh().subscribe({
+      next: () => this.finishBootstrap(),
+      error: () => this.finishBootstrap()
+    });
   }
 
   login(email: string, password: string) {
     return this.http
-      .post<AuthResponse>('/api/auth/login', { email, password } satisfies LoginRequest)
+      .post<AuthResponse>('/api/auth/login', { email, password } satisfies LoginRequest, {
+        withCredentials: true
+      })
       .pipe(tap((res) => this.storeToken(res.token)));
   }
 
   register(email: string, password: string, name?: string) {
     return this.http
-      .post<AuthResponse>('/api/auth/register', {
-        email,
-        password,
-        fullName: name?.trim() ?? ''
-      })
+      .post<AuthResponse>(
+        '/api/auth/register',
+        { email, password, fullName: name?.trim() ?? '' },
+        { withCredentials: true }
+      )
       .pipe(tap((res) => this.storeToken(res.token)));
+  }
+
+  /**
+   * Exchange the refresh cookie for a fresh access token. Shared single-flight: repeated calls while
+   * one request is outstanding return the same observable. Emits the new access token on success.
+   */
+  refresh(): Observable<string> {
+    if (this.refreshInFlight) return this.refreshInFlight;
+
+    this.refreshInFlight = this.http
+      .post<AuthResponse>('/api/auth/refresh', {}, { withCredentials: true })
+      .pipe(
+        map((res) => res.token),
+        tap((token) => this.storeToken(token)),
+        catchError((err) => {
+          this.clearSession();
+          return throwError(() => err);
+        }),
+        finalize(() => (this.refreshInFlight = null)),
+        shareReplay(1)
+      );
+
+    return this.refreshInFlight;
   }
 
   forgotPassword(email: string) {
@@ -108,11 +147,12 @@ export class AuthService {
   }
 
   logout(): void {
-    localStorage.removeItem(TOKEN_KEY);
-    this.tenantService.clear();
-    this.token.set(null);
-    this.profile.set(null);
-    this.profileRequestToken = null;
+    // Revoke the refresh token server-side (clears the cookie too); local state is cleared regardless.
+    this.http
+      .post<void>('/api/auth/logout', {}, { withCredentials: true })
+      .pipe(catchError(() => of(void 0)))
+      .subscribe();
+    this.clearSession();
     void this.router.navigateByUrl('/login');
   }
 
@@ -132,9 +172,20 @@ export class AuthService {
   }
 
   private storeToken(token: string): void {
-    localStorage.setItem(TOKEN_KEY, token);
     this.token.set(token);
     this.profileRequestToken = null;
     this.loadProfile(true);
+  }
+
+  private clearSession(): void {
+    this.tenantService.clear();
+    this.token.set(null);
+    this.profile.set(null);
+    this.profileRequestToken = null;
+  }
+
+  private finishBootstrap(): void {
+    this.bootstrapping.set(false);
+    this.resolveReady();
   }
 }

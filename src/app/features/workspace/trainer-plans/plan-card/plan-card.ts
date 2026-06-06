@@ -14,6 +14,7 @@ export class PlanCardComponent {
   readonly plan = input.required<TrainerPlanItem>();
   readonly viewClicked = output<TrainerPlanItem>();
 
-  readonly canView = computed(() => this.plan().visibilityMode === 'Full');
+  // Full and Guided are both openable (Guided shows a coach-restricted view); only Blind is locked.
+  readonly canView = computed(() => this.plan().visibilityMode !== 'Blind');
   readonly buttonLabel = computed(() => (this.canView() ? 'View Plan' : 'Plan Locked'));
 }

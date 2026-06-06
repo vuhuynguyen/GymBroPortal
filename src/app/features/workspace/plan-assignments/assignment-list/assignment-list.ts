@@ -26,6 +26,7 @@ export class AssignmentListComponent {
   readonly editClicked = output<string>();
   readonly revokeClicked = output<string>();
   readonly applyLatestClicked = output<string>();
+  readonly pauseToggled = output<{ id: string; active: boolean }>();
 
   readonly columns: TableColumn[] = [
     { field: 'trainee', header: 'Trainee', filter: true, filterType: 'text' },
@@ -43,9 +44,9 @@ export class AssignmentListComponent {
       plan: this.planName(a.planId),
       version: `v${a.planVersion}`,
       visibility: a.visibilityMode,
-      isCustomized: a.isCustomized,
       hasNewerVersion: a.hasNewerVersion,
-      latestPlanVersion: a.latestPlanVersion
+      latestPlanVersion: a.latestPlanVersion,
+      isActive: a.isActive
     }))
   );
 

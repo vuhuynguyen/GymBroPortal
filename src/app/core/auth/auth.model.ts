@@ -15,6 +15,7 @@ export interface MeDto {
 }
 
 export interface AuthUser {
+  userId: string;
   email: string;
   name: string;
   isPlatformAdmin: boolean;

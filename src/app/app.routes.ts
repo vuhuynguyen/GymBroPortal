@@ -104,6 +104,14 @@ export const routes: Routes = [
               import('./features/workspace/trainer-plans/trainer-plans').then(
                 (m) => m.TrainerPlansComponent
               )
+          },
+          {
+            path: 'trainer/:trainerId/plans/:planId',
+            // Read-only trainee view of an assigned plan (visibility-redacted by the API).
+            loadComponent: () =>
+              import('./features/workspace/trainer-plans/plan-view/plan-view').then(
+                (m) => m.PlanViewComponent
+              )
           }
         ]
       },

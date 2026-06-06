@@ -47,31 +47,29 @@
         <div class="kpi kpi--primary">
           <span class="kpi__ico"><i class="pi pi-clock" aria-hidden="true"></i></span>
           <div>
-            <div class="kpi__l">Elapsed</div>
+            <div class="kpi__l">{{ isPaused() ? 'Elapsed · paused' : 'Elapsed' }}</div>
             <div class="kpi__v num">{{ formatTime(elapsedSeconds()) }}</div>
           </div>
         </div>
         <div class="kpi kpi--success">
           <span class="kpi__ico"><i class="pi pi-check-circle" aria-hidden="true"></i></span>
           <div>
-            <div class="kpi__l">Sets Done</div>
-            <div class="kpi__v num">{{ completedSets() }} / {{ totalSets() }}</div>
+            <div class="kpi__l">Sets logged</div>
+            <div class="kpi__v num">{{ setsKpiValue() }}</div>
           </div>
         </div>
         <div class="kpi kpi--sky">
           <span class="kpi__ico"><i class="pi pi-arrow-up-right" aria-hidden="true"></i></span>
           <div>
             <div class="kpi__l">Volume</div>
-            <div class="kpi__v num">{{ totalVolumeKg() | number }} kg</div>
+            <div class="kpi__v num">{{ totalVolumeKg() > 0 ? (totalVolumeKg() | number:'1.0-0') + ' kg' : '—' }}</div>
           </div>
         </div>
         <div class="kpi kpi--warning">
-          <span class="kpi__ico">
-            <i [class]="resting() ? 'pi pi-stopwatch' : 'pi pi-chart-line'" aria-hidden="true"></i>
-          </span>
+          <span class="kpi__ico"><i class="pi pi-chart-line" aria-hidden="true"></i></span>
           <div>
-            <div class="kpi__l">{{ resting() ? 'Resting' : 'Avg RPE' }}</div>
-            <div class="kpi__v num">{{ resting() ? formatRest(restRemaining()) : (avgRpe() ?? 'Not set') }}</div>
+            <div class="kpi__l">Progress</div>
+            <div class="kpi__v num">{{ totalSets() > 0 ? progressPercent() + '%' : '—' }}</div>
           </div>
         </div>
       </div>
@@ -229,7 +227,7 @@
             <header class="outline-head">
               <div class="outline-head__row">
                 <h3>Workout outline</h3>
-                <span class="outline-head__count num">{{ completedSets() }} / {{ totalSets() }} sets</span>
+                <span class="outline-head__count num">{{ setsKpiValue() }} sets</span>
               </div>
               <div class="outline-head__bar"><div [style.width.%]="progressPercent()"></div></div>
             </header>

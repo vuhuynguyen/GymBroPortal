@@ -4,7 +4,7 @@ import { Permission } from './permission.model';
 
 // Mirrors PermissionService.HasPermission on the backend exactly.
 const OWNER_PERMISSIONS = new Set<Permission>([
-  'PlanCreate', 'PlanUpdate', 'PlanDelete', 'PlanAssign', 'PlanView',
+  'PlanCreate', 'PlanUpdate', 'PlanDelete', 'PlanAssign', 'PlanView', 'PlanViewAll',
   'ClientView', 'ClientRemove', 'InviteCreate',
   'WorkoutLogCreate', 'WorkoutLogViewOwn', 'WorkoutLogViewAll',
 ]);

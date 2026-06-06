@@ -1,16 +1,12 @@
-import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal, viewChild } from '@angular/core';
+import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
-import { Router } from '@angular/router';
-import type { MenuItem } from 'primeng/api';
+import { Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
-import { Tooltip } from 'primeng/tooltip';
 import { IconField } from 'primeng/iconfield';
 import { InputIcon } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
-import { Select } from 'primeng/select';
 import { DatePicker } from 'primeng/datepicker';
-import { Menu } from 'primeng/menu';
 import {
   ButtonComponent,
   PageContainerComponent,
@@ -21,25 +17,36 @@ import { TenantService } from '../../../core/tenant/tenant';
 import { SessionService } from './session.service';
 import type {
   ActiveSessionDto,
+  SessionDetailDto,
   SessionStatus,
   SessionSummaryDto,
   StartSessionRequest
 } from './session.model';
 import { StartSessionDialogComponent } from './start-session-dialog/start-session-dialog';
+import { CompletionRingComponent } from './completion-ring/completion-ring';
+import { SessionDetailDialogComponent } from './session-detail-dialog/session-detail-dialog';
 
-interface WeeklyStats {
-  workouts: number;
-  totalVolumeKg: number;
-  avgDurationMinutes: number;
-  totalSets: number;
+type FilterId = 'all' | 'programs' | 'adhoc' | 'pr';
+
+interface FilterChip {
+  id: FilterId;
+  label: string;
+  icon: string;
+  count: number;
 }
 
-const STATUS_OPTIONS: ReadonlyArray<{ value: 'All' | SessionStatus; label: string }> = [
-  { value: 'All', label: 'All' },
-  { value: 'Completed', label: 'Completed' },
-  { value: 'Abandoned', label: 'Abandoned' },
-  { value: 'InProgress', label: 'In progress' }
-];
+interface WeekGroup {
+  key: string;
+  label: string;
+  source: string;
+  done: number;
+  goal: number | null;
+  prCount: number;
+  volumeKg: number;
+  items: SessionSummaryDto[];
+}
+
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 @Component({
   selector: 'app-logs',
@@ -53,13 +60,13 @@ const STATUS_OPTIONS: ReadonlyArray<{ value: 'All' | SessionStatus; label: strin
     ButtonComponent,
     ConfirmSplitDialogComponent,
     StartSessionDialogComponent,
+    CompletionRingComponent,
+    SessionDetailDialogComponent,
+    RouterLink,
     IconField,
     InputIcon,
     InputTextModule,
-    Select,
-    DatePicker,
-    Menu,
-    Tooltip
+    DatePicker
   ],
   templateUrl: './logs.html',
   styleUrl: './logs.scss',
@@ -71,21 +78,25 @@ export class LogsComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly messageService = inject(MessageService);
 
-  readonly statusOptions: Array<{ value: 'All' | SessionStatus; label: string }> = [...STATUS_OPTIONS];
   readonly searchControl = new FormControl<string>('', { nonNullable: true });
-  readonly statusControl = new FormControl<'All' | SessionStatus>('All', { nonNullable: true });
+  private readonly searchTerm = signal('');
   readonly fromControl = new FormControl<Date | null>(null);
   readonly toControl = new FormControl<Date | null>(null);
 
   readonly page = signal(1);
-  readonly pageSize = signal(10);
+  readonly pageSize = signal(20);
   readonly starting = signal(false);
   readonly startDialogOpen = signal(false);
   readonly abandonTarget = signal<SessionSummaryDto | null>(null);
   readonly dateRangeOpen = signal(false);
 
-  readonly rowMenu = viewChild<Menu>('rowMenu');
-  readonly rowMenuModel = signal<MenuItem[]>([]);
+  readonly activeFilter = signal<FilterId>('all');
+  /** Per-week open/closed overrides; absent → defaults (first 3 open). */
+  private readonly weekOverrides = signal<Record<string, boolean>>({});
+
+  readonly selectedSession = signal<SessionDetailDto | null>(null);
+  readonly detailLoading = signal(false);
+  private readonly detailOpen = signal(false);
 
   readonly sessions = this.sessionService.sessions;
   readonly loading = this.sessionService.loading;
@@ -93,77 +104,52 @@ export class LogsComponent implements OnInit {
   readonly activeSession = this.sessionService.activeSession;
 
   readonly isOwner = computed(() => this.tenantService.currentRole() === 'Owner');
+  readonly role = computed<'coach' | 'gymbro'>(() => (this.isOwner() ? 'coach' : 'gymbro'));
 
-  /**
-   * Unified hero session — used by both roles:
-   * - trainee: own /active session
-   * - either: first in-progress row in the list (e.g. owner monitoring a trainee)
-   */
+  readonly headerSubtitle = computed(() => {
+    const total = this.totalCount();
+    return total > 0 ? `${total} sessions · program + ad-hoc · all time` : 'Track and review your training sessions';
+  });
+
+  constructor() {
+    this.searchControl.valueChanges.subscribe((v) => this.searchTerm.set(v ?? ''));
+  }
+
+  // ── Active-session banner ────────────────────────────────────────────────
   readonly heroSession = computed(() => {
     const active = this.activeSession();
     if (active) {
+      const stats = this.activeStats();
+      const row = this.sessions().find((s) => s.id === active.sessionId);
       return {
         id: active.sessionId,
         title: this.activeWorkoutTitle(active),
-        subtitle: active.source === 'FromAssignment' ? 'From assigned plan' : 'Ad-hoc workout',
+        program: row?.programName ?? (this.isAdhoc(active.source) ? null : 'Assigned plan'),
+        day: row?.workoutName ?? null,
         startedAt: active.startedAt,
-        durationSeconds: Math.max(
-          0,
-          Math.floor((Date.now() - Date.parse(active.startedAt)) / 1000)
-        ),
-        exercises: active.exercises?.length ?? 0,
-        completedSets:
-          active.exercises?.reduce(
-            (sum, e) => sum + e.sets.filter((s) => s.isCompleted).length,
-            0
-          ) ?? 0,
-        totalSets: Math.max(
-          active.snapshot?.exercises?.reduce((sum, e) => sum + e.sets.length, 0) ?? 0,
-          active.exercises?.reduce((sum, e) => sum + e.sets.length, 0) ?? 0
-        ),
-        volumeKg:
-          active.exercises?.reduce(
-            (sum, e) =>
-              sum +
-              e.sets.reduce((s, set) => s + (set.weightKg ?? 0) * (set.reps ?? 0), 0),
-            0
-          ) ?? 0,
-        estCalories: Math.round(
-          Math.max(0, (Date.now() - Date.parse(active.startedAt)) / 60000) * 8
-        ),
-        traineeName: null as string | null,
+        durationSeconds: Math.max(0, Math.floor((Date.now() - Date.parse(active.startedAt)) / 1000)),
+        completedSets: stats.completedSets,
+        totalSets: stats.totalSets,
         canResume: true
       };
     }
 
-    const inProgressRow = this.sessions().find(
-      (s) => this.normalizeStatus(s.status) === 'InProgress'
-    );
+    const inProgressRow = this.sessions().find((s) => this.normalizeStatus(s.status) === 'InProgress');
     if (!inProgressRow) return null;
-
     const startedMs = Date.parse(inProgressRow.startedAt);
     const durationSeconds = !Number.isNaN(startedMs)
       ? Math.max(0, Math.floor((Date.now() - startedMs) / 1000))
       : inProgressRow.durationSeconds ?? 0;
-
     return {
       id: inProgressRow.id,
       title: inProgressRow.workoutName ?? 'Workout in progress',
-      subtitle:
-        inProgressRow.traineeName
-          ? inProgressRow.traineeName
-          : inProgressRow.source === 'FromAssignment'
-            ? 'From assigned plan'
-            : 'Ad-hoc workout',
+      program: inProgressRow.programName ?? inProgressRow.traineeName ?? null,
+      day: inProgressRow.workoutName ?? null,
       startedAt: inProgressRow.startedAt,
       durationSeconds,
-      exercises: inProgressRow.totalExercises ?? 0,
-      completedSets: inProgressRow.totalSets ?? 0,
+      completedSets: 0,
       totalSets: inProgressRow.totalSets ?? 0,
-      volumeKg: 0,
-      estCalories: Math.round((durationSeconds / 60) * 8),
-      traineeName: inProgressRow.traineeName,
-      canResume: !this.isOwner() // owner monitors only; only the trainee can resume
+      canResume: !this.isOwner()
     };
   });
 
@@ -173,80 +159,144 @@ export class LogsComponent implements OnInit {
     return Math.min(100, Math.round((h.completedSets / h.totalSets) * 100));
   });
 
-  readonly completedSessions = computed(() => {
+  readonly activeStats = computed(() => {
+    const a = this.activeSession();
+    if (!a) return { completedSets: 0, totalSets: 0 };
+    const completedSets =
+      a.exercises?.reduce((sum, e) => sum + e.sets.filter((s) => s.isCompleted).length, 0) ?? 0;
+    const snapExercises = a.snapshot?.exercises ?? [];
+    const totalSets =
+      a.exercises?.reduce((sum, e) => {
+        const snap = snapExercises.find((s) => s.exerciseId === e.exerciseId);
+        return sum + Math.max(snap?.sets?.length ?? 0, e.sets.length);
+      }, 0) ?? 0;
+    return { completedSets, totalSets };
+  });
+
+  // ── List / filtering / grouping ─────────────────────────────────────────
+  private readonly nonHeroSessions = computed(() => {
     const heroId = this.heroSession()?.id;
     return this.sessions().filter((s) => s.id !== heroId);
   });
 
-  readonly filteredSessions = computed(() => {
-    const search = this.searchControl.value?.trim().toLowerCase() ?? '';
-    if (!search) return this.completedSessions();
-    return this.completedSessions().filter((s) => {
-      const name = (s.workoutName ?? '').toLowerCase();
-      const trainee = (s.traineeName ?? '').toLowerCase();
-      return name.includes(search) || trainee.includes(search);
-    });
+  private readonly searchFiltered = computed(() => {
+    const term = this.searchTerm().trim().toLowerCase();
+    if (!term) return this.nonHeroSessions();
+    return this.nonHeroSessions().filter((s) =>
+      [s.workoutName, s.traineeName, s.programName]
+        .filter(Boolean)
+        .some((v) => v!.toLowerCase().includes(term))
+    );
   });
 
-  readonly weeklyStats = computed<WeeklyStats>(() => {
-    const cutoff = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const thisWeek = this.sessions().filter((s) => {
-      if (s.status !== 'Completed') return false;
-      const t = Date.parse(s.startedAt);
-      return !Number.isNaN(t) && t >= cutoff;
-    });
-    const totalSets = thisWeek.reduce((sum, s) => sum + (s.totalSets ?? 0), 0);
-    const totalDuration = thisWeek.reduce((sum, s) => sum + (s.durationSeconds ?? 0), 0);
+  readonly filterChips = computed<FilterChip[]>(() => {
+    const list = this.searchFiltered();
+    return [
+      { id: 'all', label: 'All', icon: 'pi pi-bars', count: list.length },
+      {
+        id: 'programs',
+        label: 'Programs',
+        icon: 'pi pi-folder',
+        count: list.filter((s) => !this.isAdhoc(s.source)).length
+      },
+      {
+        id: 'adhoc',
+        label: 'Ad-hoc',
+        icon: 'pi pi-bolt',
+        count: list.filter((s) => this.isAdhoc(s.source)).length
+      },
+      {
+        id: 'pr',
+        label: 'PRs',
+        icon: 'pi pi-trophy',
+        count: list.filter((s) => s.prCount > 0).length
+      }
+    ];
+  });
+
+  private readonly filteredSessions = computed(() => {
+    const list = this.searchFiltered();
+    switch (this.activeFilter()) {
+      case 'programs':
+        return list.filter((s) => !this.isAdhoc(s.source));
+      case 'adhoc':
+        return list.filter((s) => this.isAdhoc(s.source));
+      case 'pr':
+        return list.filter((s) => s.prCount > 0);
+      default:
+        return list;
+    }
+  });
+
+  readonly weekGroups = computed<WeekGroup[]>(() => {
+    const groups = new Map<string, WeekGroup>();
+    const thisWeekKey = this.weekStartKey(new Date());
+
+    for (const s of this.filteredSessions()) {
+      const started = new Date(s.startedAt);
+      if (Number.isNaN(started.getTime())) continue;
+      const key = this.weekStartKey(started);
+      let group = groups.get(key);
+      if (!group) {
+        group = {
+          key,
+          label: this.weekLabel(key, thisWeekKey),
+          source: '',
+          done: 0,
+          goal: null,
+          prCount: 0,
+          volumeKg: 0,
+          items: []
+        };
+        groups.set(key, group);
+      }
+      group.items.push(s);
+      if (this.normalizeStatus(s.status) === 'Completed') group.done += 1;
+      group.prCount += s.prCount;
+      group.volumeKg += s.totalVolumeKg;
+      if (s.weeklyGoal != null) group.goal = Math.max(group.goal ?? 0, s.weeklyGoal);
+    }
+
+    const result = [...groups.values()].sort((a, b) => (a.key < b.key ? 1 : -1));
+    for (const g of result) {
+      g.items.sort((a, b) => Date.parse(b.startedAt) - Date.parse(a.startedAt));
+      const srcs = new Set(g.items.map((s) => (this.isAdhoc(s.source) ? 'Ad-hoc' : s.programName ?? 'Plan')));
+      g.source = srcs.size > 1 ? `${srcs.size} sources` : [...srcs][0] ?? '';
+    }
+    return result;
+  });
+
+  isWeekOpen(group: WeekGroup, index: number): boolean {
+    const override = this.weekOverrides()[group.key];
+    return override ?? index < 3;
+  }
+
+  toggleWeek(group: WeekGroup, index: number): void {
+    const current = this.isWeekOpen(group, index);
+    this.weekOverrides.update((o) => ({ ...o, [group.key]: !current }));
+  }
+
+  // ── Rail: This week / Program / Jump-to-week ─────────────────────────────
+  readonly thisWeek = computed(() => {
+    const weekKey = this.weekStartKey(new Date());
+    const inWeek = this.sessions().filter((s) => this.weekStartKey(new Date(s.startedAt)) === weekKey);
+    const done = inWeek.filter((s) => this.normalizeStatus(s.status) === 'Completed').length;
+    const goalRow = inWeek.find((s) => s.weeklyGoal != null) ?? this.sessions().find((s) => s.weeklyGoal != null);
     return {
-      workouts: thisWeek.length,
-      totalVolumeKg: 0,
-      avgDurationMinutes: thisWeek.length > 0 ? Math.round(totalDuration / thisWeek.length / 60) : 0,
-      totalSets
+      done,
+      goal: goalRow?.weeklyGoal ?? null,
+      volumeKg: Math.round(inWeek.reduce((sum, s) => sum + s.totalVolumeKg, 0)),
+      sets: inWeek.reduce((sum, s) => sum + s.totalSets, 0)
     };
   });
 
-  /** Active-session inner stats — computed from snapshot + logged sets. */
-  readonly activeStats = computed(() => {
-    const a = this.activeSession();
-    if (!a) return { exercises: 0, completedSets: 0, totalSets: 0, volumeKg: 0, estCalories: 0 };
-    const exercises = a.exercises?.length ?? 0;
-    const completedSets =
-      a.exercises?.reduce((sum, e) => sum + e.sets.filter((s) => s.isCompleted).length, 0) ?? 0;
-    const plannedSets =
-      a.snapshot?.exercises?.reduce((sum, e) => sum + e.sets.length, 0) ?? 0;
-    const performedSets = a.exercises?.reduce((sum, e) => sum + e.sets.length, 0) ?? 0;
-    const totalSets = Math.max(plannedSets, performedSets);
-    const volumeKg =
-      a.exercises?.reduce(
-        (sum, e) =>
-          sum + e.sets.reduce((s, set) => s + (set.weightKg ?? 0) * (set.reps ?? 0), 0),
-        0
-      ) ?? 0;
-    const startedMs = Date.parse(a.startedAt);
-    const elapsedMin = !Number.isNaN(startedMs)
-      ? Math.max(0, (Date.now() - startedMs) / 60000)
-      : 0;
-    const estCalories = Math.round(elapsedMin * 8);
-    return { exercises, completedSets, totalSets, volumeKg, estCalories };
+  readonly program = computed(() => {
+    const row = this.sessions().find((s) => !this.isAdhoc(s.source) && s.programName);
+    if (!row) return null;
+    return { name: row.programName!, week: row.planWeek, goal: row.weeklyGoal };
   });
 
-  readonly activeProgressPercent = computed(() => {
-    const { completedSets, totalSets } = this.activeStats();
-    return totalSets > 0 ? Math.min(100, Math.round((completedSets / totalSets) * 100)) : 0;
-  });
-
-  readonly totalPages = computed(() => {
-    const total = this.totalCount();
-    const size = this.pageSize();
-    return total > 0 ? Math.max(1, Math.ceil(total / size)) : 1;
-  });
-
-  readonly abandonDialogMessage = computed(() => {
-    const t = this.abandonTarget();
-    if (!t) return '';
-    return `Abandon "${t.workoutName ?? 'this session'}"? You can still view it in the history afterwards.`;
-  });
-
+  // ── Lifecycle / data ─────────────────────────────────────────────────────
   ngOnInit(): void {
     this.refresh();
     this.sessionService.getActive().subscribe();
@@ -255,37 +305,34 @@ export class LogsComponent implements OnInit {
   refresh(): void {
     this.sessionService
       .list({
-        status: this.statusControl.value === 'All' ? undefined : this.statusControl.value,
         from: this.toIsoDate(this.fromControl.value),
         to: this.toIsoDate(this.toControl.value),
         page: this.page(),
         pageSize: this.pageSize()
       })
       .subscribe({
-        error: () => {
+        error: () =>
           this.messageService.add({
             severity: 'error',
             summary: 'Could not load sessions',
             detail: 'Please try again in a moment.'
-          });
-        }
+          })
       });
   }
 
-  applyFilters(): void {
+  applyDateFilter(): void {
     this.page.set(1);
     this.refresh();
   }
 
   clearFilters(): void {
     this.searchControl.setValue('');
-    this.statusControl.setValue('All');
     this.fromControl.setValue(null);
     this.toControl.setValue(null);
-    this.applyFilters();
+    this.activeFilter.set('all');
+    this.applyDateFilter();
   }
 
-  /** Date → "yyyy-MM-dd" for the API; undefined when blank. */
   private toIsoDate(d: Date | null | undefined): string | undefined {
     if (!d) return undefined;
     const yyyy = d.getFullYear();
@@ -294,9 +341,10 @@ export class LogsComponent implements OnInit {
     return `${yyyy}-${mm}-${dd}`;
   }
 
+  // ── Actions ──────────────────────────────────────────────────────────────
   startWorkout(): void {
     const active = this.activeSession();
-    if (active) {
+    if (active && this.normalizeStatus(active.status) === 'InProgress') {
       void this.router.navigate(['/workspace/logs/session', active.sessionId]);
       return;
     }
@@ -310,80 +358,60 @@ export class LogsComponent implements OnInit {
         this.starting.set(false);
         this.startDialogOpen.set(false);
         this.messageService.add({ severity: 'success', summary: 'Workout started' });
-        void this.router.navigate(['/workspace/logs/session', res.sessionId]);
+        this.sessionService.getActive().subscribe({
+          next: () => void this.router.navigate(['/workspace/logs/session', res.sessionId]),
+          error: () => void this.router.navigate(['/workspace/logs/session', res.sessionId])
+        });
       },
       error: (err) => {
         this.starting.set(false);
         const detail =
-          err?.status === 409
-            ? 'You already have a session in progress.'
-            : 'Could not start session.';
+          err?.status === 409 ? 'You already have a session in progress.' : 'Could not start session.';
         this.messageService.add({ severity: 'error', summary: 'Cannot start workout', detail });
       }
     });
-  }
-
-  resumeActive(): void {
-    const active = this.activeSession();
-    if (active) void this.router.navigate(['/workspace/logs/session', active.sessionId]);
   }
 
   resumeHero(sessionId: string): void {
     void this.router.navigate(['/workspace/logs/session', sessionId]);
   }
 
-  viewSession(session: SessionSummaryDto): void {
+  /** Row tap: in-progress opens the live session; everything else opens the detail modal. */
+  openSession(session: SessionSummaryDto): void {
     if (this.normalizeStatus(session.status) === 'InProgress') {
       void this.router.navigate(['/workspace/logs/session', session.id]);
+      return;
     }
+    this.detailOpen.set(true);
+    this.detailLoading.set(true);
+    this.selectedSession.set(null);
+    this.sessionService.getById(session.id).subscribe({
+      next: (detail) => {
+        this.selectedSession.set(detail);
+        this.detailLoading.set(false);
+      },
+      error: () => {
+        this.detailLoading.set(false);
+        this.detailOpen.set(false);
+        this.messageService.add({ severity: 'error', summary: 'Could not load session details' });
+      }
+    });
+  }
+
+  readonly isDetailOpen = computed(() => this.detailOpen());
+
+  closeDetail(): void {
+    this.detailOpen.set(false);
+    this.selectedSession.set(null);
+  }
+
+  onRepeatWorkout(): void {
+    this.closeDetail();
+    this.startWorkout();
   }
 
   requestAbandon(session: SessionSummaryDto): void {
     this.abandonTarget.set(session);
-  }
-
-  openRowMenu(event: Event, session: SessionSummaryDto): void {
-    const isInProgress = this.normalizeStatus(session.status) === 'InProgress';
-    const items: MenuItem[] = [
-      {
-        label: isInProgress ? 'Open' : 'View details',
-        icon: 'pi pi-eye',
-        command: () => this.viewSession(session)
-      }
-    ];
-    if (isInProgress) {
-      items.push({
-        separator: true
-      });
-      items.push({
-        label: 'Abandon',
-        icon: 'pi pi-times',
-        styleClass: 'text-inv-error-300',
-        command: () => this.requestAbandon(session)
-      });
-    }
-    this.rowMenuModel.set(items);
-    queueMicrotask(() => this.rowMenu()?.toggle(event));
-  }
-
-  requestAbandonActive(): void {
-    const active = this.activeSession();
-    if (!active) return;
-    this.abandonTarget.set({
-      id: active.sessionId,
-      traineeId: '',
-      traineeName: null,
-      source: active.source,
-      status: active.status,
-      startedAt: active.startedAt,
-      completedAt: null,
-      durationSeconds: 0,
-      totalSets: 0,
-      totalExercises: active.exercises?.length ?? 0,
-      rpeOverall: null,
-      planAssignmentId: active.planAssignmentId ?? null,
-      workoutName: this.activeWorkoutTitle(active)
-    });
   }
 
   onAbandonDialogOpenChange(open: boolean): void {
@@ -402,10 +430,7 @@ export class LogsComponent implements OnInit {
       },
       error: () => {
         this.abandonTarget.set(null);
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Could not abandon session'
-        });
+        this.messageService.add({ severity: 'error', summary: 'Could not abandon session' });
       }
     });
   }
@@ -424,6 +449,48 @@ export class LogsComponent implements OnInit {
     }
   }
 
+  readonly totalPages = computed(() => {
+    const total = this.totalCount();
+    const size = this.pageSize();
+    return total > 0 ? Math.max(1, Math.ceil(total / size)) : 1;
+  });
+
+  readonly abandonDialogMessage = computed(() => {
+    const t = this.abandonTarget();
+    if (!t) return '';
+    return `Abandon "${t.workoutName ?? 'this session'}"? You can still view it in the history afterwards.`;
+  });
+
+  // ── Presentation helpers ─────────────────────────────────────────────────
+  dayBadge(session: SessionSummaryDto): { abbr: string; cls: string } {
+    if (this.normalizeStatus(session.status) === 'Abandoned') return { abbr: '—', cls: 'abandoned' };
+    if (this.isAdhoc(session.source)) return { abbr: 'ADH', cls: 'adhoc' };
+    const name = (session.workoutName ?? '').toLowerCase();
+    if (name.includes('push')) return { abbr: 'PSH', cls: 'push' };
+    if (name.includes('pull')) return { abbr: 'PUL', cls: 'pull' };
+    if (name.includes('leg')) return { abbr: 'LEG', cls: 'legs' };
+    if (name.includes('arm')) return { abbr: 'ARM', cls: 'arms' };
+    if (name.includes('mobil') || name.includes('check')) return { abbr: 'MOB', cls: 'mobility' };
+    return { abbr: (session.workoutName ?? 'SES').slice(0, 3).toUpperCase(), cls: 'plan' };
+  }
+
+  /** Template-facing source/status helpers (API enums are camelCase). */
+  isAdhocSession(session: SessionSummaryDto): boolean {
+    return this.isAdhoc(session.source);
+  }
+
+  isAbandoned(session: SessionSummaryDto): boolean {
+    return this.normalizeStatus(session.status) === 'Abandoned';
+  }
+
+  sourceTag(session: SessionSummaryDto): string {
+    if (this.isAdhoc(session.source)) return 'Ad-hoc';
+    const program = session.programName?.trim();
+    const day = session.workoutName?.trim();
+    if (program && day) return `${program} · ${day}`;
+    return program ?? day ?? 'Plan';
+  }
+
   formatDuration(seconds: number): string {
     if (!seconds || seconds <= 0) return '—';
     const mins = Math.round(seconds / 60);
@@ -432,25 +499,31 @@ export class LogsComponent implements OnInit {
     return hrs > 0 ? `${hrs}h ${rem}m` : `${rem}m`;
   }
 
-  formatStartedAt(value: string | null): string {
+  formatVolume(kg: number): string {
+    if (!kg) return '0';
+    if (kg >= 1000) return `${(kg / 1000).toFixed(1)}k`;
+    return Math.round(kg).toString();
+  }
+
+  relativeDay(value: string | null): string {
     if (!value) return '';
     const date = new Date(value);
     if (Number.isNaN(date.getTime())) return '';
     const today = new Date();
-    const yesterday = new Date();
-    yesterday.setDate(today.getDate() - 1);
-    const time = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
-    if (date.toDateString() === today.toDateString()) return `Today · ${time}`;
-    if (date.toDateString() === yesterday.toDateString()) return `Yesterday · ${time}`;
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) + ` · ${time}`;
+    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
+    const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
+    const diffDays = Math.round((startOfToday - startOfDate) / MS_PER_DAY);
+    if (diffDays === 0) return 'Today';
+    if (diffDays === 1) return 'Yesterday';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
   }
 
-  activeDurationLabel(active: ActiveSessionDto | null): string {
-    if (!active) return '';
-    const startedMs = Date.parse(active.startedAt);
-    if (Number.isNaN(startedMs)) return '';
-    const minutes = Math.max(0, Math.round((Date.now() - startedMs) / 60000));
-    return this.formatDuration(minutes * 60);
+  startedTime(value: string | null): string {
+    if (!value) return '';
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) return '';
+    return date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
   }
 
   activeWorkoutTitle(active: ActiveSessionDto | null): string {
@@ -458,7 +531,28 @@ export class LogsComponent implements OnInit {
     return active.workoutNameSnapshot || active.snapshot?.workoutName || 'Workout in progress';
   }
 
-  /** Normalize whatever the API sends ('completed', 'Completed', 'COMPLETED'…) to PascalCase. */
+  private weekStartKey(date: Date): string {
+    const d = new Date(date);
+    const day = (d.getDay() + 6) % 7; // Monday = 0
+    d.setHours(0, 0, 0, 0);
+    d.setDate(d.getDate() - day);
+    return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  }
+
+  private weekLabel(key: string, thisWeekKey: string): string {
+    const start = new Date(`${key}T00:00:00`);
+    const thisStart = new Date(`${thisWeekKey}T00:00:00`);
+    const weeksAgo = Math.round((thisStart.getTime() - start.getTime()) / (7 * MS_PER_DAY));
+    if (weeksAgo <= 0) return 'This week';
+    if (weeksAgo === 1) return 'Last week';
+    return `Week of ${start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+  }
+
+  /** API serializes enums as camelCase (`adhoc`, `fromAssignment`), so compare case-insensitively. */
+  private isAdhoc(source: string | null | undefined): boolean {
+    return String(source ?? '').toLowerCase() === 'adhoc';
+  }
+
   private normalizeStatus(status: SessionStatus | string | null | undefined): SessionStatus {
     const s = String(status ?? '').toLowerCase();
     if (s === 'inprogress' || s === 'in_progress' || s === 'in progress') return 'InProgress';
@@ -466,31 +560,8 @@ export class LogsComponent implements OnInit {
     return 'Completed';
   }
 
-  statusBadgeClass(status: SessionStatus | string): string {
-    switch (this.normalizeStatus(status)) {
-      case 'Completed':
-        return 'bg-inv-success-0 text-inv-success-300';
-      case 'Abandoned':
-        return 'bg-inv-grey-0 text-inv-grey-700';
-      case 'InProgress':
-        return 'bg-inv-primary-0 text-inv-primary-700';
-    }
-  }
-
-  statusDotClass(status: SessionStatus | string): string {
-    switch (this.normalizeStatus(status)) {
-      case 'Completed':
-        return 'bg-inv-success-300';
-      case 'Abandoned':
-        return 'bg-inv-grey-400';
-      case 'InProgress':
-        return 'bg-inv-primary-500';
-    }
-  }
-
-  statusLabel(status: SessionStatus | string): string {
-    const norm = this.normalizeStatus(status);
-    return norm === 'InProgress' ? 'In progress' : norm;
+  trackByWeek(_index: number, item: WeekGroup): string {
+    return item.key;
   }
 
   trackById(_index: number, item: SessionSummaryDto): string {
