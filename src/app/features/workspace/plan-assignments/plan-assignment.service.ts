@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { visibilityModeToLabel, visibilityModeToValue } from '../../../shared/plan-visibility';
 import type {
   CreatePlanAssignmentRequest,
   PlanVisibilityMode,
@@ -85,22 +86,10 @@ export class PlanAssignmentService {
   }
 
   private toVisibilityModeValue(mode: PlanVisibilityMode): number {
-    switch (mode) {
-      case 'Full':
-        return 1;
-      case 'Guided':
-        return 2;
-      case 'Blind':
-        return 3;
-      default:
-        return 2;
-    }
+    return visibilityModeToValue(mode);
   }
 
   private toVisibilityModeLabel(mode: PlanVisibilityMode | number): PlanVisibilityMode {
-    if (mode === 'Full' || mode === 1) return 'Full';
-    if (mode === 'Guided' || mode === 2) return 'Guided';
-    if (mode === 'Blind' || mode === 3) return 'Blind';
-    return 'Guided';
+    return visibilityModeToLabel(mode) ?? 'Guided';
   }
 }

@@ -32,6 +32,7 @@ import {
   type PlanDetailsFormValue
 } from '../plan-details-form-dialog/plan-details-form-dialog';
 import { PLAN_BUILDER_SET_TYPE_OPTIONS } from './plan-set-options';
+import { computePlanMetaChips, parseIntSafe, parsePlanMeta } from './plan-meta';
 
 /**
  * Workout plan builder — carded workouts + exercise table, meta chips, plan details dialog (pencil).
@@ -112,7 +113,9 @@ export class PlanBuilderComponent {
   readonly planMetaChips = toSignal(
     this.form.valueChanges.pipe(
       startWith(this.form.value),
-      map(() => this.computePlanMetaChips())
+      map(() =>
+        computePlanMetaChips(this.form.get('durationWeeks')?.value, this.form.get('workoutsPerWeek')?.value)
+      )
     ),
     { initialValue: [] as { icon: string; label: string }[] }
   );
@@ -123,8 +126,8 @@ export class PlanBuilderComponent {
     let totalEx = 0;
     const wLen = this.workouts().length;
     for (let wi = 0; wi < wLen; wi++) totalEx += this.exercisesAt(wi).length;
-    const dw = this.parseIntSafe(this.form.get('durationWeeks')?.value);
-    const pw = this.parseIntSafe(this.form.get('workoutsPerWeek')?.value);
+    const dw = parseIntSafe(this.form.get('durationWeeks')?.value);
+    const pw = parseIntSafe(this.form.get('workoutsPerWeek')?.value);
     return {
       durationWeeks: dw,
       workoutsPerWeek: pw,
@@ -498,7 +501,7 @@ export class PlanBuilderComponent {
     if (!id || !this.canEdit()) return;
     const name = (this.form.get('name')?.value ?? '').toString().trim();
     if (!name) return;
-    const meta = this.parseMeta();
+    const meta = parsePlanMeta(this.form.value.durationWeeks, this.form.value.workoutsPerWeek);
     if (meta.error) {
       this.messageService.add({ severity: 'warn', summary: 'Invalid values', detail: meta.error });
       return;
@@ -540,7 +543,7 @@ export class PlanBuilderComponent {
       return;
     }
 
-    const meta = this.parseMeta();
+    const meta = parsePlanMeta(this.form.value.durationWeeks, this.form.value.workoutsPerWeek);
     if (meta.error) {
       this.openPlanDetailsDialog();
       this.messageService.add({ severity: 'warn', summary: 'Invalid values', detail: meta.error });
@@ -579,56 +582,6 @@ export class PlanBuilderComponent {
           this.messageService.add({ severity: 'error', summary: 'Save failed', detail: msg });
         }
       });
-  }
-
-  private parseIntSafe(v: unknown): number | null {
-    const s = (v ?? '').toString().trim();
-    if (!s) return null;
-    const n = Number(s);
-    return Number.isInteger(n) ? n : null;
-  }
-
-  private computePlanMetaChips(): { icon: string; label: string }[] {
-    const chips: { icon: string; label: string }[] = [];
-    const dw = this.parseIntSafe(this.form.get('durationWeeks')?.value);
-    chips.push({
-      icon: 'pi pi-calendar',
-      label: dw != null && dw >= 1 ? `${dw} week${dw === 1 ? '' : 's'}` : '— weeks'
-    });
-    const pw = this.parseIntSafe(this.form.get('workoutsPerWeek')?.value);
-    chips.push({
-      icon: 'pi pi-bolt',
-      label: pw != null && pw >= 1 ? `${pw} workouts per week` : '— per week'
-    });
-    chips.push({ icon: 'pi pi-tag', label: 'Template (not assigned)' });
-    return chips;
-  }
-
-  private parseMeta(): {
-    durationWeeks: number | null;
-    workoutsPerWeek: number | null;
-    error: string | null;
-  } {
-    const dw = (this.form.value.durationWeeks ?? '').toString().trim();
-    const pw = (this.form.value.workoutsPerWeek ?? '').toString().trim();
-
-    let durationWeeks: number | null = null;
-    if (dw) {
-      const n = Number(dw);
-      if (!Number.isInteger(n) || n < 2 || n > 4)
-        return { durationWeeks: null, workoutsPerWeek: null, error: 'Duration weeks must be between 2 and 4.' };
-      durationWeeks = n;
-    }
-
-    let workoutsPerWeek: number | null = null;
-    if (pw) {
-      const n = Number(pw);
-      if (!Number.isInteger(n) || n < 3 || n > 6)
-        return { durationWeeks: null, workoutsPerWeek: null, error: 'Workouts per week must be between 3 and 6.' };
-      workoutsPerWeek = n;
-    }
-
-    return { durationWeeks, workoutsPerWeek, error: null };
   }
 
   private buildStructurePayload():

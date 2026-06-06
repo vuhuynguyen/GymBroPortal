@@ -17,12 +17,12 @@ src/app/
 └── shared/ui/ # dumb, stateless wrapper components
 ```
 Auth **pages** live in `features/auth/`; auth **infra** (guards, interceptor, service) in `core/auth/`.
-**Dead/unrouted (do not extend):** `features/dashboard/`, `features/workspace/workout-plans/`, `workspace/members`+`invite` (redirect to `clients`).
+**Empty/unrouted (do not extend):** `features/popup-showcase/`, `features/workspace/workout-plans/`. Member/invite management lives in `features/workspace/clients/` + the `core/layout/*-gymbro-panel` side panels — there are no separate `members`/`invite`/`dashboard` route folders.
 
 ## Hard rules
 - **`inv-*` design tokens only** — no hex colors in feature code. Blue primary (no purple as brand).
 - **No raw PrimeNG** (`p-button`, `p-dropdown`, …) in feature templates — always use a `shared/ui/` wrapper.
-- **Reactive forms only** (`FormBuilder` + typed `FormGroup`) — no template-driven forms.
+- **Reactive forms** (`FormBuilder` + typed `FormGroup`) for new code. ⚠ **Known drift:** several existing components use template-driven `ngModel` (auth screens + some side panels/dialogs), and `exercise-form` uses the experimental `@angular/forms/signals` API — these predate this rule and aren't migrated yet. Don't add new template-driven forms.
 - **Signals + OnPush + standalone** — no `NgModule`, no `BehaviorSubject` + `async` pipe for new code.
 - **State in services** (`signal`/`computed`); components stay thin and read service signals.
 
@@ -49,11 +49,11 @@ export class MyPageComponent implements OnInit {
 ## State, HTTP & tenancy
 - Core service signals: `AuthService` (`token`, `profile` from `GET /api/auth/me`, computed `isAuthenticated`/`isPlatformAdmin`/`currentUser` — `isPlatformAdmin` falls back to the JWT `is_admin` claim until `/me` returns), `TenantService` (`tenants[]`, `activeTenantId`, computed `currentRole`/`activeTenant`/`ownTenant`/`trainerWorkspaces`), plus per-feature services.
 - `authInterceptor` adds `Authorization: Bearer` + `X-Tenant-Id` (from `TenantService.activeTenant()`) automatically.
-- `errorInterceptor` logs the user out on **401** and shows a toast for other HTTP errors.
-- **Tenant context:** `selectOwnWorkspace()` on trainer/management screens; `selectTrainerWorkspace(id)` before loading a coach's assigned plans (trainee view). `loadTenants()` runs after login and preserves a still-valid stored tenant.
+- `errorInterceptor` on a **401** from a non-auth call **silently refreshes once and replays** the request (single-flight); it logs the user out only if the refresh fails. Other HTTP errors show a toast. Token lifecycle: [`../../docs/REFRESH_TOKEN_DESIGN.md`](../../docs/REFRESH_TOKEN_DESIGN.md).
+- **Tenant context:** `selectOwnWorkspace()` on trainer/management screens; `selectTrainerWorkspace(id)` before loading a coach's assigned plans (trainee view). `TenantService.ensureLoaded()` (idempotent, single-flight) is awaited by `authGuard`/`roleGuard` so a deep-link/refresh has tenants+role before activation; `loadTenants()` is the explicit post-mutation refresh. Stateful per-feature services reset their signals on tenant switch (no cross-workspace bleed).
 
 ## Routing & guards (`app.routes.ts`)
-Lazy routes. Public: `noAuthGuard` (`/login`, `/register`, `/forgot-password`, `/reset-password`). Shell: `authGuard` (profile loads once in `AuthService`, not per navigation). `adminGuard()` gates `/exercises` and `/admin/*` (catalog management is **platform-admin-only in the UI**). `roleGuard(['Owner'])` gates trainer-only workspace routes (`/workspace/plans`, `/workspace/plan-assignments`, `/workspace/clients`). Trainees read their assigned plans through the **un-guarded** `/workspace/trainer/:trainerId/plans` (list) and `/workspace/trainer/:trainerId/plans/:planId` (read-only `PlanViewComponent`) — the API redacts plan content per the assignment's visibility flags, so these are safe without an Owner guard (`/workspace/plans/:id` remains the Owner-only editor). Keep the UI permission model in `core/auth/permission.ts` **in sync with the backend** `PermissionService`.
+Lazy routes. Public: `noAuthGuard` (`/login`, `/register`, `/forgot-password`, `/reset-password`). Shell: `authGuard` (profile loads once in `AuthService`, not per navigation). `adminGuard()` gates `/exercises` and `/admin/*` (catalog management is **platform-admin-only in the UI**). `roleGuard(['Owner'])` gates trainer-only workspace routes (`/workspace/plans`, `/workspace/plan-assignments`, `/workspace/clients`). Trainees read their assigned plans through the **un-guarded** `/workspace/trainer/:trainerId/plans` (list) and `/workspace/trainer/:trainerId/plans/:planId` (read-only `PlanViewComponent`) — the API redacts plan content per the assignment's visibility flags, so these are safe without an Owner guard (`/workspace/plans/:id` remains the Owner-only editor). The UI gates are `adminGuard`/`roleGuard` reading `AuthService.isPlatformAdmin()` + `TenantService.currentRole()` — **defense-in-depth only; the API is the real authorization boundary** (the frontend has no permission matrix to keep in sync — see [`../../docs/PERMISSIONS.md`](../../docs/PERMISSIONS.md)).
 
 ## Figma Make workflow (critical)
 Figma Make exports **React + Tailwind**; this app is Angular. Never convert JSX directly:

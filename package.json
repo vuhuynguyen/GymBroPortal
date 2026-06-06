@@ -6,7 +6,8 @@
     "start": "rm -rf .angular/cache && ng serve",
     "build": "rm -rf .angular/cache && ng build",
     "watch": "ng build --watch --configuration development",
-    "test": "ng test"
+    "test": "ng test",
+    "generate-api": "openapi-generator-cli generate -i http://localhost:5216/openapi/v1.json -g typescript-angular -o src/app/api/generated --additional-properties=ngVersion=21,fileNaming=kebab-case,enumNameSuffix=''"
   },
   "private": true,
   "dependencies": {
@@ -27,6 +28,7 @@
     "zone.js": "^0.16.1"
   },
   "devDependencies": {
+    "@openapitools/openapi-generator-cli": "^2.13.4",
     "@angular-devkit/build-angular": "^21.2.6",
     "@angular/cli": "^21.2.6",
     "@angular/compiler-cli": "^21.2.7",

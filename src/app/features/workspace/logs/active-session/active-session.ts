@@ -38,6 +38,17 @@ import type {
   SessionSnapshotSetDto,
   SessionStatus
 } from '../session.model';
+import {
+  averageCompletedRpe,
+  computeElapsedSeconds,
+  computeProgressPercent,
+  countLoggedSets,
+  formatDuration,
+  formatRestClock,
+  isPerformedExerciseComplete,
+  resolveTargetSetCount,
+  sumCompletedVolumeKg
+} from './session-metrics';
 
 /** One rendered row in the active exercise's set table. */
 type SetRowView =
@@ -150,9 +161,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     return this.exercises().findIndex((e) => e.id === active.id) + 1;
   });
 
-  readonly loggedSets = computed(() =>
-    this.exercises().reduce((sum, ex) => sum + ex.sets.length, 0)
-  );
+  readonly loggedSets = computed(() => countLoggedSets(this.exercises()));
 
   readonly totalSets = computed(() =>
     this.exercises().reduce((sum, ex) => {
@@ -161,34 +170,13 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     }, 0)
   );
 
-  readonly totalVolumeKg = computed(() =>
-    this.exercises().reduce(
-      (sum, ex) =>
-        sum +
-        ex.sets.reduce((s, set) => {
-          if (!set.isCompleted) return s;
-          return s + (set.weightKg ?? 0) * (set.reps ?? 0);
-        }, 0),
-      0
-    )
+  readonly totalVolumeKg = computed(() => sumCompletedVolumeKg(this.exercises()));
+
+  readonly avgRpe = computed(() => averageCompletedRpe(this.exercises()));
+
+  readonly progressPercent = computed(() =>
+    computeProgressPercent(this.loggedSets(), this.totalSets())
   );
-
-  readonly avgRpe = computed(() => {
-    const rpes: number[] = [];
-    for (const ex of this.exercises()) {
-      for (const set of ex.sets) {
-        if (set.isCompleted && set.rpe != null) rpes.push(set.rpe);
-      }
-    }
-    if (rpes.length === 0) return null;
-    return Math.round((rpes.reduce((a, b) => a + b, 0) / rpes.length) * 10) / 10;
-  });
-
-  readonly progressPercent = computed(() => {
-    const total = this.totalSets();
-    if (total <= 0) return 0;
-    return Math.min(100, Math.round((this.loggedSets() / total) * 100));
-  });
 
   /** KPI-friendly set counter — hides meaningless `0 / 0` before the workout has targets. */
   readonly setsKpiValue = computed(() => {
@@ -308,32 +296,20 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   /** Planned sets, logged sets, or the in-progress entry row — whichever is highest. */
   private targetSetCountForExercise(ex: PerformedExerciseDto, includeActiveRow: boolean): number {
     const snap = this.snapshotForExercise(ex);
-    const planned = snap?.sets?.length ?? 0;
-    const logged = ex.sets.length;
-    if (includeActiveRow) return Math.max(planned, logged + 1, 1);
-    return Math.max(planned, logged);
+    return resolveTargetSetCount(ex.sets.length, snap?.sets?.length ?? 0, includeActiveRow);
   }
 
   isExerciseComplete(ex: PerformedExerciseDto): boolean {
     const snap = this.snapshotForExercise(ex);
-    const planned = snap?.sets?.length ?? ex.sets.length;
-    if (planned === 0) return false;
-    return ex.sets.filter((s) => s.isCompleted).length >= planned;
+    return isPerformedExerciseComplete(ex, snap?.sets?.length ?? null);
   }
 
   formatTime(seconds: number): string {
-    const hrs = Math.floor(seconds / 3600);
-    const mins = Math.floor((seconds % 3600) / 60);
-    const secs = seconds % 60;
-    const m = String(mins).padStart(2, '0');
-    const s = String(secs).padStart(2, '0');
-    return hrs > 0 ? `${hrs}:${m}:${s}` : `${m}:${s}`;
+    return formatDuration(seconds);
   }
 
   formatRest(seconds: number): string {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${String(s).padStart(2, '0')}`;
+    return formatRestClock(seconds);
   }
 
   // ── Lifecycle ────────────────────────────────────────────────────────
@@ -449,7 +425,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     }
     if (this.isPaused()) return;
     this.elapsedSeconds.set(
-      Math.max(0, Math.floor((Date.now() - this.sessionStartMs - this.pausedOffsetMs) / 1000))
+      computeElapsedSeconds(this.sessionStartMs, Date.now(), this.pausedOffsetMs)
     );
   }
 
@@ -540,6 +516,20 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     this.seedFormFromTargets();
   }
 
+  /**
+   * Apply an in-session mutation (log/remove/add set or exercise) to the viewed session AND keep the
+   * shared SessionService.activeSession signal in sync, so the logs banner reflects the change live —
+   * single source of truth. Mutations only occur on the in-progress session; the status guard prevents
+   * a viewed historical (completed/abandoned) session from ever being pushed into the banner signal.
+   */
+  private mutateSession(updater: (s: ActiveSessionDto) => ActiveSessionDto): void {
+    this.session.update((s) => (s ? updater(s) : s));
+    const updated = this.session();
+    if (updated && this.normalizeStatus(updated.status) === 'InProgress') {
+      this.sessionService.activeSession.set(updated);
+    }
+  }
+
   logSet(): void {
     if (this.saving()) return;
     const session = this.session();
@@ -573,16 +563,12 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
       .subscribe({
         next: (loggedSet) => {
           this.saving.set(false);
-          this.session.update((s) =>
-            s
-              ? {
-                  ...s,
-                  exercises: s.exercises.map((e) =>
-                    e.id === ex.id ? { ...e, sets: [...e.sets, loggedSet] } : e
-                  )
-                }
-              : s
-          );
+          this.mutateSession((s) => ({
+            ...s,
+            exercises: s.exercises.map((e) =>
+              e.id === ex.id ? { ...e, sets: [...e.sets, loggedSet] } : e
+            )
+          }));
           this.startRest(snapSet?.restSeconds ?? DEFAULT_REST_SECONDS, setNumber + 1);
           this.seedFormFromTargets();
         },
@@ -602,16 +588,12 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: () => {
-          this.session.update((s) =>
-            s
-              ? {
-                  ...s,
-                  exercises: s.exercises.map((e) =>
-                    e.id === ex.id ? { ...e, sets: e.sets.filter((x) => x.id !== set.id) } : e
-                  )
-                }
-              : s
-          );
+          this.mutateSession((s) => ({
+            ...s,
+            exercises: s.exercises.map((e) =>
+              e.id === ex.id ? { ...e, sets: e.sets.filter((x) => x.id !== set.id) } : e
+            )
+          }));
           this.seedFormFromTargets();
         },
         error: () =>
@@ -690,9 +672,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
             exerciseName: created.exerciseName || matched?.name || 'Exercise',
             sets: created.sets ?? []
           };
-          this.session.update((s) =>
-            s ? { ...s, exercises: [...s.exercises, enriched] } : s
-          );
+          this.mutateSession((s) => ({ ...s, exercises: [...s.exercises, enriched] }));
           this.setActive(enriched.id);
           if (firstSet) {
             this.setForm.reset({

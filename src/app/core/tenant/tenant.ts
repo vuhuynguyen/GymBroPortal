@@ -1,5 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { Injectable, computed, inject, signal } from '@angular/core';
+import { firstValueFrom } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { TenantDto } from './tenant.model';
 
@@ -8,6 +9,7 @@ const TENANT_KEY = 'gymbro_tenant_id';
 @Injectable({ providedIn: 'root' })
 export class TenantService {
   private readonly http = inject(HttpClient);
+  private loadOnce: Promise<void> | null = null;
 
   readonly tenants = signal<TenantDto[]>([]);
   readonly activeTenantId = signal<string | null>(localStorage.getItem(TENANT_KEY));
@@ -46,6 +48,21 @@ export class TenantService {
         }
       })
     );
+  }
+
+  /**
+   * Load tenants once if not already loaded (idempotent, single-flight). Guards await this on entry so
+   * `currentRole()` is populated before route activation — fixes the race where a deep-link/refresh to an
+   * Owner-gated route evaluated `roleGuard` before any `loadTenants()` had run. Resolves (never rejects)
+   * even on failure, so a guard simply falls through to its redirect. Use `loadTenants()` to force a refresh.
+   */
+  ensureLoaded(): Promise<void> {
+    if (this.tenants().length > 0) return Promise.resolve();
+    this.loadOnce ??= firstValueFrom(this.loadTenants()).then(
+      () => { this.loadOnce = null; },
+      () => { this.loadOnce = null; }
+    );
+    return this.loadOnce;
   }
 
   setActiveTenant(id: string): void {

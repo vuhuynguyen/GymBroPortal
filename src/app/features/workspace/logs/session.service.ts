@@ -1,6 +1,7 @@
 import { HttpClient, HttpParams } from '@angular/common/http';
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, effect, inject, signal } from '@angular/core';
 import { Observable, of } from 'rxjs';
+import { TenantService } from '../../../core/tenant/tenant';
 import { catchError, map, tap } from 'rxjs/operators';
 import type {
   ActiveSessionDto,
@@ -20,12 +21,35 @@ import type {
 @Injectable({ providedIn: 'root' })
 export class SessionService {
   private readonly http = inject(HttpClient);
+  private readonly tenantService = inject(TenantService);
   private readonly baseUrl = '/api/sessions';
 
   readonly sessions = signal<SessionSummaryDto[]>([]);
   readonly totalCount = signal<number>(0);
   readonly loading = signal<boolean>(false);
   readonly activeSession = signal<ActiveSessionDto | null>(null);
+
+  constructor() {
+    // Clear tenant-scoped session state when the active workspace changes, so switching workspaces
+    // never momentarily shows the previous tenant's sessions. Skips the initial run (nothing to clear).
+    let first = true;
+    effect(() => {
+      this.tenantService.activeTenantId();
+      if (first) {
+        first = false;
+        return;
+      }
+      this.reset();
+    });
+  }
+
+  /** Clear all cached session state. Invoked automatically on a tenant switch. */
+  reset(): void {
+    this.sessions.set([]);
+    this.totalCount.set(0);
+    this.loading.set(false);
+    this.activeSession.set(null);
+  }
 
   list(params?: ListSessionsParams): Observable<SessionListResponseDto> {
     let query = new HttpParams();

@@ -1,17 +1,41 @@
 import { HttpClient } from '@angular/common/http';
-import { Injectable, inject, signal } from '@angular/core';
+import { Injectable, effect, inject, signal } from '@angular/core';
 import { Observable } from 'rxjs';
+import { TenantService } from '../../core/tenant/tenant';
 import { InviteCodeDto, MemberDto } from './workspace.model';
 
 @Injectable({ providedIn: 'root' })
 export class WorkspaceService {
   private readonly http = inject(HttpClient);
+  private readonly tenantService = inject(TenantService);
 
   readonly members = signal<MemberDto[]>([]);
   readonly membersLoading = signal(false);
 
   readonly invites = signal<InviteCodeDto[]>([]);
   readonly invitesLoading = signal(false);
+
+  constructor() {
+    // Members and invites are tenant-scoped; clear them when the active workspace changes so a switch
+    // never shows the previous tenant's roster/invites. Skips the initial run (nothing to clear yet).
+    let first = true;
+    effect(() => {
+      this.tenantService.activeTenantId();
+      if (first) {
+        first = false;
+        return;
+      }
+      this.reset();
+    });
+  }
+
+  /** Clear cached members + invites. Invoked automatically on a tenant switch. */
+  reset(): void {
+    this.members.set([]);
+    this.membersLoading.set(false);
+    this.invites.set([]);
+    this.invitesLoading.set(false);
+  }
 
   loadMembers(tenantId: string): void {
     this.membersLoading.set(true);

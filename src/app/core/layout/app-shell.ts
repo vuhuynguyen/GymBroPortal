@@ -200,7 +200,9 @@ export class AppShellComponent {
         }
       });
 
-    this.tenantService.loadTenants().subscribe();
+    // Tenants are already loaded by authGuard before the shell activates; ensureLoaded() is the
+    // idempotent safety net (no double-fetch). Use loadTenants() only to force a post-mutation refresh.
+    void this.tenantService.ensureLoaded();
 
     this.inviteGymBroPanelService.openRequests$
       .pipe(takeUntilDestroyed())

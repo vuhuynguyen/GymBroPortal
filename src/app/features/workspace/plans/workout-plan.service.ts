@@ -2,6 +2,7 @@ import { HttpClient, HttpParams } from '@angular/common/http';
 import { Injectable, inject } from '@angular/core';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { visibilityModeToLabel } from '../../../shared/plan-visibility';
 import type {
   CreateWorkoutPlanRequest,
   MyAssignedPlanDto,
@@ -107,9 +108,6 @@ export class WorkoutPlanService {
   }
 
   private normalizeVisibilityMode(value: unknown): NonNullable<MyAssignedPlanDto['visibilityMode']> | null {
-    if (value === 'Full' || value === 1) return 'Full';
-    if (value === 'Guided' || value === 2) return 'Guided';
-    if (value === 'Blind' || value === 3) return 'Blind';
-    return null;
+    return visibilityModeToLabel(value);
   }
 }

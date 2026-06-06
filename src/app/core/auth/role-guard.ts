@@ -12,9 +12,15 @@ export function adminGuard(): CanActivateFn {
 }
 
 export function roleGuard(allowedRoles: TenantRole[]): CanActivateFn {
-  return () => {
-    const role = inject(TenantService).currentRole();
+  return async () => {
+    // inject() must run before the first await (injection context ends at the await).
+    const tenant = inject(TenantService);
+    const router = inject(Router);
+    // Ensure tenants are loaded before reading the role — otherwise a deep-link/refresh to an
+    // Owner-gated route evaluates currentRole() as null and wrongly redirects a legitimate Owner.
+    await tenant.ensureLoaded();
+    const role = tenant.currentRole();
     if (role && allowedRoles.includes(role)) return true;
-    return inject(Router).createUrlTree(['/workspace/logs']);
+    return router.createUrlTree(['/workspace/logs']);
   };
 }

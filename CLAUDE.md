@@ -21,7 +21,7 @@ Angular 21 · standalone · OnPush · signals · PrimeNG 21 · Tailwind + `inv-*
 - **`inv-*` tokens only** (no hex); **no raw PrimeNG** (use `src/app/shared/ui/` wrappers); **reactive forms only**.
 - **Signals + OnPush + standalone**; all state in service signals.
 - App structure is `src/app/{core,features,shared}` only — don't add new top-level folders.
-- `authInterceptor` adds `Authorization` + `X-Tenant-Id`; keep `core/auth/permission.ts` in sync with the backend `PermissionService`.
+- `authInterceptor` adds `Authorization` + `X-Tenant-Id`; permission enforcement is server-only — the frontend has no permission mirror to keep in sync.
 - Filenames per Angular v20+ style guide (`login.ts`, `auth.ts`, `auth-guard.ts`; class names keep their suffix).
 
 ## Update rule
