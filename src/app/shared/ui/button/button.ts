@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
+import { TooltipModule } from 'primeng/tooltip';
 
 export type AppButtonSeverity =
   | 'primary'
@@ -14,7 +15,7 @@ export type AppButtonSeverity =
 @Component({
   selector: 'app-button',
   standalone: true,
-  imports: [ButtonModule],
+  imports: [ButtonModule, TooltipModule],
   template: `
     <p-button
       [label]="label()"
@@ -31,6 +32,8 @@ export type AppButtonSeverity =
       [ariaLabel]="ariaLabel()"
       [attr.aria-pressed]="ariaPressed()"
       [styleClass]="mergedClass()"
+      [pTooltip]="tooltip()"
+      [tooltipPosition]="tooltipPosition()"
       (onClick)="clicked.emit($any($event))" />
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -49,6 +52,9 @@ export class ButtonComponent {
   readonly loading = input(false);
   readonly ariaLabel = input<string | undefined>(undefined);
   readonly ariaPressed = input<boolean | null>(null);
+  /** Hover/focus tooltip text — useful for icon-only buttons whose purpose isn't obvious. */
+  readonly tooltip = input<string | undefined>(undefined);
+  readonly tooltipPosition = input<'top' | 'bottom' | 'left' | 'right'>('top');
   /** Extra classes merged with the design-system button class. */
   readonly styleClass = input<string>('');
 
