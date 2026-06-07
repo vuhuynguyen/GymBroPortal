@@ -36,7 +36,7 @@ jobs:
 
       - name: Image metadata
         id: meta
-        uses: docker/metadata-action@v5
+        uses: docker/metadata-action@v6
         with:
           # → ghcr.io/vuhuynguyen/gymbroportal (metadata-action lowercases the repo name for GHCR)
           images: ghcr.io/${{ github.repository }}
