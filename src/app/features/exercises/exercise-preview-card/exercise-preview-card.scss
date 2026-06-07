@@ -1,0 +1,32 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+/*
+ * Compact fixed-height media slot for sidebar live preview (fits typical viewport).
+ */
+.preview-card__image-slot {
+  width: 100%;
+}
+
+.preview-card__image,
+.preview-card__image-placeholder {
+  height: 12rem; /* Figma export `h-48` — `docs/design-system.md` preview media */
+  width: 100%;
+}
+
+.preview-card__image-placeholder {
+  box-sizing: border-box;
+  min-width: 0;
+  background: var(--inv-grey-25, #fafafa);
+  color: var(--inv-grey-500, #6b7280);
+}
+
+.preview-card__image-placeholder-icon {
+  color: var(--inv-grey-400, #9ca3af);
+}
+
+.preview-card__image-placeholder-icon-wrap {
+  flex-shrink: 0;
+}

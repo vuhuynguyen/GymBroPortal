@@ -1,0 +1,32 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+
+jobs:
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: 'npm'
+
+      - name: Install
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      # Fails if the committed API client drifts from openapi.json (no-op until openapi.json is committed).
+      - name: API contract drift check
+        run: npm run check:api
+
+      # Headless Chrome is preinstalled on GitHub ubuntu runners; ChromeHeadlessNoSandbox is defined in
+      # karma.conf.js so the run is stable in CI sandboxes.
+      - name: Test
+        run: npx ng test --watch=false --browsers=ChromeHeadlessNoSandbox

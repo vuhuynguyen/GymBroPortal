@@ -1,0 +1,215 @@
+<app-ui-page-container>
+  <div class="pv-page">
+
+  @if (loading()) {
+    <section class="pv-note pv-note--block">Loading plan…</section>
+  } @else if (plan(); as p) {
+
+    <!-- Active session hero — only when an in-progress session belongs to this plan -->
+    @if (activeSession(); as session) {
+      <section class="pv-active" aria-label="Workout in progress">
+        <div class="pv-active__main">
+          <span class="pv-active__badge"><span class="pv-active__dot" aria-hidden="true"></span>In Progress</span>
+          <div class="pv-active__title">{{ session.title }}</div>
+          <div class="pv-active__meta">
+            <span><i class="pi pi-stopwatch" aria-hidden="true"></i>{{ session.elapsed }} elapsed</span>
+          </div>
+        </div>
+        <button class="pv-active__btn" type="button" (click)="resumeSession()">
+          <i class="pi pi-play" aria-hidden="true"></i>Resume Workout
+        </button>
+      </section>
+    }
+
+    <!-- Page header -->
+    <header class="pv-head">
+      <span class="pv-eyebrow"><i class="pi pi-calendar" aria-hidden="true"></i>Assigned Plan</span>
+      <div class="pv-title-row">
+        <h1 class="pv-title">{{ p.name }}</h1>
+        @if (isGuided()) {
+          <span class="pv-badge pv-badge--guided"><i class="pi pi-eye" aria-hidden="true"></i>Guided</span>
+        }
+      </div>
+      <p class="pv-sub">A read-only view of the plan assigned to you by your coach.</p>
+    </header>
+
+    <!-- Summary -->
+    <section class="pv-summary" aria-label="Plan summary">
+      <div class="pv-summary__grid">
+        <div class="pv-meta">
+          <span class="pv-meta__l"><i class="pi pi-user" aria-hidden="true"></i>Coach</span>
+          <span class="pv-meta__v">{{ summary().coach }}</span>
+        </div>
+        <div class="pv-meta">
+          <span class="pv-meta__l"><i class="pi pi-clock" aria-hidden="true"></i>Duration</span>
+          @if (summary().durationWeeks; as weeks) {
+            <span class="pv-meta__v">{{ weeks }} <small>weeks</small></span>
+          } @else {
+            <span class="pv-meta__v pv-meta__v--muted">Not set</span>
+          }
+        </div>
+        <div class="pv-meta">
+          <span class="pv-meta__l"><i class="pi pi-bolt" aria-hidden="true"></i>Frequency</span>
+          @if (summary().daysPerWeek; as days) {
+            <span class="pv-meta__v">{{ days }} <small>days / week</small></span>
+          } @else {
+            <span class="pv-meta__v pv-meta__v--muted">Not set</span>
+          }
+        </div>
+        <div class="pv-meta">
+          <span class="pv-meta__l"><i class="pi pi-flag" aria-hidden="true"></i>Started</span>
+          @if (summary().startDate; as start) {
+            <span class="pv-meta__v">{{ start | date: 'MMM d' }} <small>{{ start | date: 'yyyy' }}</small></span>
+          } @else {
+            <span class="pv-meta__v pv-meta__v--muted">Not set</span>
+          }
+        </div>
+      </div>
+
+      @if (progress(); as pr) {
+        <div class="pv-summary__progress">
+          <span class="pv-progress-label"><b>Week {{ pr.week }}</b> of {{ pr.totalWeeks }}</span>
+          <div class="pv-progress-track">
+            <div class="pv-progress-fill" [style.width.%]="pr.percent"></div>
+          </div>
+          <span class="pv-progress-label">{{ pr.percent }}% complete</span>
+        </div>
+      }
+    </section>
+
+    <!-- Guided visibility note — reflects the coach's assignment options -->
+    @if (isGuided() || hiddenAspects().length) {
+      <div class="pv-note-banner">
+        <i class="pi pi-info-circle" aria-hidden="true"></i>
+        <div class="pv-note-banner__body">
+          <span><b>Guided plan.</b> Your coach controls what you can see ahead of time. Everything you
+            need for now is shown below.</span>
+          @if (hiddenAspects().length) {
+            <div class="pv-note-banner__chips">
+              @for (aspect of hiddenAspects(); track aspect.label) {
+                <span class="pv-flag-chip"><i class="pi {{ aspect.icon }}" aria-hidden="true"></i>{{ aspect.label }}</span>
+              }
+            </div>
+          }
+        </div>
+      </div>
+    }
+
+    <!-- Workouts -->
+    <div class="pv-section">
+      <div class="pv-section-head">
+        <h2 class="pv-section-title">Workouts</h2>
+        @if (summary().daysPerWeek; as days) {
+          <span class="pv-section-meta">{{ days }} days per week</span>
+        }
+      </div>
+
+      <div class="pv-days">
+        @for (day of days(); track day.id) {
+          <article class="pv-day" [class.is-open]="isDayOpen(day)" [class.pv-day--locked]="day.locked">
+
+            @if (day.locked) {
+              <div class="pv-day__head">
+                <span class="pv-day-tag" aria-hidden="true"><i class="pi pi-lock"></i></span>
+                <span class="pv-day__titles">
+                  <span class="pv-day__name">{{ day.name }}</span>
+                  <span class="pv-day__focus">Unlocks as you progress</span>
+                </span>
+                <span class="pv-lock-pill"><i class="pi pi-lock" aria-hidden="true"></i>Locked</span>
+              </div>
+            } @else {
+              <button
+                class="pv-day__head"
+                type="button"
+                (click)="toggleDay(day)"
+                [attr.aria-expanded]="isDayOpen(day)">
+                <span class="pv-day-tag" aria-hidden="true">{{ day.letter }}</span>
+                <span class="pv-day__titles">
+                  <span class="pv-day__name">{{ day.name }}</span>
+                </span>
+                <span class="pv-day__meta">
+                  <span><i class="pi pi-list" aria-hidden="true"></i>{{ day.exerciseCount }} exercises</span>
+                  <span><i class="pi pi-bars" aria-hidden="true"></i>{{ day.setCount }} sets</span>
+                </span>
+                <i class="pi pi-chevron-down pv-chev" aria-hidden="true"></i>
+              </button>
+
+              <div class="pv-day__body">
+                @if (day.exercises.length === 0) {
+                  <p class="pv-note pv-exercise pv-exercise--empty">No exercises in this workout yet.</p>
+                }
+                @for (ex of day.exercises; track ex.id) {
+                  <div class="pv-exercise" [class.pv-exercise--hidden]="ex.hidden">
+                    <div class="pv-exercise__head">
+                      <span class="pv-thumb" aria-hidden="true">
+                        <i [class]="ex.hidden ? 'pi pi-lock' : 'pi pi-image'"></i>
+                      </span>
+                      <div>
+                        <div class="pv-exercise__name">{{ ex.name }}</div>
+                        @if (ex.hidden) {
+                          <div class="pv-exercise__sub">Revealed by your coach during the session</div>
+                        } @else {
+                          <div class="pv-exercise__sub">{{ ex.setSummary }}</div>
+                        }
+                      </div>
+                    </div>
+
+                    @if (!ex.hidden) {
+                      @if (ex.hiddenTargets) {
+                        <div class="pv-locked-targets">
+                          <i class="pi pi-eye-slash" aria-hidden="true"></i>
+                          <span>Set targets hidden by your coach — they'll guide you on the day.</span>
+                        </div>
+                      } @else {
+                        <div class="pv-sets">
+                          @for (set of ex.sets; track set.num) {
+                            <div class="pv-set">
+                              <span class="pv-set__num">{{ set.num }}</span>
+                              <span class="pv-set-chip pv-set-chip--{{ set.type }}">{{ set.typeLabel }}</span>
+                              <div class="pv-targets">
+                                @if (set.reps !== null) {
+                                  <span class="pv-target"><b>{{ set.reps }}</b> reps</span>
+                                }
+                                @if (set.weightKg !== null) {
+                                  <span class="pv-target"><b>{{ set.weightKg }}</b> kg</span>
+                                }
+                                @if (set.rpe !== null) {
+                                  <span class="pv-target">RPE <b>{{ set.rpe }}</b></span>
+                                }
+                                <span class="pv-target pv-target--rest">
+                                  <i class="pi pi-stopwatch" aria-hidden="true"></i>{{ set.restSeconds }}s
+                                </span>
+                              </div>
+                            </div>
+                          }
+                        </div>
+                      }
+                    }
+                  </div>
+                }
+              </div>
+            }
+          </article>
+        } @empty {
+          <section class="pv-note pv-note--block">This plan has no workouts yet.</section>
+        }
+      </div>
+    </div>
+
+    <!-- Footer action -->
+    <div class="pv-actions">
+      <app-button
+        label="Back to plans"
+        size="small"
+        severity="secondary"
+        icon="pi pi-arrow-left"
+        [outlined]="true"
+        (clicked)="back()" />
+    </div>
+
+  } @else {
+    <section class="pv-note pv-note--block">This plan is not available.</section>
+  }
+
+  </div>
+</app-ui-page-container>

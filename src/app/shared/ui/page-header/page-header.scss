@@ -1,0 +1,70 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+.ui-page-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  row-gap: 1rem;
+  column-gap: 0.75rem;
+  padding-bottom: var(--inv-space-4);
+}
+
+/* Figma: `mb-8` under title block before main grid (~32px). */
+.ui-page-header--hero {
+  padding-bottom: var(--inv-space-6);
+}
+
+.ui-page-header-title {
+  margin: 0;
+  font-size: var(--inv-text-h5);
+  font-weight: 600;
+  color: var(--inv-grey-900);
+  letter-spacing: -0.02em;
+  line-height: 1.25;
+}
+
+@media (min-width: 768px) {
+  .ui-page-header-title {
+    font-size: var(--inv-text-h4);
+  }
+}
+
+/* Figma `text-3xl font-semibold` (~1.875rem). */
+.ui-page-header-title--hero {
+  font-size: 1.875rem;
+  font-weight: 600;
+  letter-spacing: -0.025em;
+  line-height: 1.2;
+}
+
+@media (min-width: 768px) {
+  .ui-page-header-title--hero {
+    font-size: var(--inv-text-h3);
+    line-height: 1.25;
+  }
+}
+
+.ui-page-header-subtitle {
+  margin: var(--inv-space-1) 0 0;
+  font-size: var(--inv-text-body-sm);
+  color: var(--inv-grey-500);
+  line-height: 1.4;
+  max-width: 40rem;
+}
+
+.ui-page-header-aside {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  margin-left: auto;
+
+  @media (max-width: 639px) {
+    margin-top: 0.25rem;
+    margin-bottom: 0.75rem;
+  }
+}

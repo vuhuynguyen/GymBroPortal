@@ -1,0 +1,75 @@
+<app-confirm-split-dialog
+  [open]="removeTarget() !== null"
+  (openChange)="onDialogChange($event)"
+  heading="Remove client?"
+  [message]="removeDialogMessage()"
+  confirmLabel="Remove"
+  (confirmed)="onRemoveConfirmed()" />
+
+<app-ui-page-container class="flex flex-col gap-inv-5">
+
+  <app-page-header
+    title="GymBro"
+    [subtitle]="clients().length > 0 ? (clients().length + (clients().length === 1 ? ' person' : ' people')) : 'No one yet'">
+    @if (!loading() && clients().length > 0) {
+      <div class="ui-page-actions flex flex-wrap items-center gap-4">
+        <app-button
+          label="Invite to GymBro"
+          icon="pi pi-user-plus"
+          ariaLabel="Invite to GymBro — open panel to share an invite code"
+          (clicked)="openInviteGymBroPanel()" />
+      </div>
+    }
+  </app-page-header>
+
+  @if (loading()) {
+
+    <div class="clients-loading">
+      <i class="pi pi-spin pi-spinner"></i>
+    </div>
+
+  } @else if (clients().length === 0) {
+
+    <div class="clients-empty">
+      <div class="clients-empty__icon">
+        <i class="pi pi-user-plus" aria-hidden="true"></i>
+      </div>
+      <h2 class="clients-empty__heading">Invite someone</h2>
+      <p class="clients-empty__text">
+        Create an invite code in the panel, share it with them, and they join your workspace once.
+      </p>
+      <app-button
+        label="Invite to GymBro"
+        icon="pi pi-user-plus"
+        ariaLabel="Invite to GymBro — open panel to share an invite code"
+        (clicked)="openInviteGymBroPanel()" />
+    </div>
+
+  } @else {
+
+    <ul class="clients-list" role="list">
+      @for (client of clients(); track client.userId) {
+        <li class="client-row">
+          <div class="client-avatar" aria-hidden="true">{{ initial(client.name) }}</div>
+          <div class="client-info">
+            <span class="client-name">{{ client.name }}</span>
+            <span class="client-meta">Joined {{ formatDate(client.joinedAt) }}</span>
+          </div>
+          <div class="client-actions">
+            <app-button
+              icon="pi pi-user-minus"
+              size="small"
+              [rounded]="true"
+              [text]="true"
+              severity="danger"
+              [ariaLabel]="'Remove ' + client.name"
+              [disabled]="removeInProgress()"
+              (clicked)="confirmRemove(client)" />
+          </div>
+        </li>
+      }
+    </ul>
+
+  }
+
+</app-ui-page-container>

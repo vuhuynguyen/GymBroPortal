@@ -1,0 +1,72 @@
+<app-data-table
+  [columns]="columns"
+  [data]="rowData()"
+  [loading]="loading()"
+  [globalFilterExtraFields]="['visibility']"
+  globalSearchPlaceholder="Search by trainee or plan"
+  emptyMessage="No assignments yet. Use Assign Plan to get started."
+  loadingMessage="Loading assignments..."
+  itemLabel="assignments">
+  <ng-template appDataTableCell="status" let-row>
+    <div class="flex flex-wrap items-center gap-2">
+      @if (!row['isActive']) {
+        <span class="pa-badge pa-badge--warn">Paused</span>
+      }
+      @if (row['hasNewerVersion']) {
+        <span class="pa-badge pa-badge--warn">New v{{ row['latestPlanVersion'] }}</span>
+      } @else {
+        <span class="pa-badge">In sync</span>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template appDataTableCell="actions" let-row>
+    <div class="flex flex-nowrap items-center justify-end gap-2">
+      <app-button
+        icon="pi pi-pencil"
+        size="small"
+        [rounded]="true"
+        [text]="true"
+        severity="secondary"
+        [ariaLabel]="'Edit assignment for ' + row['trainee']"
+        (clicked)="editClicked.emit($any(row['id']) || '')" />
+      @if (row['hasNewerVersion']) {
+        <app-button
+          icon="pi pi-refresh"
+          size="small"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          [ariaLabel]="'Update assignment to v' + row['latestPlanVersion']"
+          (clicked)="applyLatestClicked.emit($any(row['id']) || '')" />
+      }
+      @if (row['isActive']) {
+        <app-button
+          icon="pi pi-pause"
+          size="small"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          [ariaLabel]="'Pause assignment for ' + row['trainee']"
+          (clicked)="pauseToggled.emit({ id: $any(row['id']) || '', active: false })" />
+      } @else {
+        <app-button
+          icon="pi pi-play"
+          size="small"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          [ariaLabel]="'Resume assignment for ' + row['trainee']"
+          (clicked)="pauseToggled.emit({ id: $any(row['id']) || '', active: true })" />
+      }
+      <app-button
+        icon="pi pi-trash"
+        size="small"
+        [rounded]="true"
+        [text]="true"
+        severity="danger"
+        [ariaLabel]="'Revoke assignment for ' + row['trainee']"
+        (clicked)="revokeClicked.emit($any(row['id']) || '')" />
+    </div>
+  </ng-template>
+</app-data-table>

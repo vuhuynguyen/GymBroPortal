@@ -1,0 +1,21 @@
+:host {
+  display: block;
+  width: 100%;
+}
+
+/* Label → control gap matches Figma Make (`mb-2` / 8px rhythm). */
+.app-form-field__label {
+  display: block;
+  margin: 0 0 var(--inv-space-2) 0;
+  line-height: 1.45;
+}
+
+.app-form-field__control {
+  display: block;
+  min-width: 0;
+}
+
+.app-form-field__error {
+  display: block;
+  margin: var(--inv-space-3) 0 0;
+}

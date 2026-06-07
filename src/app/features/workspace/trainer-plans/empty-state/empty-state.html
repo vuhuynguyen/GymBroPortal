@@ -1,0 +1,13 @@
+<section class="tp-empty">
+  <div class="tp-empty__icon">
+    <i class="pi pi-calendar-times"></i>
+  </div>
+  <p class="tp-empty__heading">{{ title() }}</p>
+  <p class="tp-empty__text">{{ message() }}</p>
+  @if (showCreateButton()) {
+    <app-button
+      label="Create Plan"
+      icon="pi pi-plus"
+      (clicked)="createClicked.emit()" />
+  }
+</section>

@@ -1,0 +1,135 @@
+<section role="region" aria-label="Workout plans">
+  <app-confirm-split-dialog
+    [open]="deleteTarget() !== null"
+    (openChange)="onDeleteDialogChange($event)"
+    heading="Delete plan?"
+    [message]="deleteDialogMessage()"
+    confirmLabel="Delete"
+    (confirmed)="onDeleteConfirmed()" />
+
+  <app-ui-page-container class="flex flex-col gap-inv-5">
+    <div>
+      <app-page-header
+        title="My Plans"
+        subtitle="Training templates: ordered workouts (Push, Pull, Legs). No fixed calendar—execution stays flexible.">
+        @if (canManagePlans()) {
+          <div class="ui-page-actions flex flex-wrap items-center gap-4">
+            <app-button
+              [label]="showArchived() ? 'Show active' : 'Show archived'"
+              icon="pi pi-inbox"
+              severity="secondary"
+              [outlined]="true"
+              (clicked)="toggleArchivedView()" />
+            <app-button label="Create plan" icon="pi pi-plus" (clicked)="createPlan()" />
+          </div>
+        }
+      </app-page-header>
+    </div>
+
+    <app-data-table
+      [resizableColumns]="true"
+      [columns]="tableColumns"
+      [data]="tableRows()"
+      [loading]="loading()"
+      [lazy]="true"
+      [totalRecords]="totalRecords()"
+      [rows]="pageSize()"
+      [globalFilterDebounceMs]="700"
+      [columnResizeMode]="'fit'"
+      [globalFilterExtraFields]="['description']"
+      globalSearchPlaceholder="Search plans"
+      emptyMessage="No plans yet — create a template, then add workouts in the builder."
+      loadingMessage="Loading plans…"
+      itemLabel="plans"
+      (lazyLoad)="onTableLazyLoad($event)">
+      <ng-template appDataTableCell="name" let-row>
+        <span class="text-inv-body-sm text-inv-grey-700">{{ row['name'] }}</span>
+      </ng-template>
+
+      <ng-template appDataTableCell="createdOnUtc" let-row>
+        <span class="text-inv-body-sm text-inv-grey-700">{{ formatCellDate(row['createdOnUtc']) }}</span>
+      </ng-template>
+
+      <ng-template appDataTableCell="durationWeeks" let-row>
+        <span class="text-inv-body-sm text-inv-grey-700">{{ formatOptionalNumber(row['durationWeeks']) }}</span>
+      </ng-template>
+
+      <ng-template appDataTableCell="workoutsPerWeek" let-row>
+        <span class="text-inv-body-sm text-inv-grey-700">{{ formatOptionalNumber(row['workoutsPerWeek']) }}</span>
+      </ng-template>
+
+      <ng-template appDataTableCell="actions" let-row>
+        <div class="flex flex-nowrap items-center justify-end gap-2">
+          @if (canManagePlans() && !row['isArchived']) {
+            <app-button
+              icon="pi pi-play"
+              size="small"
+              [rounded]="true"
+              [text]="true"
+              severity="secondary"
+              [disabled]="deleteInProgress()"
+              [ariaLabel]="'Train ' + row['name'] + ' myself'"
+              (clicked)="trainThisMyself(row)" />
+          }
+
+          @if (!row['isArchived']) {
+            <app-button
+              icon="pi pi-pencil"
+              size="small"
+              [rounded]="true"
+              [text]="true"
+              severity="secondary"
+              [disabled]="deleteInProgress()"
+              [ariaLabel]="'Edit ' + row['name']"
+              (clicked)="openPlanById(row['id'])" />
+          }
+
+          @if (canManagePlans()) {
+            @if (row['isArchived']) {
+              <app-button
+                icon="pi pi-undo"
+                size="small"
+                [rounded]="true"
+                [text]="true"
+                severity="secondary"
+                [disabled]="deleteInProgress()"
+                [ariaLabel]="'Restore ' + row['name']"
+                (clicked)="setArchived(row, false)" />
+            } @else {
+              <app-button
+                icon="pi pi-inbox"
+                size="small"
+                [rounded]="true"
+                [text]="true"
+                severity="secondary"
+                [disabled]="deleteInProgress()"
+                [ariaLabel]="'Archive ' + row['name']"
+                (clicked)="setArchived(row, true)" />
+            }
+
+            <app-button
+              icon="pi pi-trash"
+              size="small"
+              [rounded]="true"
+              [text]="true"
+              severity="danger"
+              [disabled]="deleteInProgress()"
+              [ariaLabel]="'Delete ' + row['name']"
+              (clicked)="confirmDeleteRow(row)" />
+          }
+        </div>
+      </ng-template>
+    </app-data-table>
+  </app-ui-page-container>
+
+  @if (canManagePlans()) {
+    <app-plan-details-form-dialog
+      [open]="createDialogOpen()"
+      (openChange)="createDialogOpen.set($event)"
+      mode="create"
+      [formSeed]="createDialogSeed()"
+      [initialValues]="createInitial"
+      [primaryBusy]="createSaving()"
+      (saved)="onCreateDialogSaved($event)" />
+  }
+</section>

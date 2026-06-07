@@ -1,0 +1,175 @@
+<div class="epp-overlay" (click)="close()" role="presentation">
+  <aside
+    class="epp-panel"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="epp-title"
+    (click)="$event.stopPropagation()">
+    <header class="epp-header">
+      <div class="min-w-0">
+        <h2 id="epp-title" class="epp-title">Add Exercise</h2>
+        <p class="epp-subtitle">
+          @if (workoutLabel(); as wl) {
+            Search and select an exercise for <span class="font-medium text-inv-grey-800">{{ wl }}</span>, then set the details.
+          } @else {
+            Search and select an exercise, then set the details.
+          }
+        </p>
+      </div>
+      <button class="epp-close" type="button" aria-label="Close" (click)="close()">
+        <i class="pi pi-times" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <div class="epp-body">
+      <div class="epp-search">
+        <p-iconfield iconPosition="left">
+          <p-inputicon>
+            <i class="pi pi-search" aria-hidden="true"></i>
+          </p-inputicon>
+          <input
+            pInputText
+            type="search"
+            autocomplete="off"
+            class="w-full"
+            placeholder="Search exercises…"
+            [formControl]="searchControl" />
+        </p-iconfield>
+      </div>
+
+      <nav class="epp-tabs" role="tablist" aria-label="Filter by muscle group">
+        @for (tab of muscleTabs; track tab) {
+          <button
+            type="button"
+            role="tab"
+            class="epp-tab"
+            [class.epp-tab--active]="activeMuscle() === tab"
+            [attr.aria-selected]="activeMuscle() === tab"
+            (click)="setMuscle(tab)">
+            {{ tab }}
+          </button>
+        }
+      </nav>
+
+      <ul class="epp-list" role="listbox" aria-label="Exercise catalog">
+        @for (ex of filtered(); track ex.id) {
+          <li class="epp-list-item" [class.epp-list-item--selected]="isSelected(ex.id)">
+            <button
+              type="button"
+              class="epp-row"
+              [attr.aria-pressed]="isSelected(ex.id)"
+              (click)="selectExercise(ex.id)">
+              <span class="epp-row__thumb" aria-hidden="true">
+                @if (ex.imageUrl) {
+                  <img [src]="ex.imageUrl" [alt]="''" loading="lazy" />
+                } @else {
+                  <i class="pi pi-bullseye"></i>
+                }
+              </span>
+              <span class="epp-row__body">
+                <span class="epp-row__name">{{ ex.name }}</span>
+                <span class="epp-row__meta">{{ ex.muscleGroup }}</span>
+              </span>
+              <span class="epp-row__cta" aria-hidden="true">
+                <i class="pi" [class.pi-plus]="!isSelected(ex.id)" [class.pi-check]="isSelected(ex.id)"></i>
+              </span>
+            </button>
+          </li>
+        } @empty {
+          <li class="epp-empty">
+            <i class="pi pi-search text-inv-grey-300" aria-hidden="true"></i>
+            <p class="m-0 text-inv-body-sm text-inv-grey-500">No exercises match your filter.</p>
+          </li>
+        }
+      </ul>
+    </div>
+
+    <form class="epp-footer" [formGroup]="detailsForm" (ngSubmit)="submit()" novalidate>
+      <div class="epp-details flex flex-col gap-3">
+        <div class="flex items-baseline justify-between gap-3">
+          <h3 class="epp-details__title m-0">Prescribed sets</h3>
+          @if (selectedExercise(); as se) {
+            <p class="epp-details__hint m-0 truncate">Selected: <span class="font-medium text-inv-grey-800">{{ se.name }}</span></p>
+          } @else {
+            <p class="epp-details__hint m-0">Pick an exercise to configure sets.</p>
+          }
+        </div>
+
+        <div class="flex flex-col gap-1.5" formArrayName="sets">
+          <div class="grid items-center gap-2 px-1 text-inv-body-mini font-medium uppercase tracking-wider text-inv-grey-500"
+               style="grid-template-columns: 24px minmax(80px, 1fr) 60px 76px 60px 70px 28px;"
+               aria-hidden="true">
+            <span>#</span>
+            <span>Type</span>
+            <span class="text-center">Reps</span>
+            <span class="text-center">Weight</span>
+            <span class="text-center inline-flex items-center justify-center gap-1 cursor-help"
+                  pTooltip="Rate of Perceived Exertion — how hard the set felt on a 1–10 scale (10 = max effort, no reps left in the tank)."
+                  tooltipPosition="top">
+              RPE
+              <i class="pi pi-info-circle text-inv-grey-400 text-[10px]" aria-hidden="true"></i>
+            </span>
+            <span class="text-center">Rest</span>
+            <span></span>
+          </div>
+          @for (sg of setsArray.controls; track setTrackKey($index, sg); let si = $index) {
+            <div class="grid items-center gap-2"
+                 style="grid-template-columns: 24px minmax(80px, 1fr) 60px 76px 60px 70px 28px;"
+                 [formGroupName]="si">
+              <span class="text-inv-body-sm font-semibold text-inv-grey-700 tabular-nums">{{ si + 1 }}</span>
+
+              <select formControlName="setType" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-inv-body-sm text-inv-grey-900 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [attr.aria-label]="'Set ' + (si + 1) + ' type'">
+                @for (opt of setTypeOptions; track opt.value) {
+                  <option [value]="opt.value">{{ opt.label }}</option>
+                }
+              </select>
+
+              <input type="number" inputmode="numeric" min="1" max="99" formControlName="targetReps" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [attr.aria-label]="'Set ' + (si + 1) + ' reps'" />
+
+              <input type="number" inputmode="decimal" step="0.5" min="0" placeholder="—" formControlName="targetWeightKg" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 placeholder:text-inv-grey-400 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [attr.aria-label]="'Set ' + (si + 1) + ' weight (kg)'" />
+
+              <input type="number" inputmode="numeric" min="1" max="10" placeholder="—" formControlName="targetRpe" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 placeholder:text-inv-grey-400 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [attr.aria-label]="'Set ' + (si + 1) + ' RPE'" />
+
+              <input type="number" inputmode="numeric" min="0" max="600" formControlName="restSeconds" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [attr.aria-label]="'Set ' + (si + 1) + ' rest'" />
+
+              @if (setsArray.length > 1) {
+                <button type="button"
+                        class="inline-flex h-7 w-7 cursor-pointer items-center justify-center rounded-inv-sm border-0 bg-transparent text-inv-grey-400 transition-colors hover:bg-inv-error-0 hover:text-inv-error-300"
+                        [attr.aria-label]="'Remove set ' + (si + 1)"
+                        (click)="removeSet(si)">
+                  <i class="pi pi-times text-inv-body-mini"></i>
+                </button>
+              } @else {
+                <span></span>
+              }
+            </div>
+          }
+        </div>
+
+        <button type="button"
+                class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-inv-sm border-2 border-dashed border-inv-border-field bg-transparent px-4 py-2 text-inv-body-sm font-medium text-inv-grey-600 transition-colors hover:border-inv-primary-500 hover:bg-inv-primary-0 hover:text-inv-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
+                [disabled]="setsArray.length >= 20"
+                (click)="addSet()">
+          <i class="pi pi-plus" aria-hidden="true"></i>
+          Add Set
+        </button>
+
+        <label class="epp-check">
+          <input type="checkbox" formControlName="addAnother" />
+          <span class="text-inv-body-sm text-inv-grey-700">Add another exercise after this one</span>
+        </label>
+      </div>
+
+      <div class="epp-actions">
+        <app-button label="Cancel" severity="secondary" [outlined]="true" type="button" (clicked)="close()" />
+        <app-button
+          label="Add Exercise"
+          icon="pi pi-plus"
+          severity="primary"
+          type="button"
+          [disabled]="!canAdd()"
+          (clicked)="submit()" />
+      </div>
+    </form>
+  </aside>
+</div>

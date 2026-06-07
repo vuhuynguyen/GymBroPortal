@@ -1,0 +1,22 @@
+<app-ui-page-container class="flex flex-col gap-inv-5">
+
+  <app-page-header
+    title="Assigned Plans"
+    subtitle="Plans your coach assigned to you." />
+
+  @if (loading()) {
+    <section class="tp-loading">Loading plans...</section>
+  } @else if (emptyState(); as state) {
+    <app-trainer-plans-empty-state
+      [title]="state.title"
+      [message]="state.message"
+      [showCreateButton]="state.showCreateButton" />
+  } @else {
+    <section class="tp-grid">
+      @for (plan of plans(); track plan.id + '-' + plan.createdBySelf) {
+        <app-plan-card [plan]="plan" (viewClicked)="viewPlan($event)" />
+      }
+    </section>
+  }
+
+</app-ui-page-container>

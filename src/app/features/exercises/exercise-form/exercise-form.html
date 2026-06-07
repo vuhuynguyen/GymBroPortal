@@ -1,0 +1,428 @@
+<section
+  class="flex min-h-[calc(100dvh-6rem)] min-w-0 flex-col pb-24 md:min-h-[calc(100dvh-6.5rem)] md:pb-[5.5rem]">
+  <app-ui-page-container class="flex w-full min-w-0 flex-1 flex-col gap-6">
+    <div class="grid min-w-0 grid-cols-1 items-start gap-6 lg:grid-cols-3 lg:gap-8">
+      <form
+        class="order-2 flex min-w-0 flex-col gap-6 lg:order-none lg:col-span-2"
+        #exerciseForm
+        id="exercise-edit-form"
+        [formGroup]="form"
+        (ngSubmit)="onSubmit()"
+        novalidate>
+        <app-ui-panel-card
+          cardClass="exercise-editor-panel-pair"
+          header="Basics"
+          subheader="Display name, description, and thumbnail shown to members"
+          sectionId="exercise-edit-basics"
+          collapsible
+          [expanded]="expandedSections().has('basics')"
+          (toggle)="toggleSection('basics')">
+          <div class="flex min-w-0 flex-col gap-4">
+            <app-form-field
+              label="Name"
+              forId="ex-name"
+              [required]="true"
+              [errorMessage]="fieldError('name')">
+              <app-input
+                inputId="ex-name"
+                formControlName="name"
+                placeholder="Enter exercise name"
+                autocomplete="off" />
+            </app-form-field>
+
+            <app-form-field
+              label="Description"
+              forId="ex-desc"
+              [required]="true"
+              [errorMessage]="fieldError('description')">
+              <app-input
+                inputId="ex-desc"
+                [multiline]="true"
+                [rows]="4"
+                formControlName="description"
+                placeholder="Describe the exercise"
+                autocomplete="off" />
+            </app-form-field>
+
+            <app-form-field label="Thumbnail URL" forId="ex-image">
+              <app-input
+                inputId="ex-image"
+                formControlName="imageUrl"
+                placeholder="https://..."
+                autocomplete="off" />
+            </app-form-field>
+          </div>
+        </app-ui-panel-card>
+
+        <app-ui-panel-card
+          header="Classification"
+          subheader="Exercise type, movement pattern, equipment, and difficulty level"
+          sectionId="exercise-edit-classification"
+          collapsible
+          [expanded]="expandedSections().has('classification')"
+          (toggle)="toggleSection('classification')">
+          <app-ui-form-grid>
+            <app-form-field
+              label="Type"
+              forId="ex-type"
+              [required]="true"
+              [errorMessage]="fieldError('type')">
+              <app-select
+                inputId="ex-type"
+                formControlName="type"
+                [options]="exerciseTypes"
+                placeholder="Select type" />
+            </app-form-field>
+
+            <app-form-field
+              label="Movement"
+              forId="ex-movement"
+              [required]="true"
+              [errorMessage]="fieldError('movementType')">
+              <app-select
+                inputId="ex-movement"
+                formControlName="movementType"
+                [options]="movementTypes"
+                placeholder="Select movement" />
+            </app-form-field>
+
+            <app-form-field
+              label="Equipment"
+              forId="ex-equipment"
+              [required]="true"
+              [errorMessage]="fieldError('equipment')">
+              <app-select
+                inputId="ex-equipment"
+                formControlName="equipment"
+                [options]="equipmentList"
+                placeholder="Select equipment" />
+            </app-form-field>
+
+            <app-form-field
+              label="Difficulty"
+              forId="ex-difficulty"
+              [required]="true"
+              [errorMessage]="fieldError('difficulty')">
+              <app-select
+                inputId="ex-difficulty"
+                formControlName="difficulty"
+                [options]="difficulties"
+                placeholder="Select difficulty" />
+            </app-form-field>
+          </app-ui-form-grid>
+        </app-ui-panel-card>
+
+        <app-ui-panel-card
+          header="Target Muscles"
+          subheader="Primary group is required. Add optional secondary groups"
+          sectionId="exercise-edit-target-muscles"
+          collapsible
+          [expanded]="expandedSections().has('target-muscles')"
+          (toggle)="toggleSection('target-muscles')">
+          <div class="flex min-w-0 flex-col gap-4">
+            <app-form-field
+              label="Primary muscle"
+              forId="ex-muscle"
+              [required]="true"
+              [errorMessage]="fieldError('muscleGroup')">
+              <app-select
+                inputId="ex-muscle"
+                formControlName="muscleGroup"
+                [options]="muscleGroups"
+                placeholder="Select muscle group" />
+            </app-form-field>
+
+            <app-chip-removable-list
+              sectionLabel="Secondary muscles"
+              [chips]="secondaryMuscles()"
+              [showEmptyPlaceholder]="false"
+              removeAriaLabel="Remove muscle"
+              (removed)="removeSecondaryMuscle($event)" />
+
+            <app-ui-form-inline>
+              <app-form-field forId="ex-sec-muscle">
+                <app-select
+                  inputId="ex-sec-muscle"
+                  formControlName="secondaryMusclePicker"
+                  [options]="secondaryMusclePickerOptions()"
+                  placeholder="Choose muscle group" />
+              </app-form-field>
+              <app-button
+                class="ui-form-inline-action"
+                type="button"
+                label="Add"
+                icon="pi pi-plus"
+                severity="secondary"
+                [disabled]="!form.getRawValue().secondaryMusclePicker"
+                (clicked)="addSecondaryMuscle()" />
+            </app-ui-form-inline>
+          </div>
+        </app-ui-panel-card>
+
+        <app-ui-panel-card
+          header="Performance"
+          subheader="Optional performance estimates"
+          sectionId="exercise-edit-performance"
+          collapsible
+          [expanded]="expandedSections().has('performance')"
+          (toggle)="toggleSection('performance')">
+          <app-ui-form-grid>
+            <app-form-field label="Est. calories" forId="ex-cal">
+              <app-input
+                inputId="ex-cal"
+                type="number"
+                placeholder="e.g. 250"
+                formControlName="estimatedCaloriesBurn"
+                autocomplete="off" />
+            </app-form-field>
+            <app-form-field label="Avg. duration (sec)" forId="ex-dur">
+              <app-input
+                inputId="ex-dur"
+                type="number"
+                placeholder="e.g. 45"
+                formControlName="averageDurationSeconds"
+                autocomplete="off" />
+            </app-form-field>
+          </app-ui-form-grid>
+        </app-ui-panel-card>
+
+        <app-ui-panel-card
+          header="Instructions"
+          subheader="Ordered steps. Blank rows are ignored when you save."
+          sectionId="exercise-edit-instructions"
+          collapsible
+          [expanded]="expandedSections().has('instructions')"
+          (toggle)="toggleSection('instructions')">
+          <div class="flex min-w-0 flex-col gap-4">
+            <div formArrayName="instructionSteps" class="flex min-w-0 flex-col gap-4">
+              @for (ctrl of instructionStepsArray.controls; track $index; let i = $index) {
+                <app-form-field
+                  [label]="'Step ' + (i + 1)"
+                  [forId]="'ex-inst-' + i"
+                  [errorMessage]="instructionFieldError(i)">
+                  <div class="flex min-w-0 flex-col gap-1.5">
+                    <span class="text-inv-body-mini text-inv-grey-500">
+                      {{ instructionCharCount($any(ctrl)) }}/1000
+                    </span>
+                    <div class="flex min-w-0 items-start gap-2">
+                      <div class="min-w-0 flex-1">
+                        <app-input
+                          [inputId]="'ex-inst-' + i"
+                          [formControl]="$any(ctrl)"
+                          [multiline]="true"
+                          [rows]="2"
+                          [maxLength]="1000"
+                          placeholder="Describe this step..."
+                          autocomplete="off" />
+                      </div>
+                      <button
+                        type="button"
+                        class="shrink-0 cursor-pointer rounded-inv-sm border-0 bg-transparent p-2 text-inv-grey-300 transition-colors hover:bg-red-50 hover:text-red-600"
+                        (click)="removeInstructionStep(i)">
+                        <i class="pi pi-trash text-inv-body-sm"></i>
+                      </button>
+                    </div>
+                  </div>
+                </app-form-field>
+              }
+            </div>
+            <button
+              type="button"
+              class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-inv-sm border-2 border-dashed border-inv-border-field bg-transparent px-4 py-2.5 text-inv-body-sm font-medium text-inv-grey-600 transition-colors hover:border-inv-primary-500 hover:bg-inv-primary-0 hover:text-inv-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
+              [disabled]="instructionStepsArray.length >= maxInstructionSteps"
+              (click)="addInstructionStep()">
+              <i class="pi pi-plus"></i>
+              Add step
+            </button>
+          </div>
+        </app-ui-panel-card>
+
+        <app-ui-panel-card
+          header="Warnings"
+          subheader="Safety, medical, and form notes for members."
+          sectionId="exercise-edit-warnings"
+          collapsible
+          [expanded]="expandedSections().has('warnings')"
+          (toggle)="toggleSection('warnings')">
+          <div class="flex min-w-0 flex-col gap-4">
+            @if (catalogWarnings().length) {
+              <app-chip-removable-list
+                [chips]="catalogWarnings()"
+                color="warning"
+                [showEmptyPlaceholder]="false"
+                removeAriaLabel="Remove warning"
+                (removed)="removeCatalogWarning($event)" />
+            } @else {
+              <p class="text-inv-body-sm italic text-inv-grey-500">No warnings</p>
+            }
+            <app-form-field
+              label="New warning"
+              forId="ex-warn-new"
+              [errorMessage]="fieldError('warningPicker')">
+              @if (warningPickerCharCount()) {
+                <span class="mb-1 block text-inv-body-mini text-inv-grey-500">
+                  {{ warningPickerCharCount() }}/500
+                </span>
+              }
+              <app-input
+                inputId="ex-warn-new"
+                formControlName="warningPicker"
+                [multiline]="true"
+                [rows]="3"
+                [maxLength]="500"
+                placeholder="New warning"
+                autocomplete="off" />
+            </app-form-field>
+            <app-button
+              class="self-end"
+              type="button"
+              label="Add"
+              icon="pi pi-plus"
+              severity="primary"
+              [disabled]="
+                !form.getRawValue()['warningPicker']?.trim() ||
+                catalogWarnings().length >= maxCatalogWarnings
+              "
+              (clicked)="addCatalogWarning()" />
+          </div>
+        </app-ui-panel-card>
+
+        <app-ui-panel-card
+          header="Training media"
+          subheader="Images or videos for trainees to follow. Empty URLs are skipped when you save."
+          sectionId="exercise-edit-training-media"
+          collapsible
+          [expanded]="expandedSections().has('training-media')"
+          (toggle)="toggleSection('training-media')">
+          <div class="flex min-w-0 flex-col gap-4">
+            <div formArrayName="mediaRows" class="flex min-w-0 flex-col gap-4">
+              @for (row of mediaRowsArray.controls; track $index; let i = $index) {
+                <div [formGroupName]="i" class="flex min-w-0 items-center gap-2">
+                  <div class="w-28 shrink-0">
+                    <app-select
+                      [inputId]="'ex-med-type-' + i"
+                      formControlName="type"
+                      [options]="mediaTypeOptions"
+                      placeholder="Type" />
+                  </div>
+                  <div class="min-w-0 flex-1">
+                    <app-form-field [forId]="'ex-med-url-' + i" [errorMessage]="mediaUrlFieldError(i)">
+                      <app-input
+                        [inputId]="'ex-med-url-' + i"
+                        formControlName="url"
+                        placeholder="https://..."
+                        [maxLength]="500"
+                        autocomplete="off" />
+                    </app-form-field>
+                  </div>
+                  <app-button
+                    class="shrink-0"
+                    type="button"
+                    icon="pi pi-trash"
+                    severity="secondary"
+                    [text]="true"
+                    ariaLabel="Remove media"
+                    (clicked)="removeMediaRow(i)" />
+                </div>
+              }
+            </div>
+            <button
+              type="button"
+              class="flex w-full cursor-pointer items-center justify-center gap-2 rounded-inv-sm border-2 border-dashed border-inv-border-field bg-transparent px-4 py-2.5 text-inv-body-sm font-medium text-inv-grey-600 transition-colors hover:border-inv-primary-500 hover:bg-inv-primary-0 hover:text-inv-primary-600 disabled:cursor-not-allowed disabled:opacity-50"
+              [disabled]="mediaRowsArray.length >= maxMediaRows"
+              (click)="addMediaRow()">
+              <i class="pi pi-plus"></i>
+              Add media
+            </button>
+          </div>
+        </app-ui-panel-card>
+
+        <app-ui-panel-card
+          header="Tags"
+          subheader="Short labels for filtering and grouping in the catalog."
+          sectionId="exercise-edit-tags"
+          collapsible
+          [expanded]="expandedSections().has('tags')"
+          (toggle)="toggleSection('tags')">
+          <div class="flex min-w-0 flex-col gap-4">
+            @if (catalogTags().length) {
+              <app-chip-removable-list
+                [chips]="catalogTags()"
+                color="indigo"
+                [showEmptyPlaceholder]="false"
+                removeAriaLabel="Remove tag"
+                (removed)="removeCatalogTag($event)" />
+            } @else {
+              <p class="text-inv-body-sm italic text-inv-grey-500">No tags yet</p>
+            }
+            <app-ui-form-inline>
+              <div class="min-w-0 flex-1" (keydown.enter)="onTagPickerEnter($event)">
+                <app-form-field forId="ex-tag-new" [errorMessage]="tagPickerErrorMessage()">
+                  @if (tagPickerCharCount()) {
+                    <span class="mb-1 block text-inv-body-mini text-inv-grey-500">
+                      {{ tagPickerCharCount() }}/50
+                    </span>
+                  }
+                  <app-input
+                    inputId="ex-tag-new"
+                    formControlName="tagPicker"
+                    [maxLength]="50"
+                    placeholder="New tag"
+                    autocomplete="off" />
+                </app-form-field>
+              </div>
+              <app-button
+                class="ui-form-inline-action"
+                type="button"
+                label="Add"
+                icon="pi pi-plus"
+                severity="primary"
+                [disabled]="
+                  !form.getRawValue()['tagPicker']?.trim() || catalogTags().length >= maxCatalogTags
+                "
+                (clicked)="addCatalogTag()" />
+            </app-ui-form-inline>
+          </div>
+        </app-ui-panel-card>
+      </form>
+
+      <aside
+        class="order-1 min-w-0 lg:order-none lg:col-span-1 lg:self-start"
+        role="complementary"
+        aria-label="Live preview">
+        <app-ui-panel-card
+          cardClass="exercise-editor-panel-pair exercise-editor-live-preview"
+          header="Live Preview"
+          subheader="How members will see it">
+          <app-exercise-preview-card [data]="previewData()" />
+        </app-ui-panel-card>
+      </aside>
+    </div>
+  </app-ui-page-container>
+
+  <app-ui-page-sticky-footer>
+    <div class="flex min-w-0 items-center gap-3">
+      @if (hasUnsavedChanges()) {
+        <span class="h-2 w-2 shrink-0 rounded-full bg-inv-warning-100" aria-hidden="true"></span>
+        <span class="text-inv-body-sm font-medium text-inv-grey-800">Unsaved changes</span>
+      } @else {
+        <span class="text-inv-body-sm text-inv-grey-500">No unsaved changes</span>
+      }
+    </div>
+
+    <div class="flex shrink-0 items-center justify-end gap-3">
+      <app-button
+        label="Cancel"
+        severity="secondary"
+        [outlined]="true"
+        type="button"
+        (clicked)="onCancel()" />
+      <app-button
+        [label]="saveButtonLabel()"
+        icon="pi pi-check"
+        severity="primary"
+        type="button"
+        (clicked)="requestFormSubmit()" />
+    </div>
+  </app-ui-page-sticky-footer>
+</section>

@@ -1,0 +1,77 @@
+:host {
+  display: block;
+}
+
+.ui-filter-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1rem;
+  padding-bottom: 1rem;
+  border-bottom: 1px solid var(--dashboard-card-border);
+}
+
+.ui-filter-bar__main {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.ui-filter-bar__aside {
+  display: flex;
+  flex-shrink: 0;
+  align-items: flex-end;
+  min-width: 0;
+}
+
+:host ::ng-deep .ui-filter-search {
+  flex: 1 1 14rem;
+  min-width: 11rem;
+  max-width: 24rem;
+}
+
+:host ::ng-deep .ui-filter-search .p-iconfield {
+  width: 100%;
+}
+
+:host ::ng-deep .ui-filter-search .p-inputtext {
+  width: 100%;
+}
+
+:host ::ng-deep .ui-filter-fields {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 1rem;
+}
+
+:host ::ng-deep .ui-filter-fields .filter-field-cluster {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex: 0 0 auto;
+  width: 10rem;
+  min-width: 9rem;
+}
+
+:host ::ng-deep .ui-filter-clear {
+  flex-shrink: 0;
+}
+
+:host ::ng-deep .ui-filter-aside .ui-filter-global-search {
+  flex: 1 1 14rem;
+  min-width: 11rem;
+  max-width: 24rem;
+}
+
+:host ::ng-deep .ui-filter-aside .ui-filter-global-search .p-iconfield {
+  width: 100%;
+}
+
+:host ::ng-deep .ui-filter-aside .ui-filter-global-search .p-inputtext {
+  width: 100%;
+}

@@ -1,0 +1,15 @@
+.tp-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: var(--inv-space-4);
+}
+
+.tp-loading {
+  margin: 0;
+  padding: var(--inv-space-6);
+  border-radius: var(--inv-radius-lg);
+  background: var(--inv-surface-base);
+  border: 1px solid var(--inv-border-card);
+  color: var(--inv-grey-500);
+  font-size: var(--inv-text-body-sm);
+}

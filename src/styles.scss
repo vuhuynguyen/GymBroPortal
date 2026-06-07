@@ -1,0 +1,486 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+.w-full {
+  width: 100%;
+}
+
+:root {
+  /* Inventory Management UI Kit — style guide (Figma file jXtK2uw969pGDzhklidzeR, node 1:3) */
+  --inv-font-sans: 'Inter Tight', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+
+  --inv-space-1: 0.25rem;
+  --inv-space-2: 0.5rem;
+  --inv-space-3: 0.75rem;
+  --inv-space-4: 1rem;
+  --inv-space-5: 1.5rem;
+  --inv-space-6: 2rem;
+  --inv-space-7: 2.5rem;
+  --inv-space-8: 3rem;
+  --inv-space-10: 4rem;
+  --inv-space-12: 5rem;
+
+  /* Layout: one max-width + shell width for fixed elements (Figma page / app shell). */
+  --inv-page-max-width: 80rem;
+  --inv-app-sidebar-width: 15rem;
+
+  --inv-radius-sm: 8px;
+  --inv-radius-md: 12px;
+  --inv-radius-lg: 16px;
+
+  --inv-shadow-card: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --inv-shadow-md:   0 4px 6px -1px rgba(0,0,0,0.07), 0 2px 4px -2px rgba(0,0,0,0.04);
+  --inv-shadow-lg:   0 10px 15px -3px rgba(0,0,0,0.08), 0 4px 6px -4px rgba(0,0,0,0.03);
+
+  --inv-text-h1: 3rem;
+  --inv-text-h2: 2.5rem;
+  --inv-text-h3: 2rem;
+  --inv-text-h4: 1.5rem;
+  --inv-text-h5: 1.25rem;
+  --inv-text-h6: 1rem;
+  --inv-text-body-lg: 1.125rem;
+  --inv-text-body-md: 1rem;
+  --inv-text-body-sm: 0.875rem;
+  --inv-text-body-mini: 0.75rem;
+
+  /* Primary — blue only (no purple). Align with Figma tokens when MCP provides values. */
+  --inv-primary-0: #eff6ff;
+  --inv-primary-25: #dbeafe;
+  --inv-primary-50: #bfdbfe;
+  --inv-primary-100: #93c5fd;
+  --inv-primary-200: #60a5fa;
+  --inv-primary-300: #1e3a8a;
+  --inv-primary-400: #38bdf8;
+  --inv-primary-500: #3b82f6;
+  --inv-primary-600: #2563eb;
+  --inv-primary-700: #1d4ed8;
+  --inv-primary-800: #1e40af;
+  --inv-primary-900: #172554;
+
+  --inv-surface-base: #ffffff;
+
+  /* Secondary / accent blues (supporting; not neutral greys) */
+  --inv-secondary-0: #eff6ff;
+  --inv-secondary-25: #e0f2fe;
+  --inv-secondary-50: #bae6fd;
+  --inv-secondary-100: #7dd3fc;
+  --inv-secondary-200: #38bdf8;
+  --inv-secondary-300: #0284c7;
+
+  --inv-grey-0: #f7f8f9;
+  --inv-grey-25: #eceff2;
+  --inv-grey-50: #d0d5dd;
+  --inv-grey-100: #c8ccd4;
+  --inv-grey-200: #b5bac5;
+  --inv-grey-300: #98a1b0;
+  --inv-grey-400: #858c9d;
+  --inv-grey-500: #667085;
+  --inv-grey-600: #475467;
+  --inv-grey-700: #344054;
+  --inv-grey-800: #1a2230;
+  --inv-grey-900: #000000;
+
+  --inv-sky-0: #e0f5ff;
+  --inv-sky-25: #b8e8fc;
+  --inv-sky-50: #7ed4f2;
+  --inv-sky-100: #3db8e0;
+  --inv-sky-200: #1a8fb8;
+  --inv-sky-300: #0084b3;
+
+  --inv-success-0: #e6f9f4;
+  --inv-success-25: #c5efe3;
+  --inv-success-50: #7fd9c1;
+  --inv-success-100: #3fbf9a;
+  --inv-success-200: #259e7c;
+  --inv-success-300: #178265;
+
+  --inv-warning-0: #fff9e6;
+  --inv-warning-25: #ffeec2;
+  --inv-warning-50: #fbd582;
+  --inv-warning-100: #ffb040;
+  --inv-warning-200: #996021;
+  --inv-warning-300: #5d3e1c;
+
+  --inv-error-0: #ffe6e6;
+  --inv-error-25: #ffc8c8;
+  --inv-error-50: #f28e8e;
+  --inv-error-100: #e02424;
+  --inv-error-200: #a32020;
+  --inv-error-300: #802626;
+
+  /*
+   * Figma Edit Exercise — `docs/_figma-edit-exercise/Edit Exercise Page Design/src/app/App.tsx`
+   * Section cards / preview / shell rules: `border-gray-200` (#e5e7eb).
+   * Inputs, selects, dashed actions: `border-gray-300` (#d1d5db).
+   */
+  --inv-border-card: #e5e7eb;
+  --inv-border-field: #d1d5db;
+
+  /* Catalog chips / tags: subtle corners (not pills) — live preview + list + removable chips. */
+  --inv-catalog-chip-radius: 4px;
+
+  --dashboard-page-bg: var(--inv-grey-0);
+  --dashboard-card-border: var(--inv-border-card);
+  --dashboard-table-header: var(--inv-grey-500);
+}
+
+body {
+  font-family: var(--inv-font-sans);
+  font-size: var(--inv-text-body-md);
+  color: var(--inv-grey-900);
+}
+
+.p-inputtext,
+.p-inputtextarea,
+.p-select {
+  border-radius: var(--inv-radius-sm);
+}
+
+/* Figma: form controls use gray-300 (stronger than card chrome gray-200). */
+.p-inputtext:enabled,
+.p-inputtextarea:enabled,
+.p-select:not(.p-disabled) {
+  border-color: var(--inv-border-field);
+}
+
+.p-inputtextarea {
+  resize: none;
+}
+
+.header-search .p-inputtext {
+  width: 100%;
+  border-radius: var(--inv-radius-md);
+  padding-left: 2.25rem;
+}
+
+.p-datatable.dashboard-data-table {
+  width: 100%;
+
+  .p-datatable-table {
+    width: 100%;
+    table-layout: auto;
+  }
+
+  .p-datatable-wrapper {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .p-datatable-thead > tr > th,
+  .p-datatable-tbody > tr > td {
+    min-width: 0;
+    overflow-wrap: break-word;
+  }
+
+  .p-datatable-thead > tr > th {
+    font-size: var(--inv-text-body-sm);
+    font-weight: 600;
+    color: var(--dashboard-table-header);
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--dashboard-card-border);
+    padding: var(--inv-space-3) var(--inv-space-4);
+  }
+
+  .p-datatable-tbody > tr > td {
+    border: none;
+    border-bottom: 1px solid var(--dashboard-card-border);
+    padding: var(--inv-space-3) var(--inv-space-4);
+    font-size: var(--inv-text-body-sm);
+    vertical-align: middle;
+  }
+
+  .p-datatable-tbody > tr:hover > td {
+    background: color-mix(in srgb, var(--inv-primary-0) 55%, transparent);
+  }
+
+  .p-datatable-tbody > tr:last-child > td {
+    border-bottom: none;
+  }
+
+  .p-datatable-thead > tr > th:first-child,
+  .p-datatable-tbody > tr > td:first-child {
+    padding-left: 1.5rem;
+  }
+
+  .p-datatable-thead > tr > th:last-child,
+  .p-datatable-tbody > tr > td:last-child {
+    padding-right: 1.5rem;
+  }
+
+  /* Match `inv-catalog-chip` (live preview + removable chips); tame Prime pill radius. */
+  p-tag,
+  p-tag .p-tag,
+  .p-tag {
+    border-radius: var(--inv-catalog-chip-radius) !important;
+    padding-block: var(--inv-space-1) !important;
+    padding-inline: var(--inv-space-2) !important;
+    font-size: var(--inv-text-body-mini) !important;
+    font-weight: 500 !important;
+    line-height: 1.25 !important;
+  }
+}
+
+/*
+ * Catalog chips — same metrics as `.p-datatable.dashboard-data-table .p-tag`
+ * (`app-ui-data-table`, `app-exercise-preview-card`, `app-chip-removable-list`).
+ */
+.inv-catalog-chip {
+  border-radius: var(--inv-catalog-chip-radius);
+  padding: var(--inv-space-1) var(--inv-space-2);
+  font-size: var(--inv-text-body-mini);
+  font-weight: 500;
+  line-height: 1.25;
+}
+
+.dashboard-table-card {
+  background: var(--inv-surface-base);
+  border: 1px solid var(--dashboard-card-border);
+  border-radius: var(--inv-radius-lg);
+  overflow: hidden;
+  box-shadow: var(--inv-shadow-card);
+}
+
+/* app-ui-panel-card: PrimeNG p-card can inherit a flat surface — match table/dashboard card chrome */
+app-ui-panel-card .p-card.ui-panel-card {
+  width: 100%;
+  min-width: 0;
+  background: var(--inv-surface-base);
+  /* Figma Make cards: `rounded-xl` (12px), not 16px. */
+  border-radius: var(--inv-radius-md);
+  border: 1px solid var(--dashboard-card-border);
+  box-shadow: var(--inv-shadow-card);
+  overflow: hidden;
+}
+
+/* One padding layer: Prime card body defaults stack with feature padding — flatten for dashboard cards */
+app-ui-panel-card .p-card.ui-panel-card .p-card-body {
+  padding: 0;
+  gap: 0;
+}
+
+/* Figma Make: card shell `p-6` (24px) + section title `text-lg` */
+app-ui-panel-card .p-card.ui-panel-card .p-card-title {
+  padding: var(--inv-space-5) var(--inv-space-5) 0;
+  margin: 0;
+  font-size: var(--inv-text-body-lg);
+  font-weight: 600;
+  color: var(--inv-grey-900);
+  line-height: 1.35;
+}
+
+app-ui-panel-card .p-card.ui-panel-card .p-card-subtitle {
+  padding: var(--inv-space-1) var(--inv-space-5) var(--inv-space-4);
+  margin: 0;
+  font-size: var(--inv-text-body-sm);
+  font-weight: 400;
+  color: var(--inv-grey-500);
+  line-height: 1.45;
+}
+
+app-ui-panel-card .p-card.ui-panel-card .p-card-content {
+  padding: 0 var(--inv-space-5) var(--inv-space-5);
+}
+
+@media (max-width: 639px) {
+  app-ui-panel-card .p-card.ui-panel-card .p-card-title {
+    padding: var(--inv-space-4) var(--inv-space-4) 0;
+  }
+
+  app-ui-panel-card .p-card.ui-panel-card .p-card-subtitle {
+    padding: var(--inv-space-1) var(--inv-space-4) var(--inv-space-3);
+  }
+
+  app-ui-panel-card .p-card.ui-panel-card .p-card-content {
+    padding: 0 var(--inv-space-4) var(--inv-space-4);
+  }
+}
+
+/*
+ * Exercise editor — Live Preview (`docs/design-system.md` “Preview card”):
+ * header strip with bottom rule; body uses export `p-4` around the inner preview frame only.
+ */
+app-ui-panel-card .p-card.ui-panel-card.exercise-editor-live-preview .p-card-title {
+  padding: var(--inv-space-4) var(--inv-space-4) 0;
+}
+
+app-ui-panel-card .p-card.ui-panel-card.exercise-editor-live-preview .p-card-subtitle {
+  padding: var(--inv-space-1) var(--inv-space-4) var(--inv-space-3);
+  border-bottom: 1px solid var(--dashboard-card-border);
+}
+
+app-ui-panel-card .p-card.ui-panel-card.exercise-editor-live-preview .p-card-content {
+  padding: var(--inv-space-4);
+}
+
+@media (max-width: 639px) {
+  app-ui-panel-card .p-card.ui-panel-card.exercise-editor-live-preview .p-card-title {
+    padding: var(--inv-space-4) var(--inv-space-4) 0;
+  }
+
+  app-ui-panel-card .p-card.ui-panel-card.exercise-editor-live-preview .p-card-subtitle {
+    padding: var(--inv-space-1) var(--inv-space-4) var(--inv-space-3);
+  }
+
+  app-ui-panel-card .p-card.ui-panel-card.exercise-editor-live-preview .p-card-content {
+    padding: var(--inv-space-4);
+  }
+}
+
+.dashboard-table-card .p-paginator,
+.ui-data-table-card .p-paginator {
+  padding: 1rem 1.5rem 0 1.5rem;
+  border: none;
+  border-top: 1px solid var(--dashboard-card-border);
+  background: var(--inv-surface-base);
+}
+
+.dashboard-table-card .p-paginator .p-paginator-page,
+.ui-data-table-card .p-paginator .p-paginator-page {
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+
+.dashboard-table-card .p-paginator .p-paginator-page:not(.p-highlight):hover,
+.ui-data-table-card .p-paginator .p-paginator-page:not(.p-highlight):hover {
+  background: color-mix(in srgb, var(--inv-primary-500) 12%, transparent);
+}
+
+.dashboard-table-card .p-paginator .p-paginator-page.p-highlight,
+.ui-data-table-card .p-paginator .p-paginator-page.p-highlight {
+  background: var(--inv-primary-500);
+  color: var(--inv-surface-base);
+  border-radius: 999px;
+  min-width: 2.25rem;
+  height: 2.25rem;
+}
+
+.p-card.form-card {
+  max-width: 800px;
+  border-radius: var(--inv-radius-lg);
+  box-shadow: var(--inv-shadow-card);
+  border: 1px solid var(--dashboard-card-border);
+}
+
+.p-card.form-card .p-card-body {
+  padding: var(--inv-space-5);
+}
+
+.p-card.form-card .form-fields {
+  display: flex;
+  flex-direction: column;
+  gap: var(--inv-space-4);
+}
+
+.p-card.form-card .form-field.full-width {
+  width: 100%;
+}
+
+.p-card.form-card .selects-row {
+  display: flex;
+  gap: var(--inv-space-4);
+  flex-wrap: wrap;
+}
+
+.p-card.form-card .selects-row .form-field {
+  flex: 1;
+  min-width: 160px;
+}
+
+.p-card.form-card .form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--inv-space-4);
+  margin-top: var(--inv-space-6);
+  padding-top: var(--inv-space-4);
+  border-top: 1px solid var(--dashboard-card-border);
+}
+
+/* CDK overlay: shared `app-*-dialog` portals (see `shared/ui/dialog/attach-centered-dialog.ts`). */
+.cdk-overlay-backdrop.ui-inv-dialog-backdrop {
+  background: rgba(24, 24, 27, 0.45);
+  -webkit-backdrop-filter: blur(4px);
+  backdrop-filter: blur(4px);
+}
+
+.cdk-overlay-container .ui-inv-dialog-pane {
+  display: flex;
+  max-width: 100vw;
+  max-height: 100dvh;
+  padding: 1rem;
+  box-sizing: border-box;
+  align-items: center;
+  justify-content: center;
+}
+
+/* PrimeNG tooltip — light surface with dark text, soft shadow. */
+.p-tooltip .p-tooltip-text {
+  background: var(--inv-surface-base);
+  color: var(--inv-grey-700);
+  font-size: var(--inv-text-body-mini);
+  line-height: 1.45;
+  padding: 0.5rem 0.625rem;
+  border-radius: var(--inv-radius-sm);
+  border: 1px solid var(--inv-border-card);
+  box-shadow: 0 6px 20px rgba(15, 23, 42, 0.10);
+  max-width: 18rem;
+  font-weight: 600;
+}
+
+.p-tooltip.p-tooltip-top .p-tooltip-arrow {
+  border-top-color: var(--inv-surface-base);
+}
+.p-tooltip.p-tooltip-bottom .p-tooltip-arrow {
+  border-bottom-color: var(--inv-surface-base);
+}
+.p-tooltip.p-tooltip-left .p-tooltip-arrow {
+  border-left-color: var(--inv-surface-base);
+}
+.p-tooltip.p-tooltip-right .p-tooltip-arrow {
+  border-right-color: var(--inv-surface-base);
+}
+
+
+/* Workout-log hero CTAs: white-on-blue Resume + transparent Pause on the gradient hero card. */
+.p-button.hero-cta-resume {
+  background: #fff;
+  border-color: #fff;
+  color: var(--inv-primary-500);
+  font-weight: 600;
+}
+.p-button.hero-cta-resume:not(:disabled):hover {
+  background: var(--inv-primary-0);
+  border-color: var(--inv-primary-0);
+  color: var(--inv-primary-700);
+}
+
+.p-button.hero-cta-pause,
+.p-button.hero-cta-pause.p-button-contrast {
+  background: rgba(255, 255, 255, 0.14) !important;
+  border-color: rgba(255, 255, 255, 0.32) !important;
+  color: #fff !important;
+  font-weight: 500;
+  backdrop-filter: blur(4px);
+}
+.p-button.hero-cta-pause:not(:disabled):hover,
+.p-button.hero-cta-pause.p-button-contrast:not(:disabled):hover {
+  background: rgba(255, 255, 255, 0.24) !important;
+  border-color: rgba(255, 255, 255, 0.5) !important;
+  color: #fff !important;
+}
+.p-button.hero-cta-pause .p-button-icon,
+.p-button.hero-cta-pause .p-button-label {
+  color: #fff !important;
+}

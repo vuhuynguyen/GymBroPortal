@@ -1,0 +1,151 @@
+<div class="reg-page">
+  <div class="reg-container">
+
+    <!-- Logo & Header -->
+    <div class="reg-header">
+      <div class="reg-logo" aria-hidden="true">GB</div>
+      <h1 class="reg-title">Create your account</h1>
+      <p class="reg-subtitle">Join GymBro and start your fitness journey</p>
+    </div>
+
+    <!-- Card -->
+    <div class="reg-card">
+      <form class="reg-form" (ngSubmit)="submit()" novalidate>
+
+        <!-- Error banner -->
+        @if (error()) {
+          <div class="reg-error" role="alert">
+            <i class="pi pi-exclamation-circle reg-error-icon" aria-hidden="true"></i>
+            <p class="reg-error-msg">{{ error() }}</p>
+          </div>
+        }
+
+        <!-- Full Name -->
+        <div class="reg-field">
+          <label class="reg-label" for="reg-name">Full Name</label>
+          <div class="reg-input-wrap">
+            <i class="pi pi-user reg-input-icon" aria-hidden="true"></i>
+            <input
+              id="reg-name"
+              class="reg-input"
+              type="text"
+              autocomplete="name"
+              placeholder="John Doe"
+              [value]="name()"
+              (input)="name.set($any($event.target).value)"
+              [disabled]="loading()" />
+          </div>
+        </div>
+
+        <!-- Email -->
+        <div class="reg-field">
+          <label class="reg-label" for="reg-email">Email Address</label>
+          <div class="reg-input-wrap">
+            <i class="pi pi-envelope reg-input-icon" aria-hidden="true"></i>
+            <input
+              id="reg-email"
+              class="reg-input"
+              type="email"
+              autocomplete="email"
+              placeholder="you@example.com"
+              [value]="email()"
+              (input)="email.set($any($event.target).value)"
+              [disabled]="loading()" />
+          </div>
+        </div>
+
+        <!-- Password -->
+        <div class="reg-field">
+          <label class="reg-label" for="reg-password">Password</label>
+          <div class="reg-input-wrap">
+            <i class="pi pi-lock reg-input-icon" aria-hidden="true"></i>
+            <input
+              id="reg-password"
+              class="reg-input reg-input--has-eye"
+              [type]="showPassword() ? 'text' : 'password'"
+              autocomplete="new-password"
+              placeholder="••••••••"
+              [value]="password()"
+              (input)="password.set($any($event.target).value)"
+              [disabled]="loading()" />
+            <button
+              type="button"
+              class="reg-eye-btn"
+              (click)="showPassword.set(!showPassword())"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+              <i [class]="showPassword() ? 'pi pi-eye-slash' : 'pi pi-eye'" aria-hidden="true"></i>
+            </button>
+          </div>
+          <ul class="reg-hint-list">
+            <li [class.reg-hint-met]="hasMinLen()">
+              <span class="reg-hint-dot"><i class="pi pi-check"></i></span>
+              At least 8 characters
+            </li>
+            <li [class.reg-hint-met]="hasMixedCase()">
+              <span class="reg-hint-dot"><i class="pi pi-check"></i></span>
+              Upper &amp; lowercase letters
+            </li>
+            <li [class.reg-hint-met]="hasNumber()">
+              <span class="reg-hint-dot"><i class="pi pi-check"></i></span>
+              At least one number
+            </li>
+            <li [class.reg-hint-met]="hasSpecial()">
+              <span class="reg-hint-dot"><i class="pi pi-check"></i></span>
+              At least one special character (!&#64;#$%…)
+            </li>
+          </ul>
+        </div>
+
+        <!-- Confirm Password -->
+        <div class="reg-field">
+          <label class="reg-label" for="reg-confirm">Confirm Password</label>
+          <div class="reg-input-wrap">
+            <i class="pi pi-lock reg-input-icon" aria-hidden="true"></i>
+            <input
+              id="reg-confirm"
+              class="reg-input reg-input--has-eye"
+              [type]="showConfirmPassword() ? 'text' : 'password'"
+              autocomplete="new-password"
+              placeholder="••••••••"
+              [value]="confirmPassword()"
+              (input)="confirmPassword.set($any($event.target).value)"
+              [disabled]="loading()" />
+            <button
+              type="button"
+              class="reg-eye-btn"
+              (click)="showConfirmPassword.set(!showConfirmPassword())"
+              [attr.aria-label]="showConfirmPassword() ? 'Hide password' : 'Show password'">
+              <i [class]="showConfirmPassword() ? 'pi pi-eye-slash' : 'pi pi-eye'" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <!-- Submit -->
+        <button type="submit" class="reg-btn" [disabled]="loading()">
+          @if (loading()) {
+            <span class="reg-spinner" aria-hidden="true"></span>
+            Creating account...
+          } @else {
+            Create Account
+            <i class="pi pi-arrow-right" aria-hidden="true"></i>
+          }
+        </button>
+
+      </form>
+
+      <p class="reg-signin">
+        Already have an account?&nbsp;
+        <a class="reg-link" routerLink="/login">Sign in</a>
+      </p>
+    </div>
+
+    <!-- Footer -->
+    <p class="reg-footer">
+      By continuing, you agree to our&nbsp;
+      <a class="reg-link" href="#">Terms of Service</a>
+      &nbsp;and&nbsp;
+      <a class="reg-link" href="#">Privacy Policy</a>
+    </p>
+
+  </div>
+</div>

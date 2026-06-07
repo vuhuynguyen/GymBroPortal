@@ -1,0 +1,28 @@
+<article class="tp-card">
+  <div class="tp-card__main">
+    <h3 class="tp-card__title">{{ plan().name }}</h3>
+    <p class="tp-card__sub">
+      @if (plan().createdBySelf) {
+        Created by you
+      } @else {
+        Coach: {{ plan().coachName || 'Your coach' }}
+      }
+    </p>
+    @if (plan().daysPerWeek) {
+      <p class="tp-card__meta">{{ plan().daysPerWeek }} days/week</p>
+    }
+  </div>
+
+  <div class="tp-card__actions">
+    @if (!plan().createdBySelf && plan().visibilityMode) {
+      <span class="inv-catalog-chip tp-card__badge">{{ plan().visibilityMode }}</span>
+    }
+    <app-button
+      [label]="buttonLabel()"
+      size="small"
+      severity="secondary"
+      [outlined]="true"
+      [disabled]="!canView()"
+      (clicked)="viewClicked.emit(plan())" />
+  </div>
+</article>

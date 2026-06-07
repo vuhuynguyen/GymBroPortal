@@ -1,0 +1,208 @@
+<div class="ui-data-table-card">
+  @if (cardTitle(); as t) {
+    <header class="ui-data-table-card__header">
+      <div class="ui-data-table-card__heading-row">
+        <div class="ui-data-table-card__titles">
+          <h2 class="ui-data-table-card__title">{{ t }}</h2>
+          @if (cardSubheader(); as s) {
+            <p class="ui-data-table-card__sub">{{ s }}</p>
+          }
+        </div>
+        @if (showFilteredCount()) {
+          <span class="ui-data-table-card__count">{{ displayRowCount() }} {{ itemLabel() }}</span>
+        }
+      </div>
+    </header>
+  }
+  <div class="ui-data-table-card__body">
+    @if (showFilterToolbar()) {
+      <div class="ui-data-table-toolbar">
+        <div class="ui-data-table-toolbar__left">
+          @if (hasColumnFilters() || globalFilterFields().length > 0) {
+            <app-button
+              type="button"
+              label="Clear filters"
+              icon="pi pi-filter-slash"
+              severity="secondary"
+              [outlined]="true"
+              (clicked)="clearFilters()" />
+          }
+          @if (showFilteredCount() && !cardTitle()) {
+            <span class="whitespace-nowrap text-inv-body-sm font-medium text-inv-grey-500">
+              {{ displayRowCount() }} {{ itemLabel() }}
+            </span>
+          }
+        </div>
+        @if (globalFilterFields().length > 0) {
+          <div class="ui-data-table-toolbar__search">
+            <p-iconfield iconPosition="left">
+              <p-inputicon>
+                <i class="pi pi-search" aria-hidden="true"></i>
+              </p-inputicon>
+              <input
+                pInputText
+                type="search"
+                autocomplete="off"
+                class="w-full"
+                [value]="searchValue()"
+                [placeholder]="globalSearchPlaceholder()"
+                (input)="onGlobalFilterInput($event)" />
+            </p-iconfield>
+          </div>
+        }
+      </div>
+    }
+
+    <div class="ui-data-table-card__content min-w-0 w-full">
+      @let colCount = columns().length > 0 ? columns().length : 1;
+      <p-table
+        #dt
+        styleClass="dashboard-data-table w-full"
+        [value]="data()"
+        [globalFilterFields]="globalFilterFields()"
+        [loading]="loading()"
+        [showLoader]="false"
+        [paginator]="paginator()"
+        [lazy]="lazy()"
+        [totalRecords]="totalRecords()"
+        [rows]="rows()"
+        [rowsPerPageOptions]="rowsPerPageOptions()"
+        [showFirstLastIcon]="true"
+        [showCurrentPageReport]="true"
+        [currentPageReportTemplate]="pageReportTemplate()"
+        [scrollable]="!!scrollHeight()"
+        [scrollHeight]="scrollHeight()"
+        [resizableColumns]="resizableColumns()"
+        [columnResizeMode]="columnResizeMode()"
+        paginatorDropdownAppendTo="body"
+        (onLazyLoad)="onTableLazyLoad($event)"
+        (onFilter)="onTableFilter($event)">
+        <ng-template pTemplate="header">
+          <tr>
+            @for (col of columns(); track col.field; let isFirst = $first) {
+              <th
+                scope="col"
+                pResizableColumn
+                [pResizableColumnDisabled]="!resizableColumns() || col.field === 'actions'"
+                class="ui-data-table__col text-left"
+                [class.ui-data-table__col--primary]="isFirst"
+                [class.ui-data-table__col--compact]="!isFirst"
+                [class.ui-data-table__col--actions]="col.field === 'actions'"
+                [class.text-right]="col.field === 'actions'"
+                [style.width]="col.maxWidth ?? null"
+                [style.max-width]="col.maxWidth ?? null">
+                @if (col.filter) {
+                  <div class="flex min-w-0 items-center gap-2">
+                    @if (col.header.trim().length > 0) {
+                      <span class="min-w-0">{{ col.header }}</span>
+                    }
+                    <span class="shrink-0">
+                      @if (col.filterType === 'select') {
+                        <p-columnFilter
+                          [field]="col.field"
+                          type="text"
+                          [matchMode]="filterMatchMode(col, 'select')"
+                          display="menu"
+                          [showMatchModes]="false"
+                          [showOperator]="false"
+                          [showAddButton]="false"
+                          [showApplyButton]="false"
+                          placeholder="Any">
+                          <ng-template pTemplate="filter" let-value let-filter="filterCallback">
+                            <p-select
+                              [ngModel]="value"
+                              [ngModelOptions]="{ standalone: true }"
+                              (ngModelChange)="filter($event)"
+                              [options]="selectFilterOptions(col)"
+                              optionLabel="label"
+                              optionValue="value"
+                              placeholder="Any"
+                              [showClear]="true"
+                              appendTo="body"
+                              styleClass="w-full" />
+                          </ng-template>
+                        </p-columnFilter>
+                      } @else {
+                        <p-columnFilter
+                          [field]="col.field"
+                          type="text"
+                          [matchMode]="filterMatchMode(col, 'text')"
+                          display="menu"
+                          [showMatchModes]="false"
+                          [showOperator]="false"
+                          [showAddButton]="false"
+                          [showApplyButton]="false"
+                          placeholder="Filter">
+                          <ng-template pTemplate="filter" let-value let-filter="filterCallback">
+                            <app-input
+                              class="w-full"
+                              [ngModel]="value"
+                              [ngModelOptions]="{ standalone: true }"
+                              (ngModelChange)="filter($event)" />
+                          </ng-template>
+                        </p-columnFilter>
+                      }
+                    </span>
+                  </div>
+                } @else {
+                  {{ col.header }}
+                }
+              </th>
+            }
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="loadingbody">
+          <tr>
+            <td [attr.colspan]="colCount">
+              <div class="flex flex-col items-center justify-center gap-4 py-12">
+                <p-progressSpinner strokeWidth="3" [ariaLabel]="loadingMessage()" />
+                <span class="text-inv-body-sm text-inv-grey-500">{{ loadingMessage() }}</span>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="body" let-row>
+          <tr>
+            @for (col of columns(); track col.field; let isFirst = $first) {
+              <td
+                class="ui-data-table__cell align-middle"
+                [class.ui-data-table__cell--primary]="isFirst"
+                [class.ui-data-table__cell--compact]="!isFirst"
+                [class.ui-data-table__cell--actions]="col.field === 'actions'"
+                [class.text-right]="col.field === 'actions'"
+                [style.width]="col.maxWidth ?? null"
+                [style.max-width]="col.maxWidth ?? null"
+                [style.white-space]="col.maxWidth ? 'normal' : null">
+                @if (templateForField(col.field); as tpl) {
+                  <ng-container *ngTemplateOutlet="tpl; context: cellContext(row, col)" />
+                } @else if (col.type === 'tag') {
+                  <p-tag
+                    [value]="formatText(row[col.field])"
+                    [severity]="resolveTagSeverity(col, row)"
+                    [rounded]="false"
+                    styleClass="inv-catalog-chip" />
+                } @else if (col.type === 'custom') {
+                } @else {
+                  <span class="text-inv-body-sm text-inv-grey-700">{{ formatText(row[col.field]) }}</span>
+                }
+              </td>
+            }
+          </tr>
+        </ng-template>
+
+        <ng-template pTemplate="emptymessage">
+          <tr>
+            <td [attr.colspan]="colCount">
+              <div class="flex flex-col items-center gap-inv-2 py-inv-6 text-center text-inv-grey-500">
+                <i class="pi pi-inbox text-4xl" aria-hidden="true"></i>
+                <p class="m-0 text-inv-body-md">{{ emptyMessage() }}</p>
+              </div>
+            </td>
+          </tr>
+        </ng-template>
+      </p-table>
+    </div>
+  </div>
+</div>

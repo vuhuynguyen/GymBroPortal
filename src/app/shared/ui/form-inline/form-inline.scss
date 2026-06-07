@@ -1,0 +1,8 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+:host ::ng-deep .ui-form-inline-action.p-button:disabled {
+  opacity: 0.82;
+}

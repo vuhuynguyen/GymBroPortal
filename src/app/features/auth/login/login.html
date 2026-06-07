@@ -1,0 +1,90 @@
+<div class="login-page">
+  <div class="login-container">
+
+    <div class="login-header">
+      <div class="login-logo" aria-hidden="true">GB</div>
+      <h1 class="login-title">Welcome to GymBro</h1>
+      <p class="login-subtitle">Sign in to your account</p>
+    </div>
+
+    <div class="login-card">
+
+      @if (error()) {
+        <div class="login-error" role="alert">
+          <i class="pi pi-exclamation-circle login-error-icon" aria-hidden="true"></i>
+          <p class="login-error-msg">{{ error() }}</p>
+        </div>
+      }
+
+      <form class="login-form" (ngSubmit)="submitEmail()" novalidate>
+
+        <div class="login-field">
+          <label class="login-label" for="login-email">Email Address</label>
+          <div class="login-input-wrap">
+            <i class="pi pi-envelope login-input-icon" aria-hidden="true"></i>
+            <input
+              id="login-email"
+              class="login-input"
+              type="email"
+              autocomplete="email"
+              placeholder="you@example.com"
+              [value]="email()"
+              (input)="email.set($any($event.target).value)"
+              [disabled]="loading()" />
+          </div>
+        </div>
+
+        <div class="login-field">
+          <div class="login-field-header">
+            <label class="login-label" for="login-password">Password</label>
+            <a class="login-link login-link--sm" routerLink="/forgot-password">Forgot password?</a>
+          </div>
+          <div class="login-input-wrap">
+            <i class="pi pi-lock login-input-icon" aria-hidden="true"></i>
+            <input
+              id="login-password"
+              class="login-input login-input--has-eye"
+              [type]="showPassword() ? 'text' : 'password'"
+              autocomplete="current-password"
+              placeholder="••••••••"
+              [value]="password()"
+              (input)="password.set($any($event.target).value)"
+              [disabled]="loading()" />
+            <button
+              type="button"
+              class="login-eye-btn"
+              (click)="showPassword.set(!showPassword())"
+              [attr.aria-label]="showPassword() ? 'Hide password' : 'Show password'">
+              <i [class]="showPassword() ? 'pi pi-eye-slash' : 'pi pi-eye'" aria-hidden="true"></i>
+            </button>
+          </div>
+        </div>
+
+        <button type="submit" class="login-btn" [disabled]="loading()">
+          @if (loading()) {
+            <span class="login-spinner" aria-hidden="true"></span>
+            Signing in...
+          } @else {
+            Sign in
+            <i class="pi pi-arrow-right" aria-hidden="true"></i>
+          }
+        </button>
+
+      </form>
+
+      <p class="login-signup">
+        Don't have an account?&nbsp;
+        <a class="login-link" routerLink="/register">Sign up</a>
+      </p>
+
+    </div>
+
+    <p class="login-footer">
+      By continuing, you agree to our&nbsp;
+      <a class="login-link" href="#">Terms of Service</a>
+      &nbsp;and&nbsp;
+      <a class="login-link" href="#">Privacy Policy</a>
+    </p>
+
+  </div>
+</div>

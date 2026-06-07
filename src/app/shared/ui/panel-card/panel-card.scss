@@ -1,0 +1,78 @@
+:host {
+  display: block;
+  width: 100%;
+  min-width: 0;
+}
+
+:host ::ng-deep .p-card.ui-panel-card--collapsible .p-card-title {
+  padding: 0;
+  margin: 0;
+}
+
+/* Collapsed: global `.p-card-content` bottom padding still applies with an empty body — remove gap */
+:host ::ng-deep .p-card.ui-panel-card--collapsible:has(.ui-panel-card__body-wrap--collapsed) .p-card-content {
+  padding: 0;
+  min-height: 0;
+}
+
+.ui-panel-card__collapsible-trigger {
+  display: flex;
+  width: 100%;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--inv-space-3);
+  margin: 0;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+  text-align: left;
+  padding: var(--inv-space-5) var(--inv-space-5) var(--inv-space-4);
+  border-radius: inherit;
+  color: inherit;
+  font: inherit;
+}
+
+.ui-panel-card__collapsible-trigger:hover {
+  /* Neutral row hover on white cards (avoid primary-tint that reads as “selected”) */
+  background: var(--inv-grey-0);
+}
+
+.ui-panel-card__collapsible-trigger:active {
+  background: var(--inv-grey-25);
+}
+
+.ui-panel-card__collapsible-trigger:focus-visible {
+  outline: 2px solid var(--inv-primary-500);
+  outline-offset: 2px;
+}
+
+.ui-panel-card__collapsible-text {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: var(--inv-space-1);
+}
+
+.ui-panel-card__collapsible-title {
+  font-size: var(--inv-text-body-lg);
+  font-weight: 600;
+  color: var(--inv-grey-900);
+  line-height: 1.35;
+}
+
+.ui-panel-card__collapsible-sub {
+  font-size: var(--inv-text-body-sm);
+  font-weight: 400;
+  color: var(--inv-grey-500);
+  line-height: 1.45;
+}
+
+.ui-panel-card__body-wrap--collapsed {
+  display: none;
+}
+
+@media (max-width: 639px) {
+  .ui-panel-card__collapsible-trigger {
+    padding: var(--inv-space-4) var(--inv-space-4) var(--inv-space-3);
+  }
+}

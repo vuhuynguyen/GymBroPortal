@@ -1,0 +1,25 @@
+<ng-template #dialogTpl>
+  <div
+    class="ui-success-dialog ui-dialog-animate-in w-full max-w-md rounded-3xl bg-inv-surface-base p-8 shadow-2xl"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="titleDomId"
+    (click)="$event.stopPropagation()">
+    <div class="text-center">
+      <div
+        class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-inv-success-0">
+        <i [class]="iconClass() + ' text-3xl text-inv-success-200'" aria-hidden="true"></i>
+      </div>
+      <h3 [id]="titleDomId" class="mb-2 text-xl font-semibold text-inv-grey-900">
+        {{ heading() }}
+      </h3>
+      <p class="mb-6 text-inv-grey-600">{{ message() }}</p>
+
+      <app-button
+        [label]="primaryLabel()"
+        severity="success"
+        [styleClass]="'w-full'"
+        (clicked)="onPrimary()" />
+    </div>
+  </div>
+</ng-template>

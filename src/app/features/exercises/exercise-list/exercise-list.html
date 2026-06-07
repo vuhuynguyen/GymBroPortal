@@ -1,0 +1,59 @@
+<section role="region" aria-label="Exercise catalog">
+  <app-confirm-split-dialog
+    [open]="deleteTarget() !== null"
+    (openChange)="onDeleteDialogOpenChange($event)"
+    heading="Delete exercise?"
+    [message]="deleteDialogMessage()"
+    (confirmed)="onDeleteConfirmed()" />
+
+  <app-ui-page-container class="flex flex-col gap-inv-5">
+  <div>
+    <app-page-header
+      title="Exercises"
+      subtitle="Manage your movement library, filters, and catalog.">
+      <div class="ui-page-actions flex flex-wrap items-center gap-4">
+        <app-button label="Create Exercise" icon="pi pi-plus" (clicked)="createExercise()" />
+      </div>
+    </app-page-header>
+  </div>
+
+  <app-data-table
+    [resizableColumns]="true"
+    [columns]="tableColumns"
+    [data]="exercises()"
+    [loading]="loading()"
+    [columnResizeMode]="'fit'"
+    [globalFilterExtraFields]="['type', 'movementType', 'muscleGroup', 'equipment']"
+    globalSearchPlaceholder="Search exercises"
+    emptyMessage="No exercises found"
+    loadingMessage="Loading exercises…"
+    itemLabel="exercises">
+    <ng-template appDataTableCell="name" let-row>
+      <span class="whitespace-nowrap font-semibold text-inv-grey-900">{{ row['name'] }}</span>
+    </ng-template>
+
+    <ng-template appDataTableCell="actions" let-row>
+      <div class="flex flex-nowrap items-center justify-end gap-2">
+        <app-button
+          icon="pi pi-pencil"
+          size="small"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          [disabled]="deleteInProgress()"
+          [ariaLabel]="'Edit ' + row['name']"
+          (clicked)="editExercise($any(row))" />
+        <app-button
+          icon="pi pi-trash"
+          size="small"
+          [rounded]="true"
+          [text]="true"
+          severity="danger"
+          [disabled]="deleteInProgress()"
+          [ariaLabel]="'Delete ' + row['name']"
+          (clicked)="confirmDeleteExercise($any(row))" />
+      </div>
+    </ng-template>
+  </app-data-table>
+  </app-ui-page-container>
+</section>

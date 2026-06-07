@@ -1,0 +1,13 @@
+<header class="ui-page-header" [class.ui-page-header--hero]="variant() === 'hero'">
+  <div class="ui-page-header-main">
+    <h1 class="ui-page-header-title" [class.ui-page-header-title--hero]="variant() === 'hero'">
+      {{ title() }}
+    </h1>
+    @if (subtitle(); as sub) {
+      <p class="ui-page-header-subtitle">{{ sub }}</p>
+    }
+  </div>
+  <div class="ui-page-header-aside">
+    <ng-content select=".ui-page-actions" />
+  </div>
+</header>
