@@ -1,8 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { By } from '@angular/platform-browser';
 import { provideRouter } from '@angular/router';
 import { AppComponent } from './app';
-import { AppShellComponent } from './core/layout/app-shell';
 import { primengTestProviders } from '../testing/primeng-test-providers';
 
 describe('AppComponent', () => {
@@ -23,15 +21,19 @@ describe('AppComponent', () => {
     expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it(`should expose app title on the shell`, () => {
+  // AppComponent is a thin host: routed views (including the app shell) render
+  // through this outlet, and the global toast is mounted alongside it.
+  it('should render the router outlet for routed views', () => {
     fixture.detectChanges();
-    const shell = fixture.debugElement.query(By.directive(AppShellComponent));
-    expect(shell).toBeTruthy();
-    expect(shell!.componentInstance.appTitle).toEqual('GymBro Portal');
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('router-outlet')
+    ).toBeTruthy();
   });
 
-  it('should render the app name in the shell', () => {
+  it('should mount the global toast', () => {
     fixture.detectChanges();
-    expect((fixture.nativeElement as HTMLElement).textContent).toContain('GymBro Portal');
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('p-toast')
+    ).toBeTruthy();
   });
 });
