@@ -1,0 +1,9 @@
+node_modules/
+.angular/
+dist/
+.git/
+.github/
+*.log
+Dockerfile
+.dockerignore
+nginx.conf

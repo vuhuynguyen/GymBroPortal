@@ -7,7 +7,7 @@
 > The exhaustive component catalog and token list are **not** duplicated here — the source of truth is the code: `src/app/shared/ui/`, `src/styles.scss`, and `src/app/core/config/prime-ng.config.ts`.
 
 ## Stack
-Angular 21 · standalone components · **signals** · `ChangeDetectionStrategy.OnPush` · PrimeNG 21 (Aura preset remapped to **blue**) · Tailwind with `--inv-*` design tokens. Zone-based change detection (not zoneless). API base is the relative `/api` prefix via `proxy.conf.json` (dev) — no `environment*.ts`.
+Angular 21 · standalone components · **signals** · `ChangeDetectionStrategy.OnPush` · PrimeNG 21 (Aura preset remapped to **blue**) · Tailwind with `--inv-*` design tokens. Zone-based change detection (not zoneless). API base is the relative `/api` prefix via `proxy.conf.json` (dev); the API version is negotiated by header, not in the URL — no `environment*.ts`.
 
 ## Structure (three buckets only — do not add new top-level folders)
 ```
