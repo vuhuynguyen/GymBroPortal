@@ -1,9 +1,7 @@
-# GymBro Portal — Angular UI
+# GymBro Portal — Claude Instructions
 
-Project guide (single necessary frontend doc): [`docs/FRONTEND.md`](docs/FRONTEND.md)
-System single source of truth: [`../docs/README.md`](../docs/README.md) · Repo conventions: [`../CLAUDE.md`](../CLAUDE.md)
-
----
+Start with [`README.md`](README.md). The frontend guide is [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) — read it
+before any UI work.
 
 Angular 21 · standalone · OnPush · signals · PrimeNG 21 · Tailwind + `inv-*` tokens.
 
@@ -11,14 +9,14 @@ Angular 21 · standalone · OnPush · signals · PrimeNG 21 · Tailwind + `inv-*
 
 | Task | Read |
 |---|---|
-| Any UI work (structure, rules, patterns, tokens, Figma) | [`docs/FRONTEND.md`](docs/FRONTEND.md) |
-| API calls / endpoints | [`../docs/MODULES.md`](../docs/MODULES.md) |
-| Permissions / who-can-do-what | [`../docs/PERMISSIONS.md`](../docs/PERMISSIONS.md) |
-| Flows (onboarding, plans, sessions) | [`../docs/USER_FLOWS.md`](../docs/USER_FLOWS.md) |
+| Any UI work (structure, rules, patterns, tokens, design workflow) | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) |
+| Routing, guards, auth flow, state, HTTP/tenancy | [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md) + [`README.md`](README.md) |
 
-## Non-negotiables (full detail in `docs/FRONTEND.md`)
+API contracts, permissions, and business rules are owned by the **GymBro API** repository.
 
-- **`inv-*` tokens only** (no hex); **no raw PrimeNG** (use `src/app/shared/ui/` wrappers); **reactive forms only**.
+## Non-negotiables (full detail in `docs/ARCHITECTURE.md`)
+
+- **`inv-*` tokens only** (no hex); **no raw PrimeNG** (use `src/app/shared/ui/` wrappers); **reactive forms only** for new code.
 - **Signals + OnPush + standalone**; all state in service signals.
 - App structure is `src/app/{core,features,shared}` only — don't add new top-level folders.
 - `authInterceptor` adds `Authorization` + `X-Tenant-Id`; permission enforcement is server-only — the frontend has no permission mirror to keep in sync.
@@ -26,5 +24,5 @@ Angular 21 · standalone · OnPush · signals · PrimeNG 21 · Tailwind + `inv-*
 
 ## Update rule
 
-When you change UI structure/rules/patterns, update **`docs/FRONTEND.md`** (the one frontend doc). For system
-behavior (endpoints, permissions, flows, data) update the owning file under [`../docs/`](../docs/) — do not duplicate.
+When you change UI structure/rules/patterns, update **`docs/ARCHITECTURE.md`** (the one frontend doc) — do not
+duplicate. System behavior (endpoints, permissions, flows) is documented in the API repository.

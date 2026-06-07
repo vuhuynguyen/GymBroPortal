@@ -260,6 +260,13 @@
 }
 
 /* ── Sets table ───────────────────────────────────────────────────────── */
+/* When the 2-column session grid squeezes the main column narrower than the table's
+   min content, scroll horizontally instead of clipping the Log button off the right.
+   No-op on mobile, where the table reflows into cards (display:block). */
+.set-table-scroll {
+  overflow-x: auto;
+}
+
 .set-table {
   width: 100%;
   border-collapse: separate;

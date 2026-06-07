@@ -121,6 +121,19 @@ export interface PlanWorkoutStructureRequest {
   exercises: PlanWorkoutExerciseRequest[];
 }
 
+/**
+ * PUT `/api/workout-plans/{id}/structure` carries metadata + structure together so a builder save lands as
+ * ONE new version (two version-forking PUTs would make the second one target a stale id → 409).
+ */
 export interface ReplaceWorkoutPlanStructureRequest {
+  name: string;
+  description?: string | null;
+  durationWeeks?: number | null;
+  workoutsPerWeek?: number | null;
   workouts: PlanWorkoutStructureRequest[];
+}
+
+/** Both edit PUTs fork a new version and return its id so the client can re-point to the latest. */
+export interface WorkoutPlanVersionRef {
+  id: string;
 }

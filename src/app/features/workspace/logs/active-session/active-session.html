@@ -128,6 +128,7 @@
 
             <!-- Sets table -->
             <form [formGroup]="setForm" (ngSubmit)="logSet()">
+              <div class="set-table-scroll">
               <table class="set-table">
                 <thead>
                   <tr>
@@ -199,6 +200,7 @@
                   }
                 </tbody>
               </table>
+              </div>
             </form>
 
             <div class="set-table-foot">

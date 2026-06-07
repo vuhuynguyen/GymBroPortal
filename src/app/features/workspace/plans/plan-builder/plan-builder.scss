@@ -223,6 +223,16 @@
   }
 }
 
+/* —— Per-set grid —— */
+/* The dense set grid (#, type, reps, weight, RPE, rest, remove) needs ~33rem. On a narrow
+   card it would clip the RPE/remove columns off the right, so scroll it horizontally instead. */
+.pb-set-scroll {
+  overflow-x: auto;
+}
+.pb-set-scroll .pb-set-grid {
+  min-width: 33rem;
+}
+
 /* —— Workout card —— */
 .pb-workout-card {
   border: 1px solid var(--inv-border-card);

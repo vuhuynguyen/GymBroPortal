@@ -117,7 +117,8 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     rpe: this.fb.control<string | null>(null)
   });
 
-  readonly rpeOptions = ['5', '6', '6.5', '7', '7.5', '8', '8.5', '9', '9.5', '10'];
+  // RPE is stored server-side as an integer (1–10), so only whole-number options are offered.
+  readonly rpeOptions = ['5', '6', '7', '8', '9', '10'];
 
   private timerHandle: ReturnType<typeof setInterval> | null = null;
   /** Wall-clock anchor for elapsed time — reset whenever a different session loads. */

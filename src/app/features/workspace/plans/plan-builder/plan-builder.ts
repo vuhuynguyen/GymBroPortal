@@ -2,18 +2,20 @@ import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { AbstractControl, FormArray, FormBuilder, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop';
+import { Location } from '@angular/common';
 import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import type { MenuItem } from 'primeng/api';
 import { Menu } from 'primeng/menu';
 import { Tooltip } from 'primeng/tooltip';
-import { concatMap, distinctUntilChanged, map, merge, startWith } from 'rxjs';
+import { distinctUntilChanged, map, merge, startWith } from 'rxjs';
 import {
   ButtonComponent,
   PageContainerComponent,
   PageStickyFooterComponent,
   PanelCardComponent
 } from '../../../../shared/ui';
+import { uuid } from '../../../../shared/uuid';
 import { TenantService } from '../../../../core/tenant/tenant';
 import { ExerciseService } from '../../../exercises/exercise';
 import { WorkoutPlanService } from '../workout-plan.service';
@@ -60,6 +62,7 @@ export class PlanBuilderComponent {
   private readonly fb = inject(FormBuilder);
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
+  private readonly location = inject(Location);
   private readonly workoutPlanService = inject(WorkoutPlanService);
   private readonly exerciseService = inject(ExerciseService);
   private readonly tenantService = inject(TenantService);
@@ -166,7 +169,7 @@ export class PlanBuilderComponent {
   /** One prescribed set form group — fields mirror PlanSetRequest. */
   private createSetGroup(seed?: Partial<PlanSetDetailDto>): FormGroup {
     return this.fb.group({
-      key: [crypto.randomUUID()],
+      key: [uuid()],
       setType: [(seed?.setType as PlanSetTypeApi | undefined) ?? 'working', Validators.required],
       targetReps: [seed?.targetReps ?? 10, [Validators.required, Validators.min(1), Validators.max(99)]],
       targetWeightKg: [seed?.targetWeightKg ?? null, [Validators.min(0)]],
@@ -180,7 +183,7 @@ export class PlanBuilderComponent {
     const seedSets = sets.length > 0 ? sets : [{}, {}, {}]; // default 3 working sets
     const setGroups = seedSets.map((s) => this.createSetGroup(s));
     return this.fb.group({
-      key: [crypto.randomUUID()],
+      key: [uuid()],
       exerciseId: [exerciseId, Validators.required],
       sets: this.fb.array<FormGroup>(setGroups, [Validators.required, Validators.minLength(1)])
     });
@@ -245,7 +248,7 @@ export class PlanBuilderComponent {
 
   private createWorkoutGroup(name = ''): FormGroup {
     return this.fb.group({
-      key: [crypto.randomUUID()],
+      key: [uuid()],
       name: [name, [Validators.required, Validators.maxLength(120)]],
       exercises: this.fb.array<FormGroup>([])
     });
@@ -253,8 +256,13 @@ export class PlanBuilderComponent {
 
   private loadPlan(id: string): void {
     this.loading.set(true);
-    this.workoutPlanService.get(id).subscribe({
-      next: (dto) => this.patchFromDto(dto),
+    // Load the LATEST version of this template: the route id may point at an older version (e.g. a stale
+    // bookmark/tab), and edits must target the latest or the save 409s. adoptVersionId re-points the URL.
+    this.workoutPlanService.getLatest(id).subscribe({
+      next: (dto) => {
+        this.adoptVersionId(dto.id);
+        this.patchFromDto(dto);
+      },
       error: () => {
         this.loading.set(false);
         this.messageService.add({
@@ -496,6 +504,17 @@ export class PlanBuilderComponent {
     void this.router.navigate(['/workspace/plans']);
   }
 
+  /**
+   * Every successful edit forks a new immutable plan version with a new id; re-point this page to it so the
+   * NEXT save targets the latest version instead of a now-stale id (which the API rejects with 409). The URL
+   * is swapped in place (no router navigation, so the form/scroll state is preserved and no reload fires).
+   */
+  private adoptVersionId(newId: string | null | undefined): void {
+    if (!newId || newId === this.planId()) return;
+    this.planId.set(newId);
+    this.location.replaceState(`/workspace/plans/${newId}`);
+  }
+
   private persistPlanHeaderToServer(): void {
     const id = this.planId();
     if (!id || !this.canEdit()) return;
@@ -514,6 +533,7 @@ export class PlanBuilderComponent {
         workoutsPerWeek: meta.workoutsPerWeek
       })
       .subscribe({
+        next: (ref) => this.adoptVersionId(ref.id),
         error: (err: { error?: unknown }) => {
           const msg = typeof err?.error === 'string' ? err.error : 'Could not save plan details.';
           this.messageService.add({ severity: 'error', summary: 'Update failed', detail: msg });
@@ -558,17 +578,20 @@ export class PlanBuilderComponent {
 
     this.saving.set(true);
 
+    // Metadata + structure go in ONE request so the save lands as a single new version. (Two version-forking
+    // PUTs would make the second target a now-stale id → 409.) Re-point to the returned latest-version id.
     this.workoutPlanService
-      .update(id, {
+      .replaceStructure(id, {
         name: this.form.value.name!.trim(),
         description: (this.form.value.description ?? '').trim() || null,
         durationWeeks: meta.durationWeeks,
-        workoutsPerWeek: meta.workoutsPerWeek
+        workoutsPerWeek: meta.workoutsPerWeek,
+        workouts: structure.workouts!
       })
-      .pipe(concatMap(() => this.workoutPlanService.replaceStructure(id, { workouts: structure.workouts! })))
       .subscribe({
-        next: () => {
+        next: (ref) => {
           this.saving.set(false);
+          this.adoptVersionId(ref.id);
           this.form.markAsPristine();
           this.messageService.add({
             severity: 'success',
@@ -639,7 +662,8 @@ export class PlanBuilderComponent {
             return { workouts: null, error: `Set ${si + 1} of an exercise on "${name}": weight must be 0 or more.` };
           }
 
-          const targetRpe = rawRpe === '' || rawRpe == null ? null : Number(rawRpe);
+          // RPE is stored server-side as an integer (1–10); round so a stray decimal never 400s on save.
+          const targetRpe = rawRpe === '' || rawRpe == null ? null : Math.round(Number(rawRpe));
           if (targetRpe != null && (!Number.isFinite(targetRpe) || targetRpe < 1 || targetRpe > 10)) {
             return { workouts: null, error: `Set ${si + 1} of an exercise on "${name}": RPE must be between 1 and 10.` };
           }

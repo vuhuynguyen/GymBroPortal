@@ -24,6 +24,7 @@ import { InputIcon } from 'primeng/inputicon';
 import { InputTextModule } from 'primeng/inputtext';
 import { Tooltip } from 'primeng/tooltip';
 import { ButtonComponent } from '../../../../shared/ui';
+import { uuid } from '../../../../shared/uuid';
 import type { ExerciseDto } from '../../../exercises/exercise.model';
 import { MUSCLE_GROUPS } from '../../../exercises/exercise.model';
 import type { PlanSetTypeApi } from '../workout-plan.model';
@@ -102,7 +103,7 @@ export class ExercisePickerPanelComponent {
 
   private createSetGroup(seed?: Partial<ExercisePickerSetSeed>): FormGroup {
     return this.fb.group({
-      key: [crypto.randomUUID()],
+      key: [uuid()],
       setType: [seed?.setType ?? ('working' as PlanSetTypeApi), Validators.required],
       targetReps: [seed?.targetReps ?? 10, [Validators.required, Validators.min(1), Validators.max(99)]],
       targetWeightKg: this.fb.control<number | null>(seed?.targetWeightKg ?? null, [Validators.min(0)]),

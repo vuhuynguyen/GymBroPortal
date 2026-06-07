@@ -10,7 +10,8 @@ import type {
   ReplaceWorkoutPlanStructureRequest,
   UpdateWorkoutPlanRequest,
   WorkoutPlanDetailDto,
-  WorkoutPlanListResponseDto
+  WorkoutPlanListResponseDto,
+  WorkoutPlanVersionRef
 } from './workout-plan.model';
 
 @Injectable({ providedIn: 'root' })
@@ -91,16 +92,25 @@ export class WorkoutPlanService {
     return this.http.get<WorkoutPlanDetailDto>(`${this.baseUrl}/${id}`);
   }
 
+  /**
+   * Resolve the latest version in the template that `id` belongs to. The plan builder loads through this so a
+   * stale (non-latest) version id self-heals to the editable latest version instead of 409-ing at save time.
+   */
+  getLatest(id: string): Observable<WorkoutPlanDetailDto> {
+    return this.http.get<WorkoutPlanDetailDto>(`${this.baseUrl}/${id}/latest`);
+  }
+
   create(body: CreateWorkoutPlanRequest): Observable<{ id: string }> {
     return this.http.post<{ id: string }>(this.baseUrl, body);
   }
 
-  update(id: string, body: UpdateWorkoutPlanRequest): Observable<void> {
-    return this.http.put<void>(`${this.baseUrl}/${id}`, body);
+  // Editing forks a new immutable version; the server returns its id so the caller re-points to the latest.
+  update(id: string, body: UpdateWorkoutPlanRequest): Observable<WorkoutPlanVersionRef> {
+    return this.http.put<WorkoutPlanVersionRef>(`${this.baseUrl}/${id}`, body);
   }
 
-  replaceStructure(id: string, body: ReplaceWorkoutPlanStructureRequest): Observable<void> {
-    return this.http.put<void>(`${this.baseUrl}/${id}/structure`, body);
+  replaceStructure(id: string, body: ReplaceWorkoutPlanStructureRequest): Observable<WorkoutPlanVersionRef> {
+    return this.http.put<WorkoutPlanVersionRef>(`${this.baseUrl}/${id}/structure`, body);
   }
 
   delete(id: string): Observable<void> {

@@ -177,6 +177,7 @@
                               </div>
 
                               <!-- Per-set table -->
+                              <div class="pb-set-scroll">
                               <div class="pb-set-grid flex flex-col gap-1.5" [formArrayName]="'sets'">
                                 <div class="pb-set-grid__head grid items-center gap-2 px-1 text-inv-body-mini font-medium uppercase tracking-wider text-inv-grey-500"
                                      style="grid-template-columns: 28px minmax(96px, 1fr) 76px 88px 76px 84px 36px;"
@@ -210,7 +211,7 @@
 
                                     <input type="number" inputmode="decimal" step="0.5" min="0" placeholder="—" formControlName="targetWeightKg" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 placeholder:text-inv-grey-400 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' weight (kg)'" />
 
-                                    <input type="number" inputmode="numeric" min="1" max="10" placeholder="—" formControlName="targetRpe" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 placeholder:text-inv-grey-400 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' RPE'" />
+                                    <input type="number" inputmode="numeric" min="1" max="10" step="1" placeholder="—" formControlName="targetRpe" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 placeholder:text-inv-grey-400 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' RPE'" />
 
                                     <div class="flex items-center justify-center gap-1">
                                       <input type="number" inputmode="numeric" min="0" max="600" formControlName="restSeconds" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' rest seconds'" />
@@ -228,6 +229,7 @@
                                     }
                                   </div>
                                 }
+                              </div>
                               </div>
 
                               @if (canEdit()) {
