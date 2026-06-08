@@ -1,6 +1,6 @@
 export type SessionStatus = 'InProgress' | 'Completed' | 'Abandoned';
 export type SessionSource = 'FromAssignment' | 'Adhoc';
-export type SetType = 'Warmup' | 'Working' | 'Drop' | 'AMRAP' | 'Failure';
+export type SetType = 'warmup' | 'working' | 'drop' | 'amrap' | 'failure';
 export type ExerciseStatus = 'InProgress' | 'Completed' | 'Skipped' | 'Substituted';
 
 export interface SessionSummaryDto {

@@ -13,12 +13,19 @@ export function visibilityModeToValue(mode: VisibilityModeLabel): number {
 }
 
 /**
- * Normalize a label or wire int (as the API may send either) to a label; `null` if unrecognized.
- * Callers apply their own default (e.g. `?? 'Guided'`, or keep `null` when visibility is absent).
+ * Normalize the API's camelCase enum string (`full`/`guided`/`blind`) to a label; `null` if
+ * unrecognized. Compared case-insensitively for resilience. Callers apply their own default
+ * (e.g. `?? 'Guided'`, or keep `null` when visibility is absent).
  */
 export function visibilityModeToLabel(value: unknown): VisibilityModeLabel | null {
-  if (value === 'Full' || value === 1) return 'Full';
-  if (value === 'Guided' || value === 2) return 'Guided';
-  if (value === 'Blind' || value === 3) return 'Blind';
-  return null;
+  switch (String(value).toLowerCase()) {
+    case 'full':
+      return 'Full';
+    case 'guided':
+      return 'Guided';
+    case 'blind':
+      return 'Blind';
+    default:
+      return null;
+  }
 }

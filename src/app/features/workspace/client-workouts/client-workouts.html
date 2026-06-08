@@ -1,0 +1,66 @@
+<app-ui-page-container class="flex flex-col gap-inv-5">
+
+  <app-page-header [title]="clientName() + ' · workouts'" [subtitle]="subtitle()">
+    <div class="ui-page-actions flex flex-wrap items-center gap-4">
+      <app-button
+        label="Back to clients"
+        icon="pi pi-arrow-left"
+        severity="secondary"
+        [outlined]="true"
+        ariaLabel="Back to clients"
+        (clicked)="back()" />
+    </div>
+  </app-page-header>
+
+  @if (loading()) {
+
+    <div class="cw-loading"><i class="pi pi-spin pi-spinner"></i></div>
+
+  } @else if (sessions().length === 0) {
+
+    <div class="cw-empty">
+      <div class="cw-empty__icon"><i class="pi pi-list" aria-hidden="true"></i></div>
+      <h2 class="cw-empty__heading">No workouts yet</h2>
+      <p class="cw-empty__text">{{ clientName() }} hasn't logged any sessions in your gym yet.</p>
+    </div>
+
+  } @else {
+
+    <ul class="cw-list" role="list">
+      @for (session of sessions(); track trackById($index, session)) {
+        <li class="cw-row" [class.cw-row--abandoned]="statusClass(session) === 'abandoned'">
+          <button
+            type="button"
+            class="cw-row__main"
+            (click)="openSession(session)"
+            [attr.aria-label]="'View ' + workoutTitle(session) + ' details'">
+            <div class="cw-row__date">{{ relativeDay(session.startedAt) }}</div>
+            <div class="cw-row__info">
+              <span class="cw-row__title">{{ workoutTitle(session) }}</span>
+              <span class="cw-row__meta">{{ sourceTag(session) }}</span>
+            </div>
+            <div class="cw-row__stats">
+              <span class="cw-stat"><b>{{ formatVolume(session.totalVolumeKg) }}</b> kg</span>
+              <span class="cw-stat"><b>{{ session.totalSets }}</b> sets</span>
+              @if (session.prCount > 0) {
+                <span class="cw-stat cw-stat--pr"><i class="pi pi-trophy"></i> {{ session.prCount }}</span>
+              }
+            </div>
+            <span class="cw-badge cw-badge--{{ statusClass(session) }}">{{ statusLabel(session) }}</span>
+          </button>
+        </li>
+      }
+    </ul>
+
+  }
+
+</app-ui-page-container>
+
+@if (detailOpen()) {
+  <app-session-detail-dialog
+    [detail]="selectedSession()"
+    [loading]="detailLoading()"
+    [showRepeat]="false"
+    [titleFallback]="clientName() + ' workout'"
+    (closed)="closeDetail()" />
+}

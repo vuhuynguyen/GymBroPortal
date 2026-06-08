@@ -99,6 +99,15 @@ export const routes: Routes = [
               import('./features/workspace/clients/clients').then((m) => m.ClientsComponent)
           },
           {
+            path: 'clients/:clientId/workouts',
+            // Owner-only: coach views a specific client's workout history + detail (tenant-scoped).
+            canActivate: [roleGuard(['Owner'])],
+            loadComponent: () =>
+              import('./features/workspace/client-workouts/client-workouts').then(
+                (m) => m.ClientWorkoutsComponent
+              )
+          },
+          {
             path: 'trainer/:trainerId/plans',
             loadComponent: () =>
               import('./features/workspace/trainer-plans/trainer-plans').then(

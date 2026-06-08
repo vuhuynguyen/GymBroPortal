@@ -109,7 +109,9 @@
 
     <!-- Footer -->
     <div *ngIf="!loading() && detail()" class="v4d-foot">
-      <app-button label="Repeat workout" icon="pi pi-replay" styleClass="w-full v4d-foot__btn" (clicked)="onRepeat()" />
+      @if (showRepeat()) {
+        <app-button label="Repeat workout" icon="pi pi-replay" styleClass="w-full v4d-foot__btn" (clicked)="onRepeat()" />
+      }
       <app-button label="Close" severity="secondary" [outlined]="true" styleClass="w-full v4d-foot__btn" (clicked)="closed.emit()" />
     </div>
   </div>
