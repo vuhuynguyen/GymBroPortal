@@ -6,6 +6,7 @@ import {
   inject,
   signal
 } from '@angular/core';
+import { Router } from '@angular/router';
 import { InviteGymBroPanelService } from '../../../core/layout/invite-gymbro-panel/invite-gymbro-panel.service';
 import { MessageService } from 'primeng/api';
 import { ButtonComponent, ConfirmSplitDialogComponent, PageContainerComponent, PageHeaderComponent } from '../../../shared/ui';
@@ -26,6 +27,7 @@ export class ClientsComponent {
   private readonly tenantService = inject(TenantService);
   private readonly messageService = inject(MessageService);
   private readonly inviteGymBroPanel = inject(InviteGymBroPanelService);
+  private readonly router = inject(Router);
 
   /** Stable workspace id — avoids refetching members on every tenants[] refresh when id unchanged. */
   private readonly ownWorkspaceId = computed(() => this.tenantService.ownTenant()?.id ?? null);
@@ -59,6 +61,10 @@ export class ClientsComponent {
 
   formatDate(iso: string): string {
     return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  }
+
+  viewWorkouts(client: MemberDto): void {
+    void this.router.navigate(['/workspace/clients', client.userId, 'workouts']);
   }
 
   confirmRemove(client: MemberDto): void { this.removeTarget.set(client); }

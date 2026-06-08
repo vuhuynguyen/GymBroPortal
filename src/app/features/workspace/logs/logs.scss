@@ -8,6 +8,9 @@
 
 /* ── Active session banner (full-bleed, desktop) ─────────────────────────── */
 .v4-active {
+  /* Cancel app-page-header's padding-bottom so the gap above the banner
+     matches the gap-inv-5 used elsewhere in the column (was 40px, now 24px). */
+  margin-top: calc(-1 * var(--inv-space-4));
   background: linear-gradient(135deg, var(--inv-primary-700), var(--inv-primary-900));
   border-radius: var(--inv-radius-lg);
   color: #fff;

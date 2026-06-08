@@ -448,10 +448,11 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     }, 1000);
   }
 
-  private normalizeStatus(status: ActiveSessionDto['status'] | string | number | null | undefined): SessionStatus {
-    const s = String(status ?? '').toLowerCase().replace(/[_\s]/g, '');
-    if (s === 'inprogress' || s === '1') return 'InProgress';
-    if (s === 'abandoned' || s === '3') return 'Abandoned';
+  /** API serializes SessionStatus as camelCase (`inProgress`/`completed`/`abandoned`). */
+  private normalizeStatus(status: ActiveSessionDto['status'] | string | null | undefined): SessionStatus {
+    const s = String(status ?? '').toLowerCase();
+    if (s === 'inprogress') return 'InProgress';
+    if (s === 'abandoned') return 'Abandoned';
     return 'Completed';
   }
 
@@ -554,7 +555,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
       .logSet(session.sessionId, ex.id, {
         planSetId: snapSet?.planSetId ?? null,
         setNumber,
-        setType: snapSet?.setType ?? 'Working',
+        setType: snapSet?.setType ?? 'working',
         reps,
         weightKg,
         rpe,

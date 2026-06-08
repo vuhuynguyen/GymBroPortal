@@ -69,6 +69,7 @@
               severity="secondary"
               [disabled]="deleteInProgress()"
               [ariaLabel]="'Train ' + row['name'] + ' myself'"
+              tooltip="Train this myself"
               (clicked)="trainThisMyself(row)" />
           }
 

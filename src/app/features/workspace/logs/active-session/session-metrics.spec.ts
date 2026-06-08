@@ -16,7 +16,7 @@ function set(partial: Partial<PerformedSetDto>): PerformedSetDto {
     id: crypto.randomUUID(),
     planSetId: null,
     setNumber: 1,
-    setType: 'Working',
+    setType: 'working',
     reps: null,
     weightKg: null,
     durationSeconds: null,

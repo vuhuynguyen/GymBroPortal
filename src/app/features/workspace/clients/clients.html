@@ -57,6 +57,13 @@
           </div>
           <div class="client-actions">
             <app-button
+              label="Workouts"
+              icon="pi pi-chart-line"
+              size="small"
+              [text]="true"
+              [ariaLabel]="'View ' + client.name + ' workouts'"
+              (clicked)="viewWorkouts(client)" />
+            <app-button
               icon="pi pi-user-minus"
               size="small"
               [rounded]="true"

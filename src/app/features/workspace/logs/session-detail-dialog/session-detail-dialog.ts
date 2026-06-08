@@ -51,6 +51,8 @@ export class SessionDetailDialogComponent implements AfterViewInit, OnDestroy {
   readonly detail = input<SessionDetailDto | null>(null);
   readonly loading = input(false);
   readonly titleFallback = input('Workout');
+  /** Hidden when a coach is viewing a client's session (repeating someone else's workout is meaningless). */
+  readonly showRepeat = input(true);
 
   readonly closed = output<void>();
   readonly repeat = output<SessionDetailDto>();
@@ -179,17 +181,16 @@ export class SessionDetailDialogComponent implements AfterViewInit, OnDestroy {
     };
   }
 
-  /** API serializes enums as camelCase (`working`, `amrap`…), so compare case-insensitively. */
-  private isWorking(type: SetType | string): boolean {
-    return String(type).toLowerCase() === 'working';
+  private isWorking(type: SetType): boolean {
+    return type === 'working';
   }
 
-  isWarmup(type: SetType | string): boolean {
-    return String(type).toLowerCase() === 'warmup';
+  isWarmup(type: SetType): boolean {
+    return type === 'warmup';
   }
 
-  setTypeClass(type: SetType | string): string {
-    switch (String(type).toLowerCase()) {
+  setTypeClass(type: SetType): string {
+    switch (type) {
       case 'working':
         return 'work';
       case 'amrap':
@@ -201,10 +202,9 @@ export class SessionDetailDialogComponent implements AfterViewInit, OnDestroy {
     }
   }
 
-  setTypeLabel(type: SetType | string): string {
-    const t = String(type).toLowerCase();
-    if (t === 'amrap') return 'AMRAP';
-    return t.charAt(0).toUpperCase() + t.slice(1);
+  setTypeLabel(type: SetType): string {
+    if (type === 'amrap') return 'AMRAP';
+    return type.charAt(0).toUpperCase() + type.slice(1);
   }
 
   weightReps(set: PerformedSetDto): string {
@@ -229,10 +229,11 @@ export class SessionDetailDialogComponent implements AfterViewInit, OnDestroy {
     if (d) this.repeat.emit(d);
   }
 
+  /** API serializes SessionStatus as camelCase (`inProgress`/`completed`/`abandoned`). */
   private normalize(status: string | null | undefined): string {
     const s = String(status ?? '').toLowerCase();
     if (s === 'abandoned') return 'Abandoned';
-    if (s === 'inprogress' || s === 'in_progress' || s === 'in progress') return 'InProgress';
+    if (s === 'inprogress') return 'InProgress';
     return 'Completed';
   }
 }

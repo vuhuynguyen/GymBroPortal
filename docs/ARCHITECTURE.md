@@ -18,7 +18,7 @@ header, so there is no `environment*.ts`.
 ```
 src/app/
 ├── core/      # singletons: auth/ (service, JWT decode, authInterceptor, guards), tenant/, layout/ (shell + side panels), config/
-├── features/  # route-level pages: auth/, exercises/ (admin-gated), workspace/ (plans + plan-builder, plan-assignments, logs + active-session, clients/invites, trainer-plans), admin/, settings/
+├── features/  # route-level pages: auth/, exercises/ (admin-gated), workspace/ (plans + plan-builder, plan-assignments, logs + active-session, clients/invites + client-workouts, trainer-plans), admin/, settings/
 └── shared/ui/ # dumb, stateless wrapper components
 ```
 
@@ -63,6 +63,7 @@ export class MyPageComponent implements OnInit {
 - **Core service signals:** `AuthService` (`token`, `profile` from `GET /api/auth/me`, computed `isAuthenticated`/`isPlatformAdmin`/`currentUser` — `isPlatformAdmin` falls back to the JWT `is_admin` claim until `/me` returns), `TenantService` (`tenants[]`, `activeTenantId`, computed `currentRole`/`activeTenant`/`ownTenant`/`trainerWorkspaces`), plus per-feature services.
 - **`authInterceptor`** adds `Authorization: Bearer` + `X-Tenant-Id` (from `TenantService.activeTenant()`) to every call automatically.
 - **`errorInterceptor`** on a 401 from a non-auth call silently refreshes once and replays the request (single-flight); it logs the user out only if the refresh fails. Other HTTP errors show a toast.
+- **Unified personal training (`api/me/*`):** the trainee/personal experience reads the user's own data across **all** gyms — `SessionService.listMine()` / `getMineById()` hit `GET /api/me/sessions[/{id}]`, and the active-session lookup (`GET /api/sessions/active`) is user-wide. These are independent of the active tenant (the `X-Tenant-Id` header is still attached but the API ignores it for `/me`). The **coach/owner** view of gym members stays tenant-scoped on `SessionService.list()` / `getById()` (`GET /api/sessions`). `LogsComponent` selects the source by `currentRole()` (Owner → coach/tenant-scoped; otherwise → personal/`/me`).
 - **Tenant context:** `selectOwnWorkspace()` on trainer/management screens; `selectTrainerWorkspace(id)` before loading a coach's assigned plans (trainee view). `TenantService.ensureLoaded()` (idempotent, single-flight) is awaited by `authGuard`/`roleGuard` so a deep-link/refresh has tenants + role before activation; `loadTenants()` is the explicit post-mutation refresh. Stateful per-feature services reset their signals on tenant switch (no cross-workspace bleed).
 
 ## Routing & guards (`app.routes.ts`)
@@ -72,7 +73,7 @@ Lazy routes throughout.
 - **Public** (`noAuthGuard`): `/login`, `/register`, `/forgot-password`, `/reset-password`.
 - **Shell** (`authGuard`): the authenticated app; the profile loads once in `AuthService`, not per navigation.
 - **`adminGuard()`** gates `/exercises` and `/admin/*` (catalog management is platform-admin-only in the UI).
-- **`roleGuard(['Owner'])`** gates trainer-only workspace routes (`/workspace/plans`, `/workspace/plan-assignments`, `/workspace/clients`).
+- **`roleGuard(['Owner'])`** gates trainer-only workspace routes (`/workspace/plans`, `/workspace/plan-assignments`, `/workspace/clients`, and `/workspace/clients/:clientId/workouts` — the coach's **read-only** view of one client's session history + detail, tenant-scoped via `GET /api/sessions?traineeId=…` and the shared `session-detail-dialog`).
 - Trainees read their assigned plans through the **un-guarded** `/workspace/trainer/:trainerId/plans` (list) and `/workspace/trainer/:trainerId/plans/:planId` (read-only `PlanViewComponent`) — the API redacts plan content per the assignment's visibility flags, so these are safe without an Owner guard. `/workspace/plans/:id` remains the Owner-only editor.
 
 The UI gates read `AuthService.isPlatformAdmin()` + `TenantService.currentRole()` — **defense-in-depth only; the API

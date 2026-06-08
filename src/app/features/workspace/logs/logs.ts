@@ -303,21 +303,25 @@ export class LogsComponent implements OnInit {
   }
 
   refresh(): void {
-    this.sessionService
-      .list({
-        from: this.toIsoDate(this.fromControl.value),
-        to: this.toIsoDate(this.toControl.value),
-        page: this.page(),
-        pageSize: this.pageSize()
-      })
-      .subscribe({
-        error: () =>
-          this.messageService.add({
-            severity: 'error',
-            summary: 'Could not load sessions',
-            detail: 'Please try again in a moment.'
-          })
-      });
+    const params = {
+      from: this.toIsoDate(this.fromControl.value),
+      to: this.toIsoDate(this.toControl.value),
+      page: this.page(),
+      pageSize: this.pageSize()
+    };
+    // Coach (Owner) sees their gym's member activity (tenant-scoped); a trainee sees their own unified
+    // history across every gym (/api/me). Ownership is a capability layered on the personal experience.
+    const source$ = this.isOwner()
+      ? this.sessionService.list(params)
+      : this.sessionService.listMine(params);
+    source$.subscribe({
+      error: () =>
+        this.messageService.add({
+          severity: 'error',
+          summary: 'Could not load sessions',
+          detail: 'Please try again in a moment.'
+        })
+    });
   }
 
   applyDateFilter(): void {
@@ -385,7 +389,12 @@ export class LogsComponent implements OnInit {
     this.detailOpen.set(true);
     this.detailLoading.set(true);
     this.selectedSession.set(null);
-    this.sessionService.getById(session.id).subscribe({
+    // Match the list source: coach reads a member's session tenant-scoped; trainee reads their own
+    // session self-scoped (works across gyms).
+    const detail$ = this.isOwner()
+      ? this.sessionService.getById(session.id)
+      : this.sessionService.getMineById(session.id);
+    detail$.subscribe({
       next: (detail) => {
         this.selectedSession.set(detail);
         this.detailLoading.set(false);
@@ -553,9 +562,10 @@ export class LogsComponent implements OnInit {
     return String(source ?? '').toLowerCase() === 'adhoc';
   }
 
+  /** API serializes SessionStatus as camelCase (`inProgress`/`completed`/`abandoned`). */
   private normalizeStatus(status: SessionStatus | string | null | undefined): SessionStatus {
     const s = String(status ?? '').toLowerCase();
-    if (s === 'inprogress' || s === 'in_progress' || s === 'in progress') return 'InProgress';
+    if (s === 'inprogress') return 'InProgress';
     if (s === 'abandoned') return 'Abandoned';
     return 'Completed';
   }

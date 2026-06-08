@@ -1,5 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { ButtonModule } from 'primeng/button';
+import { TooltipModule } from 'primeng/tooltip';
 
 export type AppButtonSeverity =
   | 'primary'
@@ -14,7 +15,7 @@ export type AppButtonSeverity =
 @Component({
   selector: 'app-button',
   standalone: true,
-  imports: [ButtonModule],
+  imports: [ButtonModule, TooltipModule],
   template: `
     <p-button
       [label]="label()"
@@ -31,6 +32,8 @@ export type AppButtonSeverity =
       [ariaLabel]="ariaLabel()"
       [attr.aria-pressed]="ariaPressed()"
       [styleClass]="mergedClass()"
+      [pTooltip]="resolvedTooltip()"
+      [tooltipPosition]="tooltipPosition()"
       (onClick)="clicked.emit($any($event))" />
   `,
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -49,10 +52,19 @@ export class ButtonComponent {
   readonly loading = input(false);
   readonly ariaLabel = input<string | undefined>(undefined);
   readonly ariaPressed = input<boolean | null>(null);
+  /** Hover/focus tooltip text. Icon-only buttons fall back to their ariaLabel automatically. */
+  readonly tooltip = input<string | undefined>(undefined);
+  readonly tooltipPosition = input<'top' | 'bottom' | 'left' | 'right'>('top');
   /** Extra classes merged with the design-system button class. */
   readonly styleClass = input<string>('');
 
   readonly clicked = output<MouseEvent>();
 
   readonly mergedClass = computed(() => ['ui-app-button', this.styleClass()].filter(Boolean).join(' '));
+
+  /**
+   * Explicit tooltip wins; otherwise an icon-only button (no visible label) falls back to its
+   * ariaLabel so action icons in tables/toolbars are self-describing on hover and focus.
+   */
+  readonly resolvedTooltip = computed(() => this.tooltip() ?? (this.label() ? undefined : this.ariaLabel()));
 }

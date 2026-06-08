@@ -74,6 +74,8 @@ jobs:
             echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
             cd ~/gymbro-app
             docker compose pull frontend
-            docker compose up -d frontend
+            # --no-deps: deploy ONLY the frontend; don't try to (re)start `api` via depends_on,
+            # which would need the API image and couples the two pipelines' ordering.
+            docker compose up -d --no-deps frontend
             docker image prune -f
             docker logout ghcr.io
