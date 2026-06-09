@@ -18,6 +18,12 @@ import {
 import { uuid } from '../../../../shared/uuid';
 import { TenantService } from '../../../../core/tenant/tenant';
 import { ExerciseService } from '../../../exercises/exercise';
+import {
+  hasRequiredMetric,
+  requiredMetricMessage,
+  trackingProfile,
+  type TrackingMetric
+} from '../../../exercises/exercise-tracking';
 import { WorkoutPlanService } from '../workout-plan.service';
 import type {
   PlanSetDetailDto,
@@ -171,22 +177,70 @@ export class PlanBuilderComponent {
     return this.fb.group({
       key: [uuid()],
       setType: [(seed?.setType as PlanSetTypeApi | undefined) ?? 'working', Validators.required],
-      targetReps: [seed?.targetReps ?? 10, [Validators.required, Validators.min(1), Validators.max(99)]],
+      // Reps is no longer required — cardio/timed/HIIT prescribe duration/distance/rounds instead.
+      targetReps: [seed?.targetReps ?? 10, [Validators.min(1), Validators.max(99)]],
       targetWeightKg: [seed?.targetWeightKg ?? null, [Validators.min(0)]],
       targetRpe: [seed?.targetRpe ?? null, [Validators.min(1), Validators.max(10)]],
+      targetDurationSeconds: [seed?.targetDurationSeconds ?? null, [Validators.min(1)]],
+      targetDistanceM: [seed?.targetDistanceM ?? null, [Validators.min(1)]],
+      targetRounds: [seed?.targetRounds ?? null, [Validators.min(1)]],
       restSeconds: [seed?.restSeconds ?? 60, [Validators.required, Validators.min(0), Validators.max(600)]]
     });
   }
 
+  /** Tracking profile for the exercise on a builder row — drives which target inputs to show. */
+  exerciseProfileAt(workoutIndex: number, exerciseIndex: number) {
+    const exerciseId = this.exercisesAt(workoutIndex).at(exerciseIndex)?.get('exerciseId')?.value as
+      | string
+      | undefined;
+    const meta = exerciseId ? this.exercises().find((e) => e.id === exerciseId) : undefined;
+    return trackingProfile(meta?.trackingType);
+  }
+
+  /** True when the row's exercise mode prescribes the given target metric. */
+  showTargetAt(workoutIndex: number, exerciseIndex: number, metric: TrackingMetric): boolean {
+    return this.exerciseProfileAt(workoutIndex, exerciseIndex).targetFields.includes(metric);
+  }
+
   /** Builds a form group for an exercise row with a per-set FormArray. */
-  private createExerciseGroup(exerciseId: string, sets: ReadonlyArray<Partial<PlanSetDetailDto>> = []): FormGroup {
+  private createExerciseGroup(
+    exerciseId: string,
+    sets: ReadonlyArray<Partial<PlanSetDetailDto>> = [],
+    supersetGroupId: string | null = null
+  ): FormGroup {
     const seedSets = sets.length > 0 ? sets : [{}, {}, {}]; // default 3 working sets
     const setGroups = seedSets.map((s) => this.createSetGroup(s));
     return this.fb.group({
       key: [uuid()],
       exerciseId: [exerciseId, Validators.required],
+      supersetGroupId: this.fb.control<string | null>(supersetGroupId),
       sets: this.fb.array<FormGroup>(setGroups, [Validators.required, Validators.minLength(1)])
     });
+  }
+
+  /** True when this exercise is supersetted with the one directly above it (same group id). */
+  isSupersetLinked(workoutIndex: number, exerciseIndex: number): boolean {
+    if (exerciseIndex === 0) return false;
+    const exArr = this.exercisesAt(workoutIndex);
+    const cur = exArr.at(exerciseIndex).get('supersetGroupId')?.value;
+    const prev = exArr.at(exerciseIndex - 1).get('supersetGroupId')?.value;
+    return !!cur && cur === prev;
+  }
+
+  /** Link/unlink this exercise into a superset with the exercise above it. */
+  toggleSuperset(workoutIndex: number, exerciseIndex: number): void {
+    if (!this.canEdit() || exerciseIndex === 0) return;
+    const exArr = this.exercisesAt(workoutIndex);
+    const cur = exArr.at(exerciseIndex);
+    const prev = exArr.at(exerciseIndex - 1);
+    if (this.isSupersetLinked(workoutIndex, exerciseIndex)) {
+      cur.get('supersetGroupId')?.setValue(null);
+    } else {
+      const group = (prev.get('supersetGroupId')?.value as string | null) ?? uuid();
+      prev.get('supersetGroupId')?.setValue(group);
+      cur.get('supersetGroupId')?.setValue(group);
+    }
+    this.form.markAsDirty();
   }
 
   setsAt(workoutIndex: number, exerciseIndex: number): FormArray<FormGroup> {
@@ -207,6 +261,9 @@ export class PlanBuilderComponent {
               targetReps: last['targetReps'] as number | null,
               targetWeightKg: last['targetWeightKg'] as number | null,
               targetRpe: last['targetRpe'] as number | null,
+              targetDurationSeconds: last['targetDurationSeconds'] as number | null,
+              targetDistanceM: last['targetDistanceM'] as number | null,
+              targetRounds: last['targetRounds'] as number | null,
               restSeconds: last['restSeconds'] as number
             }
           : {}
@@ -235,6 +292,9 @@ export class PlanBuilderComponent {
         targetReps: src['targetReps'] as number | null,
         targetWeightKg: src['targetWeightKg'] as number | null,
         targetRpe: src['targetRpe'] as number | null,
+        targetDurationSeconds: src['targetDurationSeconds'] as number | null,
+        targetDistanceM: src['targetDistanceM'] as number | null,
+        targetRounds: src['targetRounds'] as number | null,
         restSeconds: src['restSeconds'] as number
       })
     );
@@ -292,7 +352,7 @@ export class PlanBuilderComponent {
       const exArr = wg.get('exercises') as FormArray<FormGroup>;
       for (const ex of [...w.exercises].sort((a, b) => a.order - b.order)) {
         const sortedSets = [...(ex.sets ?? [])].sort((a, b) => a.order - b.order);
-        exArr.push(this.createExerciseGroup(ex.exerciseId, sortedSets));
+        exArr.push(this.createExerciseGroup(ex.exerciseId, sortedSets, ex.supersetGroupId ?? null));
       }
       wArr.push(wg);
     }
@@ -640,24 +700,43 @@ export class PlanBuilderComponent {
           };
         }
 
+        // The exercise's tracking mode decides which target metrics are meaningful/required for its sets.
+        const profile = trackingProfile(
+          this.exercises().find((e) => e.id === exerciseId)?.trackingType
+        );
+
+        const num = (v: unknown): number | null => (v === '' || v == null ? null : Number(v));
+
         const prescribedSets = [];
         for (let si = 0; si < setsArr.length; si++) {
           const sg = setsArr.at(si);
           const setType = (sg.get('setType')?.value as PlanSetTypeApi) ?? 'working';
-          const reps = Number(sg.get('targetReps')?.value);
+          const reps = num(sg.get('targetReps')?.value);
           const restSeconds = Number(sg.get('restSeconds')?.value);
-          const rawWeight = sg.get('targetWeightKg')?.value;
+          const targetWeightKg = num(sg.get('targetWeightKg')?.value);
+          const targetDurationSeconds = num(sg.get('targetDurationSeconds')?.value);
+          const targetDistanceM = num(sg.get('targetDistanceM')?.value);
+          const targetRounds = num(sg.get('targetRounds')?.value);
           const rawRpe = sg.get('targetRpe')?.value;
 
-          if (!Number.isFinite(reps) || reps < 1) {
+          // Mode-aware required-metric rule (replaces the old "reps ≥ 1" blanket): a strength set needs reps,
+          // a cardio set duration/distance, a HIIT set rounds/duration; mobility needs none.
+          if (!hasRequiredMetric(profile.type, {
+            reps,
+            weightKg: targetWeightKg,
+            durationSeconds: targetDurationSeconds,
+            distanceM: targetDistanceM,
+            rounds: targetRounds,
+            isCompleted: false
+          })) {
+            return { workouts: null, error: `Set ${si + 1} of an exercise on "${name}": ${requiredMetricMessage(profile.type)}` };
+          }
+          if (reps != null && (!Number.isFinite(reps) || reps < 1)) {
             return { workouts: null, error: `Set ${si + 1} of an exercise on "${name}": reps must be at least 1.` };
           }
           if (!Number.isFinite(restSeconds) || restSeconds < 0) {
             return { workouts: null, error: `Set ${si + 1} of an exercise on "${name}": rest must be 0 or more.` };
           }
-
-          const targetWeightKg =
-            rawWeight === '' || rawWeight == null ? null : Number(rawWeight);
           if (targetWeightKg != null && (!Number.isFinite(targetWeightKg) || targetWeightKg < 0)) {
             return { workouts: null, error: `Set ${si + 1} of an exercise on "${name}": weight must be 0 or more.` };
           }
@@ -673,7 +752,9 @@ export class PlanBuilderComponent {
             targetReps: reps,
             targetWeightKg,
             targetRpe,
-            targetDurationSeconds: null as number | null,
+            targetDurationSeconds,
+            targetDistanceM,
+            targetRounds,
             restSeconds,
             order: si + 1
           });
@@ -682,7 +763,8 @@ export class PlanBuilderComponent {
         exercises.push({
           exerciseId,
           order: ei + 1,
-          sets: prescribedSets
+          sets: prescribedSets,
+          supersetGroupId: (eg.get('supersetGroupId')?.value as string | null) ?? null
         });
       }
 

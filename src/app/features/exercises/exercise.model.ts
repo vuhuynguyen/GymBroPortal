@@ -3,6 +3,8 @@ export interface ExerciseDto {
   id: string;
   name: string;
   type: string;
+  /** Logging mode (Strength/Bodyweight/Cardio/Timed/Hiit/Mobility/Custom) — drives which metrics are shown/required. */
+  trackingType: string;
   movementType: string;
   difficulty: string;
   equipment: string;
@@ -47,6 +49,8 @@ export interface SaveExerciseRequest {
   name: string;
   description: string;
   type: string;
+  /** Logging mode; absent → server derives from type/equipment. */
+  trackingType?: string | null;
   movementType: string;
   difficulty: string;
   equipment: string;

@@ -34,9 +34,12 @@ export function computeElapsedSeconds(startMs: number, nowMs: number, pausedOffs
   return Math.max(0, Math.floor((nowMs - startMs - pausedOffsetMs) / 1000));
 }
 
-/** Total number of logged sets across all performed exercises. */
+/**
+ * Total number of logged sets across all performed exercises. Drop/rest-pause stages roll up into their
+ * lead set, so only parentless rows are counted (a `6+4+3` cluster is one set).
+ */
 export function countLoggedSets(exercises: readonly PerformedExerciseDto[]): number {
-  return exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
+  return exercises.reduce((sum, ex) => sum + ex.sets.filter((s) => !s.parentSetId).length, 0);
 }
 
 /** Working-set volume (Σ weight × reps) over *completed* sets only, in kg. */
@@ -86,9 +89,11 @@ export function isPerformedExerciseComplete(
   ex: PerformedExerciseDto,
   plannedCount: number | null
 ): boolean {
-  const planned = plannedCount ?? ex.sets.length;
+  // Count lead/standalone sets only — drop stages roll up into their lead.
+  const leadSets = ex.sets.filter((s) => !s.parentSetId);
+  const planned = plannedCount ?? leadSets.length;
   if (planned === 0) return false;
-  return ex.sets.filter((s) => s.isCompleted).length >= planned;
+  return leadSets.filter((s) => s.isCompleted).length >= planned;
 }
 
 /** Logged/total as a clamped 0–100 integer percentage; 0 when there is no total. */

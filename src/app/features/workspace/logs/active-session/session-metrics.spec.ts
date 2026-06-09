@@ -86,6 +86,27 @@ describe('countLoggedSets', () => {
   it('is zero for no exercises', () => {
     expect(countLoggedSets([])).toBe(0);
   });
+
+  it('rolls up drop stages — a lead + its stages count as one set', () => {
+    const lead = set({ id: 'lead', reps: 6 });
+    const ex = exercise([
+      lead,
+      set({ reps: 4, parentSetId: 'lead' }),
+      set({ reps: 3, parentSetId: 'lead' }),
+      set({ reps: 8 }) // a separate standalone set
+    ]);
+    expect(countLoggedSets([ex])).toBe(2); // the drop cluster + the standalone = 2 sets, not 4
+  });
+});
+
+describe('isPerformedExerciseComplete (drop rollup)', () => {
+  it('counts a drop cluster as one completed set toward the plan', () => {
+    const lead = set({ id: 'l', isCompleted: true });
+    const ex = exercise([lead, set({ isCompleted: true, parentSetId: 'l' })]);
+    // 1 lead set (with a stage) → complete against a 1-set plan, not 2.
+    expect(isPerformedExerciseComplete(ex, 1)).toBe(true);
+    expect(isPerformedExerciseComplete(ex, 2)).toBe(false);
+  });
 });
 
 describe('sumCompletedVolumeKg', () => {

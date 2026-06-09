@@ -26,6 +26,12 @@ import {
 import { ExerciseService } from '../../../exercises/exercise';
 import type { ExerciseDto } from '../../../exercises/exercise.model';
 import {
+  hasRequiredMetric,
+  requiredMetricMessage,
+  trackingProfile,
+  type TrackingMetric
+} from '../../../exercises/exercise-tracking';
+import {
   ExercisePickerPanelComponent,
   type ExercisePickerAddPayload
 } from '../../plans/exercise-picker-panel/exercise-picker-panel';
@@ -103,6 +109,10 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   readonly restRemaining = signal(0);
   readonly restTarget = signal(DEFAULT_REST_SECONDS);
   readonly restNextSet = signal<number | null>(null);
+  /** Wall-clock seconds rested since the last set was logged — auto-captured as the next set's restSeconds. */
+  readonly restElapsed = signal(0);
+  /** When the current rest period began (wall-clock); null until a set is logged, reset when the next set logs. */
+  private restStartedAtMs: number | null = null;
 
   // Replace / add exercise picker (reuses ExercisePickerPanelComponent)
   readonly pickerOpen = signal(false);
@@ -110,10 +120,20 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
 
   readonly catalogExercises = this.exerciseService.exercises;
 
-  /** Active-row entry form (weight / reps / rpe). RPE is a string for `app-select`. */
+  /**
+   * Active-row entry form. Carries every tracking metric; which controls are shown is driven by the active
+   * exercise's mode (see {@link activeProfile} / {@link showField}). RPE is a string for `app-select`.
+   */
   readonly setForm = this.fb.group({
     weightKg: this.fb.control<number | null>(null),
     reps: this.fb.control<number | null>(null, [Validators.min(0)]),
+    durationSeconds: this.fb.control<number | null>(null, [Validators.min(0)]),
+    distanceM: this.fb.control<number | null>(null, [Validators.min(0)]),
+    calories: this.fb.control<number | null>(null, [Validators.min(0)]),
+    avgHeartRate: this.fb.control<number | null>(null, [Validators.min(0)]),
+    rounds: this.fb.control<number | null>(null, [Validators.min(0)]),
+    // Actual rest taken before this set — auto-filled from the rest timer, editable.
+    restSeconds: this.fb.control<number | null>(null, [Validators.min(0)]),
     rpe: this.fb.control<string | null>(null)
   });
 
@@ -162,6 +182,57 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     return this.exercises().findIndex((e) => e.id === active.id) + 1;
   });
 
+  /** Tracking profile for the active exercise — drives which set-entry inputs the row shows. */
+  readonly activeProfile = computed(() => trackingProfile(this.activeExercise()?.trackingType));
+
+  /** Reveals the secondary metric inputs (calories / HR / rest / RPE) for the current entry. */
+  readonly showMoreMetrics = signal(false);
+
+  /** True when the active exercise's mode shows the given metric as a default (always-on) input. */
+  showField(metric: TrackingMetric): boolean {
+    return this.activeProfile().fields.includes(metric);
+  }
+
+  /** True when the metric is a secondary one and the "More" section is expanded. */
+  showExtra(metric: TrackingMetric): boolean {
+    return this.showMoreMetrics() && this.activeProfile().extras.includes(metric);
+  }
+
+  toggleMoreMetrics(): void {
+    this.showMoreMetrics.update((v) => !v);
+  }
+
+  /** Compact, mode-aware summary of a prescribed target row (pending sets). */
+  targetSummary(target: SessionSnapshotSetDto | null | undefined): string {
+    if (!target) return '—';
+    const parts: string[] = [];
+    if (target.targetWeightKg != null && target.targetReps != null) parts.push(`${target.targetWeightKg} kg × ${target.targetReps}`);
+    else if (target.targetReps != null) parts.push(`${target.targetReps} reps`);
+    if (target.targetDurationSeconds != null) parts.push(this.formatTime(target.targetDurationSeconds));
+    if (target.targetDistanceM != null) parts.push(`${target.targetDistanceM} m`);
+    if (target.targetRounds != null) parts.push(`${target.targetRounds} rounds`);
+    if (target.targetRpe != null) parts.push(`RPE ${target.targetRpe}`);
+    return parts.length ? parts.join(' · ') : '—';
+  }
+
+  /** Compact, mode-aware summary of a logged set (e.g. "60 × 8", "12:00 · 2000 m", "5 rounds"). */
+  summarizeSet(set: PerformedSetDto | null | undefined): string {
+    if (!set) return '—';
+    const parts: string[] = [];
+    // Only metrics with a real (> 0) value are shown — never "—kg × —" or "0 kcal".
+    const w = set.weightKg ?? 0;
+    const r = set.reps ?? 0;
+    if (w > 0 && r > 0) parts.push(`${set.weightKg} × ${set.reps}`);
+    else if (r > 0) parts.push(`${set.reps} reps`);
+    else if (w > 0) parts.push(`${set.weightKg} kg`);
+    if ((set.durationSeconds ?? 0) > 0) parts.push(formatDuration(set.durationSeconds!));
+    if ((set.distanceM ?? 0) > 0) parts.push(`${set.distanceM} m`);
+    if ((set.rounds ?? 0) > 0) parts.push(`${set.rounds} rounds`);
+    if ((set.calories ?? 0) > 0) parts.push(`${set.calories} kcal`);
+    if ((set.avgHeartRate ?? 0) > 0) parts.push(`${set.avgHeartRate} bpm`);
+    return parts.length ? parts.join(' · ') : '—';
+  }
+
   readonly loggedSets = computed(() => countLoggedSets(this.exercises()));
 
   readonly totalSets = computed(() =>
@@ -186,7 +257,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     return `${this.loggedSets()} / ${total}`;
   });
 
-  /** Rendered rows for the active exercise's set table: done → active → pending. */
+  /** Rendered rows for the active exercise's set table: done → active → pending. Drop stages roll up into their lead. */
   readonly activeSetRows = computed<SetRowView[]>(() => {
     const ex = this.activeExercise();
     if (!ex) return [];
@@ -194,22 +265,24 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     const planned = snap?.sets?.length ?? 0;
     const rows: SetRowView[] = [];
 
-    ex.sets.forEach((set, i) => {
-      const prev = i > 0 ? ex.sets[i - 1] : null;
+    // Only lead/standalone sets get a numbered row; a drop cluster shows as one row (e.g. "6+4+3").
+    const leads = ex.sets.filter((s) => !s.parentSetId);
+    leads.forEach((set, i) => {
+      const prev = i > 0 ? leads[i - 1] : null;
       rows.push({
         kind: 'done',
         setNumber: i + 1,
         set,
-        lastTime: prev ? `${prev.weightKg ?? 0} × ${prev.reps ?? 0}` : '—'
+        lastTime: this.rollupSummary(ex, prev)
       });
     });
 
-    const activeNumber = ex.sets.length + 1;
-    const lastDone = ex.sets[ex.sets.length - 1] ?? null;
+    const activeNumber = leads.length + 1;
+    const lastDone = leads[leads.length - 1] ?? null;
     rows.push({
       kind: 'active',
       setNumber: activeNumber,
-      lastTime: lastDone ? `${lastDone.weightKg ?? 0} × ${lastDone.reps ?? 0}` : '—'
+      lastTime: this.rollupSummary(ex, lastDone)
     });
 
     for (let n = activeNumber + 1; n <= planned; n++) {
@@ -222,6 +295,21 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     }
     return rows;
   });
+
+  /** Drop stages logged under a lead set, in order. */
+  dropStagesOf(ex: PerformedExerciseDto, lead: PerformedSetDto): PerformedSetDto[] {
+    return ex.sets.filter((s) => s.parentSetId === lead.id);
+  }
+
+  /** Summary of a lead set rolled up with its drop stages, e.g. "60 × 6+4+3" or "12:00 · 2000 m". */
+  rollupSummary(ex: PerformedExerciseDto, lead: PerformedSetDto | null | undefined): string {
+    if (!lead) return '—';
+    const stages = this.dropStagesOf(ex, lead);
+    if (stages.length === 0) return this.summarizeSet(lead);
+    // Drop cluster: show the (shared) weight once and chain the reps.
+    const repsChain = [lead, ...stages].map((s) => s.reps ?? '—').join('+');
+    return lead.weightKg != null ? `${lead.weightKg} × ${repsChain}` : `${repsChain} reps`;
+  }
 
   /** Header subtitle (live status + elapsed + source) shown under the title. */
   readonly headerSubtitle = computed(() => {
@@ -253,12 +341,17 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   activeExerciseSub(ex: PerformedExerciseDto | null): string | null {
     if (!ex) return null;
     const last = ex.sets[ex.sets.length - 1];
-    if (last) return `Last set ${last.weightKg ?? 0} kg × ${last.reps ?? 0}`;
+    if (last) return `Last set ${this.summarizeSet(last)}`;
     const snap = this.snapshotForExercise(ex);
     const target = snap?.sets?.[0];
-    if (target?.targetWeightKg != null || target?.targetReps != null) {
-      const w = target?.targetWeightKg != null ? `${target.targetWeightKg} kg × ` : '';
-      return `Target ${w}${target?.targetReps ?? '—'}`;
+    if (target) {
+      const t: string[] = [];
+      if (target.targetWeightKg != null && target.targetReps != null) t.push(`${target.targetWeightKg} kg × ${target.targetReps}`);
+      else if (target.targetReps != null) t.push(`${target.targetReps} reps`);
+      if (target.targetDurationSeconds != null) t.push(this.formatTime(target.targetDurationSeconds));
+      if (target.targetDistanceM != null) t.push(`${target.targetDistanceM} m`);
+      if (target.targetRounds != null) t.push(`${target.targetRounds} rounds`);
+      if (t.length) return `Target ${t.join(' · ')}`;
     }
     return null;
   }
@@ -269,13 +362,19 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   }
 
   /** Set-progress dots for an outline row. */
+  /** Number of logged lead/standalone sets (drop stages roll up, so they don't add to the count). */
+  private leadCount(ex: PerformedExerciseDto): number {
+    return ex.sets.filter((s) => !s.parentSetId).length;
+  }
+
   outlineDots(ex: PerformedExerciseDto): Array<'done' | 'active' | ''> {
     const isActive = ex.id === this.activeExercise()?.id;
     const total = this.targetSetCountForExercise(ex, isActive);
+    const done = this.leadCount(ex);
     const dots: Array<'done' | 'active' | ''> = [];
     for (let i = 0; i < total; i++) {
-      if (i < ex.sets.length) dots.push('done');
-      else if (i === ex.sets.length && isActive) dots.push('active');
+      if (i < done) dots.push('done');
+      else if (i === done && isActive) dots.push('active');
       else dots.push('');
     }
     return dots;
@@ -285,7 +384,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     const eq = this.exerciseEquipment(ex);
     const isActive = ex.id === this.activeExercise()?.id;
     const total = this.targetSetCountForExercise(ex, isActive);
-    const done = ex.sets.length;
+    const done = this.leadCount(ex);
     const progress = `${done}/${total} sets`;
     return eq ? `${eq} · ${progress}` : progress;
   }
@@ -297,7 +396,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   /** Planned sets, logged sets, or the in-progress entry row — whichever is highest. */
   private targetSetCountForExercise(ex: PerformedExerciseDto, includeActiveRow: boolean): number {
     const snap = this.snapshotForExercise(ex);
-    return resolveTargetSetCount(ex.sets.length, snap?.sets?.length ?? 0, includeActiveRow);
+    return resolveTargetSetCount(this.leadCount(ex), snap?.sets?.length ?? 0, includeActiveRow);
   }
 
   isExerciseComplete(ex: PerformedExerciseDto): boolean {
@@ -441,6 +540,9 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     this.stopTimer();
     this.timerHandle = setInterval(() => {
       this.syncElapsed();
+      if (this.restStartedAtMs != null) {
+        this.restElapsed.set(Math.round((Date.now() - this.restStartedAtMs) / 1000));
+      }
       if (this.resting()) {
         this.restRemaining.update((v) => Math.max(0, v - 1));
         if (this.restRemaining() === 0) this.resting.set(false);
@@ -474,6 +576,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   setActive(exerciseId: string): void {
     this.activeExerciseId.set(exerciseId);
     this.resting.set(false);
+    this.showMoreMetrics.set(false);
     this.seedFormFromTargets();
   }
 
@@ -488,10 +591,17 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     if (!ex) return;
     const last = ex.sets[ex.sets.length - 1];
     const snap = this.snapshotForExercise(ex);
-    const target = snap?.sets?.[ex.sets.length];
+    const target = snap?.sets?.[this.leadCount(ex)];
     this.setForm.reset({
       weightKg: last?.weightKg ?? target?.targetWeightKg ?? null,
       reps: last?.reps ?? target?.targetReps ?? null,
+      durationSeconds: last?.durationSeconds ?? target?.targetDurationSeconds ?? null,
+      distanceM: last?.distanceM ?? target?.targetDistanceM ?? null,
+      calories: last?.calories ?? null,
+      avgHeartRate: last?.avgHeartRate ?? null,
+      rounds: last?.rounds ?? target?.targetRounds ?? null,
+      // Left blank → the actual rest taken (restElapsed) is auto-captured; a typed value overrides it.
+      restSeconds: null,
       rpe: null
     });
   }
@@ -533,6 +643,38 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   }
 
   logSet(): void {
+    this.doLogSet(null);
+  }
+
+  /** Log a drop/rest-pause stage onto the active exercise's last lead set (the cluster stays one logical set). */
+  logDropStage(): void {
+    const ex = this.activeExercise();
+    if (!ex) return;
+    const lead = this.lastLeadSet(ex);
+    if (!lead) {
+      this.messageService.add({ severity: 'warn', summary: 'Log a set first, then add a drop' });
+      return;
+    }
+    this.doLogSet(lead.id);
+  }
+
+  /** The last logged parentless (lead/standalone) set of an exercise — the anchor for a new drop stage. */
+  lastLeadSet(ex: PerformedExerciseDto): PerformedSetDto | null {
+    for (let i = ex.sets.length - 1; i >= 0; i--) {
+      if (!ex.sets[i].parentSetId) return ex.sets[i];
+    }
+    return null;
+  }
+
+  /** Exercises performed together as a superset (same group id), ordered; just [ex] when standalone. */
+  supersetPeers(ex: PerformedExerciseDto): PerformedExerciseDto[] {
+    if (!ex.supersetGroupId) return [ex];
+    return this.exercises()
+      .filter((e) => e.supersetGroupId === ex.supersetGroupId)
+      .sort((a, b) => a.order - b.order);
+  }
+
+  private doLogSet(parentSetId: string | null): void {
     if (this.saving()) return;
     const session = this.session();
     const ex = this.activeExercise();
@@ -540,25 +682,47 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
 
     const reps = this.toNumber(this.setForm.controls.reps.value);
     const weightKg = this.toNumber(this.setForm.controls.weightKg.value);
+    const durationSeconds = this.toNumber(this.setForm.controls.durationSeconds.value);
+    const distanceM = this.toNumber(this.setForm.controls.distanceM.value);
+    const calories = this.toNumber(this.setForm.controls.calories.value);
+    const avgHeartRate = this.toNumber(this.setForm.controls.avgHeartRate.value);
+    const rounds = this.toNumber(this.setForm.controls.rounds.value);
     const rpe = this.toNumber(this.setForm.controls.rpe.value);
-    if (reps == null) {
-      this.messageService.add({ severity: 'warn', summary: 'Enter reps to log the set' });
+
+    // Mode-aware required-metric check (mirrors the server). Strength needs reps; cardio needs
+    // duration/distance; HIIT needs rounds/duration; mobility accepts a marked-done set.
+    if (!hasRequiredMetric(ex.trackingType, { reps, weightKg, durationSeconds, distanceM, rounds, isCompleted: true })) {
+      this.messageService.add({ severity: 'warn', summary: requiredMetricMessage(ex.trackingType) });
       return;
     }
 
+    // Rest is captured only on a lead set (a drop stage is part of the same set, no inter-stage rest).
+    // A typed value overrides the auto-captured actual rest taken since the previous set.
+    const restOverride = this.toNumber(this.setForm.controls.restSeconds.value);
+    const restSeconds = parentSetId
+      ? null
+      : restOverride ?? (this.restStartedAtMs != null ? this.restElapsed() : null);
+
     const setNumber = ex.sets.length + 1;
     const snap = this.snapshotForExercise(ex);
-    const snapSet = snap?.sets?.[setNumber - 1];
+    const snapSet = parentSetId ? undefined : snap?.sets?.[setNumber - 1];
 
     this.saving.set(true);
     this.sessionService
       .logSet(session.sessionId, ex.id, {
         planSetId: snapSet?.planSetId ?? null,
+        parentSetId,
         setNumber,
-        setType: snapSet?.setType ?? 'working',
+        setType: parentSetId ? 'drop' : snapSet?.setType ?? 'working',
         reps,
         weightKg,
+        durationSeconds,
+        distanceM,
+        calories,
+        avgHeartRate,
+        rounds,
         rpe,
+        restSeconds,
         isCompleted: true
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -571,14 +735,43 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
               e.id === ex.id ? { ...e, sets: [...e.sets, loggedSet] } : e
             )
           }));
-          this.startRest(snapSet?.restSeconds ?? DEFAULT_REST_SECONDS, setNumber + 1);
-          this.seedFormFromTargets();
+          this.restStartedAtMs = null; // rest captured; restart counting only when a rest period begins
+          if (parentSetId) {
+            // A drop stage continues the same set — no rest timer, no superset rotation.
+            this.seedFormFromTargets();
+            return;
+          }
+          this.advanceAfterSet(ex, snapSet?.restSeconds ?? DEFAULT_REST_SECONDS, setNumber + 1);
         },
         error: () => {
           this.saving.set(false);
           this.messageService.add({ severity: 'error', summary: 'Could not log set' });
         }
       });
+  }
+
+  /**
+   * Superset-aware progression after a logged set: rotate to the next peer in the group; rest only fires
+   * after the round completes (wraps to the first peer). A standalone exercise just rests as usual.
+   */
+  private advanceAfterSet(ex: PerformedExerciseDto, restSeconds: number, nextSet: number): void {
+    const peers = this.supersetPeers(ex);
+    if (peers.length > 1) {
+      const idx = peers.findIndex((p) => p.id === ex.id);
+      const next = peers[(idx + 1) % peers.length];
+      this.activeExerciseId.set(next.id);
+      if (next.id === peers[0].id) {
+        // Wrapped back to the start → a round is complete: rest, then resume on the first peer.
+        this.startRest(restSeconds, nextSet);
+      } else {
+        // Still mid-round → move straight to the next exercise, no rest.
+        this.resting.set(false);
+      }
+      this.seedFormFromTargets();
+      return;
+    }
+    this.startRest(restSeconds, nextSet);
+    this.seedFormFromTargets();
   }
 
   removeSet(set: PerformedSetDto): void {
@@ -609,6 +802,9 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     this.restRemaining.set(seconds);
     this.restNextSet.set(nextSet);
     this.resting.set(true);
+    // Begin counting actual rest taken (wall-clock) so the next set logs how long you really rested.
+    this.restStartedAtMs = Date.now();
+    this.restElapsed.set(0);
   }
 
   adjustRest(delta: number): void {
@@ -680,6 +876,9 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
             this.setForm.reset({
               weightKg: firstSet.targetWeightKg,
               reps: firstSet.targetReps,
+              durationSeconds: firstSet.targetDurationSeconds ?? null,
+              distanceM: firstSet.targetDistanceM ?? null,
+              rounds: firstSet.targetRounds ?? null,
               rpe: firstSet.targetRpe != null ? String(firstSet.targetRpe) : null
             });
           } else {
@@ -722,6 +921,27 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   finishWorkout(): void {
     const session = this.session();
     if (!session) return;
+    // Nothing logged → there's no workout to complete; save it as abandoned instead.
+    if (this.loggedSets() === 0) {
+      this.showFinishConfirm.set(false);
+      this.saving.set(true);
+      this.sessionService
+        .abandon(session.sessionId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: () => {
+            this.saving.set(false);
+            this.stopTimer();
+            this.messageService.add({ severity: 'info', summary: 'Nothing logged — session discarded' });
+            void this.router.navigate(['/workspace/logs']);
+          },
+          error: () => {
+            this.saving.set(false);
+            this.messageService.add({ severity: 'error', summary: 'Could not finish session' });
+          }
+        });
+      return;
+    }
     const avg = this.avgRpe();
     const rpeOverall =
       avg != null ? Math.min(10, Math.max(1, Math.round(avg))) : null;
