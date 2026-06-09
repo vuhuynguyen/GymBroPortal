@@ -247,30 +247,6 @@
                                       <span></span>
                                     }
                                   </div>
-
-                                  <!-- Mode-aware extra targets (cardio/timed/HIIT) — shown only when the exercise uses them. -->
-                                  @if (showTargetAt(wi, ei, 'duration') || showTargetAt(wi, ei, 'distance') || showTargetAt(wi, ei, 'rounds')) {
-                                    <div class="pb-set-grid__extra grid items-center gap-2 px-1" style="grid-template-columns: 28px 1fr;" [formGroupName]="si">
-                                      <span></span>
-                                      <div class="flex flex-wrap items-center gap-3 text-inv-body-mini text-inv-grey-500">
-                                        @if (showTargetAt(wi, ei, 'duration')) {
-                                          <label class="inline-flex items-center gap-1">Duration
-                                            <input type="number" inputmode="numeric" min="1" placeholder="sec" formControlName="targetDurationSeconds" class="h-8 w-20 rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 placeholder:text-inv-grey-400 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' target duration in seconds'" />
-                                          </label>
-                                        }
-                                        @if (showTargetAt(wi, ei, 'distance')) {
-                                          <label class="inline-flex items-center gap-1">Distance
-                                            <input type="number" inputmode="numeric" min="1" placeholder="m" formControlName="targetDistanceM" class="h-8 w-20 rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 placeholder:text-inv-grey-400 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' target distance in metres'" />
-                                          </label>
-                                        }
-                                        @if (showTargetAt(wi, ei, 'rounds')) {
-                                          <label class="inline-flex items-center gap-1">Rounds
-                                            <input type="number" inputmode="numeric" min="1" placeholder="—" formControlName="targetRounds" class="h-8 w-20 rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 placeholder:text-inv-grey-400 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' target rounds'" />
-                                          </label>
-                                        }
-                                      </div>
-                                    </div>
-                                  }
                                 }
                               </div>
                               </div>
