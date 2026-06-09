@@ -58,7 +58,7 @@ import {
 
 /** One rendered row in the active exercise's set table. */
 type SetRowView =
-  | { kind: 'done'; setNumber: number; set: PerformedSetDto; lastTime: string }
+  | { kind: 'done'; setNumber: number; set: PerformedSetDto; lastTime: string; restAfter: number | null }
   | { kind: 'active'; setNumber: number; lastTime: string }
   | { kind: 'pending'; setNumber: number; target: SessionSnapshotSetDto | null; lastTime: string };
 
@@ -268,12 +268,16 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     // Only lead/standalone sets get a numbered row; a drop cluster shows as one row (e.g. "6+4+3").
     const leads = ex.sets.filter((s) => !s.parentSetId);
     leads.forEach((set, i) => {
-      const prev = i > 0 ? leads[i - 1] : null;
+      // Rest is stored as "rest before this set"; show it as the rest taken *after* a set
+      // (= the next set's stored value), so the first set isn't mislabelled. Last set shows none.
+      const next = leads[i + 1] ?? null;
       rows.push({
         kind: 'done',
         setNumber: i + 1,
         set,
-        lastTime: this.rollupSummary(ex, prev)
+        // "Last time" is only meaningful on the upcoming (active) row — keep done rows uncluttered.
+        lastTime: '',
+        restAfter: next?.restSeconds ?? null
       });
     });
 
@@ -680,13 +684,19 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     const ex = this.activeExercise();
     if (!session || !ex) return;
 
-    const reps = this.toNumber(this.setForm.controls.reps.value);
-    const weightKg = this.toNumber(this.setForm.controls.weightKg.value);
-    const durationSeconds = this.toNumber(this.setForm.controls.durationSeconds.value);
-    const distanceM = this.toNumber(this.setForm.controls.distanceM.value);
-    const calories = this.toNumber(this.setForm.controls.calories.value);
-    const avgHeartRate = this.toNumber(this.setForm.controls.avgHeartRate.value);
-    const rounds = this.toNumber(this.setForm.controls.rounds.value);
+    // Only log the metrics this exercise's mode actually uses, so a Timed set never carries a stray
+    // reps/weight (and a strength set never carries duration). RPE + rest apply to every mode.
+    const profile = trackingProfile(ex.trackingType);
+    const loggable = new Set<string>([...profile.fields, ...profile.extras]);
+    const gate = (metric: string, v: number | null) => (loggable.has(metric) ? v : null);
+
+    const reps = gate('reps', this.toNumber(this.setForm.controls.reps.value));
+    const weightKg = gate('weight', this.toNumber(this.setForm.controls.weightKg.value));
+    const durationSeconds = gate('duration', this.toNumber(this.setForm.controls.durationSeconds.value));
+    const distanceM = gate('distance', this.toNumber(this.setForm.controls.distanceM.value));
+    const calories = gate('calories', this.toNumber(this.setForm.controls.calories.value));
+    const avgHeartRate = gate('heartRate', this.toNumber(this.setForm.controls.avgHeartRate.value));
+    const rounds = gate('rounds', this.toNumber(this.setForm.controls.rounds.value));
     const rpe = this.toNumber(this.setForm.controls.rpe.value);
 
     // Mode-aware required-metric check (mirrors the server). Strength needs reps; cardio needs

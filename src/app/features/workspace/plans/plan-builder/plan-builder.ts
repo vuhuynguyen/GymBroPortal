@@ -21,8 +21,7 @@ import { ExerciseService } from '../../../exercises/exercise';
 import {
   hasRequiredMetric,
   requiredMetricMessage,
-  trackingProfile,
-  type TrackingMetric
+  trackingProfile
 } from '../../../exercises/exercise-tracking';
 import { WorkoutPlanService } from '../workout-plan.service';
 import type {
@@ -197,9 +196,39 @@ export class PlanBuilderComponent {
     return trackingProfile(meta?.trackingType);
   }
 
-  /** True when the row's exercise mode prescribes the given target metric. */
-  showTargetAt(workoutIndex: number, exerciseIndex: number, metric: TrackingMetric): boolean {
-    return this.exerciseProfileAt(workoutIndex, exerciseIndex).targetFields.includes(metric);
+  /**
+   * The two mode-aware metric columns for an exercise's set rows (label + bound form control).
+   * Strength → Reps/Weight; Cardio → Duration/Distance; Timed → Duration (one column); HIIT → Rounds/Duration.
+   * Keeps the set grid to the relevant fields instead of always showing Reps/Weight + an extra line.
+   */
+  metricColumnsAt(
+    workoutIndex: number,
+    exerciseIndex: number
+  ): { label: string; control: string; max: number | null }[] {
+    switch (this.exerciseProfileAt(workoutIndex, exerciseIndex).type) {
+      case 'Cardio':
+        return [
+          { label: 'Duration s', control: 'targetDurationSeconds', max: null },
+          { label: 'Distance m', control: 'targetDistanceM', max: null }
+        ];
+      case 'Timed':
+        return [{ label: 'Duration s', control: 'targetDurationSeconds', max: null }];
+      case 'Hiit':
+        return [
+          { label: 'Rounds', control: 'targetRounds', max: null },
+          { label: 'Work s', control: 'targetDurationSeconds', max: null }
+        ];
+      case 'Mobility':
+        return [
+          { label: 'Duration s', control: 'targetDurationSeconds', max: null },
+          { label: 'Reps', control: 'targetReps', max: 99 }
+        ];
+      default:
+        return [
+          { label: 'Reps', control: 'targetReps', max: 99 },
+          { label: 'Weight', control: 'targetWeightKg', max: null }
+        ];
+    }
   }
 
   /** Builds a form group for an exercise row with a per-set FormArray. */
@@ -605,6 +634,42 @@ export class PlanBuilderComponent {
     void this.router.navigate(['/workspace/plans']);
   }
 
+  private static readonly FIELD_LABELS: Record<string, string> = {
+    targetReps: 'reps',
+    targetWeightKg: 'weight',
+    targetRpe: 'RPE',
+    targetDurationSeconds: 'duration',
+    targetDistanceM: 'distance',
+    targetRounds: 'rounds',
+    restSeconds: 'rest'
+  };
+
+  /** Walks the form to name the first invalid field, so the warning points to exactly what to fix. */
+  private describeFirstInvalid(): string | null {
+    if (this.form.get('name')?.invalid) return 'Plan name is required.';
+    const workouts = this.workouts();
+    for (let wi = 0; wi < workouts.length; wi++) {
+      const w = workouts.at(wi);
+      const wName = ((w.get('name')?.value as string) || '').trim() || `Workout ${wi + 1}`;
+      if (w.get('name')?.invalid) return `“${wName}”: workout name is required.`;
+      const exs = this.exercisesAt(wi);
+      for (let ei = 0; ei < exs.length; ei++) {
+        const e = exs.at(ei);
+        if (e.get('exerciseId')?.invalid) return `“${wName}” · exercise ${ei + 1}: pick an exercise.`;
+        const sets = this.setsAt(wi, ei);
+        for (let si = 0; si < sets.length; si++) {
+          const sg = sets.at(si) as FormGroup;
+          if (sg.invalid) {
+            const bad = Object.keys(sg.controls).find((k) => sg.get(k)?.invalid);
+            const label = (bad && PlanBuilderComponent.FIELD_LABELS[bad]) || 'a value';
+            return `“${wName}” · exercise ${ei + 1} · set ${si + 1}: check ${label}.`;
+          }
+        }
+      }
+    }
+    return null;
+  }
+
   savePlan(): void {
     if (!this.canEdit()) return;
     const id = this.planId();
@@ -618,7 +683,7 @@ export class PlanBuilderComponent {
       this.messageService.add({
         severity: 'warn',
         summary: 'Check fields',
-        detail: 'Fix validation errors before saving.'
+        detail: this.describeFirstInvalid() ?? 'Fix the highlighted field before saving.'
       });
       return;
     }
@@ -747,14 +812,17 @@ export class PlanBuilderComponent {
             return { workouts: null, error: `Set ${si + 1} of an exercise on "${name}": RPE must be between 1 and 10.` };
           }
 
+          // Persist only the metrics this exercise's mode actually uses, so a cardio set never carries a
+          // stray reps/weight (and a strength set never carries duration). RPE + rest apply to every mode.
+          const keep = profile.targetFields;
           prescribedSets.push({
             setType,
-            targetReps: reps,
-            targetWeightKg,
+            targetReps: keep.includes('reps') ? reps : null,
+            targetWeightKg: keep.includes('weight') ? targetWeightKg : null,
             targetRpe,
-            targetDurationSeconds,
-            targetDistanceM,
-            targetRounds,
+            targetDurationSeconds: keep.includes('duration') ? targetDurationSeconds : null,
+            targetDistanceM: keep.includes('distance') ? targetDistanceM : null,
+            targetRounds: keep.includes('rounds') ? targetRounds : null,
             restSeconds,
             order: si + 1
           });

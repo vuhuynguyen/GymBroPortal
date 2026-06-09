@@ -139,7 +139,7 @@
                   <tr>
                     <th class="col-n">Set</th>
                     <th class="col-last">Last time</th>
-                    <th class="col-entry">{{ activeProfile().type }} entry</th>
+                    <th class="col-entry">Entry</th>
                     <th class="col-status action">&nbsp;</th>
                   </tr>
                 </thead>
@@ -152,8 +152,11 @@
                           <td class="col-last">{{ row.lastTime }}</td>
                           <td class="col-entry">
                             {{ rollupSummary(ax, row.set) }}
-                            @if ((row.set.restSeconds ?? 0) > 0) {
-                              <span class="set-rest-note">· rest {{ formatRest(row.set.restSeconds!) }}</span>
+                            @if (row.set.rpe) {
+                              <span class="set-rest-note">· RPE {{ row.set.rpe }}</span>
+                            }
+                            @if ((row.restAfter ?? 0) > 0) {
+                              <span class="set-rest-note">· rest {{ formatRest(row.restAfter!) }}</span>
                             }
                           </td>
                           <td class="col-status">
