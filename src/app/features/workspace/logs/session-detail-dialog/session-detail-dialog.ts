@@ -207,15 +207,20 @@ export class SessionDetailDialogComponent implements AfterViewInit, OnDestroy {
     return type.charAt(0).toUpperCase() + type.slice(1);
   }
 
+  /** Mode-aware, zero-suppressing summary of a logged set (strength, cardio, HIIT, timed…). */
   weightReps(set: PerformedSetDto): string {
-    if (set.reps != null) {
-      if (set.weightKg && set.weightKg > 0) return `${set.weightKg} × ${set.reps}`;
-      return `BW × ${set.reps}`;
-    }
-    // Cardio / timed / distance sets carry no reps.
-    if (set.durationSeconds) return this.formatSetDuration(set.durationSeconds);
-    if (set.distanceM) return `${set.distanceM} m`;
-    return 'Not set';
+    const parts: string[] = [];
+    const w = set.weightKg ?? 0;
+    const r = set.reps ?? 0;
+    if (w > 0 && r > 0) parts.push(`${set.weightKg} × ${set.reps}`);
+    else if (r > 0) parts.push(`BW × ${set.reps}`);
+    else if (w > 0) parts.push(`${set.weightKg} kg`);
+    if ((set.durationSeconds ?? 0) > 0) parts.push(this.formatSetDuration(set.durationSeconds!));
+    if ((set.distanceM ?? 0) > 0) parts.push(`${set.distanceM} m`);
+    if ((set.rounds ?? 0) > 0) parts.push(`${set.rounds} rounds`);
+    if ((set.calories ?? 0) > 0) parts.push(`${set.calories} kcal`);
+    if ((set.avgHeartRate ?? 0) > 0) parts.push(`${set.avgHeartRate} bpm`);
+    return parts.length ? parts.join(' · ') : '—';
   }
 
   private formatSetDuration(seconds: number): string {

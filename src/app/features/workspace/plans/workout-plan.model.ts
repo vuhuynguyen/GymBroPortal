@@ -54,6 +54,8 @@ export interface PlanSetDetailDto {
   targetWeightKg: number | null;
   targetRpe: number | null;
   targetDurationSeconds: number | null;
+  targetDistanceM?: number | null;
+  targetRounds?: number | null;
   restSeconds: number;
 }
 
@@ -63,6 +65,7 @@ export interface PlanWorkoutExerciseDetailDto {
   exerciseName: string | null;
   order: number;
   sets: PlanSetDetailDto[];
+  supersetGroupId?: string | null;
 }
 
 export interface PlanWorkoutDetailDto {
@@ -105,6 +108,8 @@ export interface PlanSetRequest {
   targetWeightKg?: number | null;
   targetRpe?: number | null;
   targetDurationSeconds?: number | null;
+  targetDistanceM?: number | null;
+  targetRounds?: number | null;
   restSeconds: number;
   order: number;
 }
@@ -113,6 +118,7 @@ export interface PlanWorkoutExerciseRequest {
   exerciseId: string;
   order: number;
   sets: PlanSetRequest[];
+  supersetGroupId?: string | null;
 }
 
 export interface PlanWorkoutStructureRequest {

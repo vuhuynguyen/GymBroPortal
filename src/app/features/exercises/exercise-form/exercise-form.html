@@ -75,6 +75,17 @@
             </app-form-field>
 
             <app-form-field
+              label="Tracking mode"
+              forId="ex-tracking"
+              hint="How sets are logged. Leave blank to derive from type/equipment.">
+              <app-select
+                inputId="ex-tracking"
+                formControlName="trackingType"
+                [options]="trackingTypes"
+                placeholder="Auto (from type)" />
+            </app-form-field>
+
+            <app-form-field
               label="Movement"
               forId="ex-movement"
               [required]="true"

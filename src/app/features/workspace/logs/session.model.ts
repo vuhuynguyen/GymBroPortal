@@ -43,6 +43,9 @@ export interface SessionSnapshotSetDto {
   targetReps: number | null;
   targetWeightKg: number | null;
   targetRpe: number | null;
+  targetDurationSeconds?: number | null;
+  targetDistanceM?: number | null;
+  targetRounds?: number | null;
   restSeconds: number | null;
 }
 
@@ -52,6 +55,7 @@ export interface SessionSnapshotExerciseDto {
   exerciseName: string;
   order: number;
   sets: SessionSnapshotSetDto[];
+  supersetGroupId?: string | null;
 }
 
 export interface SessionSnapshotDto {
@@ -68,6 +72,11 @@ export interface PerformedSetDto {
   weightKg: number | null;
   durationSeconds: number | null;
   distanceM: number | null;
+  calories?: number | null;
+  avgHeartRate?: number | null;
+  rounds?: number | null;
+  /** Set when this row is a stage of a drop/rest-pause cluster led by ParentSetId (counts as one set). */
+  parentSetId?: string | null;
   rpe: number | null;
   restSeconds: number | null;
   isCompleted: boolean;
@@ -87,6 +96,10 @@ export interface PerformedExerciseDto {
   substitutedFromExerciseName?: string | null;
   notes?: string | null;
   sets: PerformedSetDto[];
+  /** Logging mode (denormalized at add/substitute time) — drives which metric inputs to show. Defaults to Strength. */
+  trackingType?: string;
+  /** Exercises sharing a non-null group id are performed as a superset (rotated, rest after the round). */
+  supersetGroupId?: string | null;
 }
 
 export interface ActiveSessionDto {
@@ -160,12 +173,17 @@ export interface AddExerciseRequest {
 
 export interface LogSetRequest {
   planSetId?: string | null;
+  /** Set when logging a drop/rest-pause stage of an existing lead set. */
+  parentSetId?: string | null;
   setNumber: number;
   setType: SetType;
   reps?: number | null;
   weightKg?: number | null;
   durationSeconds?: number | null;
   distanceM?: number | null;
+  calories?: number | null;
+  avgHeartRate?: number | null;
+  rounds?: number | null;
   rpe?: number | null;
   restSeconds?: number | null;
   isCompleted: boolean;

@@ -32,9 +32,12 @@ import type { PlanSetTypeApi } from '../workout-plan.model';
 /** A prescribed set as configured in the picker — consumer turns it into a PlanSetRequest. */
 export interface ExercisePickerSetSeed {
   setType: PlanSetTypeApi;
-  targetReps: number;
+  targetReps: number | null;
   targetWeightKg: number | null;
   targetRpe: number | null;
+  targetDurationSeconds?: number | null;
+  targetDistanceM?: number | null;
+  targetRounds?: number | null;
   restSeconds: number;
 }
 
@@ -105,7 +108,8 @@ export class ExercisePickerPanelComponent {
     return this.fb.group({
       key: [uuid()],
       setType: [seed?.setType ?? ('working' as PlanSetTypeApi), Validators.required],
-      targetReps: [seed?.targetReps ?? 10, [Validators.required, Validators.min(1), Validators.max(99)]],
+      // Reps is no longer required: cardio/timed/HIIT exercises are logged live by duration/distance/rounds.
+      targetReps: this.fb.control<number | null>(seed?.targetReps ?? 10, [Validators.min(1), Validators.max(99)]),
       targetWeightKg: this.fb.control<number | null>(seed?.targetWeightKg ?? null, [Validators.min(0)]),
       targetRpe: this.fb.control<number | null>(seed?.targetRpe ?? null, [Validators.min(1), Validators.max(10)]),
       restSeconds: [seed?.restSeconds ?? 60, [Validators.required, Validators.min(0), Validators.max(600)]]
@@ -211,7 +215,8 @@ export class ExercisePickerPanelComponent {
     const v = this.detailsForm.getRawValue();
     const seeds: ExercisePickerSetSeed[] = (v.sets as Array<Record<string, unknown>>).map((row) => ({
       setType: row['setType'] as PlanSetTypeApi,
-      targetReps: Number(row['targetReps']),
+      targetReps:
+        row['targetReps'] === '' || row['targetReps'] == null ? null : Number(row['targetReps']),
       targetWeightKg:
         row['targetWeightKg'] === '' || row['targetWeightKg'] == null
           ? null

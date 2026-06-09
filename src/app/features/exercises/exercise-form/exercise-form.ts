@@ -28,6 +28,7 @@ import { MessageService } from 'primeng/api';
 import { merge, startWith } from 'rxjs';
 import { ExercisePreviewCardComponent, ExercisePreviewVm } from '../exercise-preview-card/exercise-preview-card';
 import { EXERCISE_MEDIA_TYPES, MuscleGroup, SaveExerciseRequest } from '../exercise.model';
+import { EXERCISE_TRACKING_TYPES } from '../exercise-tracking';
 import { ExerciseService } from '../exercise';
 import {
   ButtonComponent,
@@ -113,6 +114,8 @@ export class ExerciseFormComponent implements OnInit {
     type: new SignalFormControl('', (p) => {
       required(p);
     }),
+    // Optional: blank → server derives the tracking mode from type/equipment.
+    trackingType: new SignalFormControl(''),
     movementType: new SignalFormControl('', (p) => {
       required(p);
     }),
@@ -175,6 +178,7 @@ export class ExerciseFormComponent implements OnInit {
   readonly equipmentList = this.exerciseService.equipmentList;
   readonly difficulties = this.exerciseService.difficulties;
   readonly exerciseTypes = this.exerciseService.exerciseTypes;
+  readonly trackingTypes = EXERCISE_TRACKING_TYPES;
   readonly movementTypes = this.exerciseService.movementTypes;
 
   readonly mediaTypeOptions: readonly string[] = [...EXERCISE_MEDIA_TYPES];
@@ -281,6 +285,7 @@ export class ExerciseFormComponent implements OnInit {
           name: exercise.name,
           description: exercise.description,
           type: exercise.type,
+          trackingType: exercise.trackingType ?? '',
           movementType: exercise.movementType,
           difficulty: exercise.difficulty,
           equipment: exercise.equipment,
@@ -387,6 +392,7 @@ export class ExerciseFormComponent implements OnInit {
       name: String(v.name ?? '').trim(),
       description: String(v.description ?? '').trim(),
       type: v.type!,
+      trackingType: v.trackingType?.trim() ? v.trackingType.trim() : null,
       movementType: v.movementType!,
       difficulty: v.difficulty!,
       equipment: v.equipment!,
