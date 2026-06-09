@@ -5,6 +5,13 @@
   min-width: 0;
 }
 
+/* Highlight invalid inputs/selects once touched, so "Check fields" points at something visible. */
+input.ng-invalid.ng-touched,
+select.ng-invalid.ng-touched {
+  border-color: var(--inv-error-300) !important;
+  box-shadow: 0 0 0 1px var(--inv-error-300);
+}
+
 /* —— Plan header —— */
 .pb-plan-header__title {
   font-size: var(--inv-text-h4);

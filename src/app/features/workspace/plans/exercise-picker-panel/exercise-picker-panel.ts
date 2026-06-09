@@ -27,6 +27,7 @@ import { ButtonComponent } from '../../../../shared/ui';
 import { uuid } from '../../../../shared/uuid';
 import type { ExerciseDto } from '../../../exercises/exercise.model';
 import { MUSCLE_GROUPS } from '../../../exercises/exercise.model';
+import { trackingProfile } from '../../../exercises/exercise-tracking';
 import type { PlanSetTypeApi } from '../workout-plan.model';
 
 /** A prescribed set as configured in the picker — consumer turns it into a PlanSetRequest. */
@@ -104,14 +105,48 @@ export class ExercisePickerPanelComponent {
     return this.detailsForm.get('sets') as FormArray<FormGroup>;
   }
 
+  /**
+   * Two mode-aware metric columns for the prescribed-set grid, driven by the selected exercise's tracking type
+   * (Strength → Reps/Weight, Cardio → Duration/Distance, Timed → Duration, HIIT → Rounds/Work). Mirrors the plan builder.
+   */
+  readonly metricColumns = computed<{ label: string; control: string; max: number | null }[]>(() => {
+    switch (trackingProfile(this.selectedExercise()?.trackingType).type) {
+      case 'Cardio':
+        return [
+          { label: 'Duration s', control: 'targetDurationSeconds', max: null },
+          { label: 'Distance m', control: 'targetDistanceM', max: null }
+        ];
+      case 'Timed':
+        return [{ label: 'Duration s', control: 'targetDurationSeconds', max: null }];
+      case 'Hiit':
+        return [
+          { label: 'Rounds', control: 'targetRounds', max: null },
+          { label: 'Work s', control: 'targetDurationSeconds', max: null }
+        ];
+      case 'Mobility':
+        return [
+          { label: 'Duration s', control: 'targetDurationSeconds', max: null },
+          { label: 'Reps', control: 'targetReps', max: 99 }
+        ];
+      default:
+        return [
+          { label: 'Reps', control: 'targetReps', max: 99 },
+          { label: 'Weight', control: 'targetWeightKg', max: null }
+        ];
+    }
+  });
+
   private createSetGroup(seed?: Partial<ExercisePickerSetSeed>): FormGroup {
     return this.fb.group({
       key: [uuid()],
       setType: [seed?.setType ?? ('working' as PlanSetTypeApi), Validators.required],
-      // Reps is no longer required: cardio/timed/HIIT exercises are logged live by duration/distance/rounds.
+      // Reps is no longer required: cardio/timed/HIIT exercises prescribe duration/distance/rounds instead.
       targetReps: this.fb.control<number | null>(seed?.targetReps ?? 10, [Validators.min(1), Validators.max(99)]),
       targetWeightKg: this.fb.control<number | null>(seed?.targetWeightKg ?? null, [Validators.min(0)]),
       targetRpe: this.fb.control<number | null>(seed?.targetRpe ?? null, [Validators.min(1), Validators.max(10)]),
+      targetDurationSeconds: this.fb.control<number | null>(seed?.targetDurationSeconds ?? null, [Validators.min(1)]),
+      targetDistanceM: this.fb.control<number | null>(seed?.targetDistanceM ?? null, [Validators.min(1)]),
+      targetRounds: this.fb.control<number | null>(seed?.targetRounds ?? null, [Validators.min(1)]),
       restSeconds: [seed?.restSeconds ?? 60, [Validators.required, Validators.min(0), Validators.max(600)]]
     });
   }
@@ -134,6 +169,9 @@ export class ExercisePickerPanelComponent {
               targetReps: last['targetReps'] as number,
               targetWeightKg: last['targetWeightKg'] as number | null,
               targetRpe: last['targetRpe'] as number | null,
+              targetDurationSeconds: last['targetDurationSeconds'] as number | null,
+              targetDistanceM: last['targetDistanceM'] as number | null,
+              targetRounds: last['targetRounds'] as number | null,
               restSeconds: last['restSeconds'] as number
             }
           : {}
@@ -212,17 +250,16 @@ export class ExercisePickerPanelComponent {
       return;
     }
 
+    const num = (x: unknown): number | null => (x === '' || x == null ? null : Number(x));
     const v = this.detailsForm.getRawValue();
     const seeds: ExercisePickerSetSeed[] = (v.sets as Array<Record<string, unknown>>).map((row) => ({
       setType: row['setType'] as PlanSetTypeApi,
-      targetReps:
-        row['targetReps'] === '' || row['targetReps'] == null ? null : Number(row['targetReps']),
-      targetWeightKg:
-        row['targetWeightKg'] === '' || row['targetWeightKg'] == null
-          ? null
-          : Number(row['targetWeightKg']),
-      targetRpe:
-        row['targetRpe'] === '' || row['targetRpe'] == null ? null : Number(row['targetRpe']),
+      targetReps: num(row['targetReps']),
+      targetWeightKg: num(row['targetWeightKg']),
+      targetRpe: num(row['targetRpe']),
+      targetDurationSeconds: num(row['targetDurationSeconds']),
+      targetDistanceM: num(row['targetDistanceM']),
+      targetRounds: num(row['targetRounds']),
       restSeconds: Number(row['restSeconds'])
     }));
 

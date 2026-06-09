@@ -193,13 +193,14 @@
                               <!-- Per-set table -->
                               <div class="pb-set-scroll">
                               <div class="pb-set-grid flex flex-col gap-1.5" [formArrayName]="'sets'">
+                                @let cols = metricColumnsAt(wi, ei);
                                 <div class="pb-set-grid__head grid items-center gap-2 px-1 text-inv-body-mini font-medium uppercase tracking-wider text-inv-grey-500"
                                      style="grid-template-columns: 28px minmax(96px, 1fr) 76px 88px 76px 84px 36px;"
                                      aria-hidden="true">
                                   <span>#</span>
                                   <span>Type</span>
-                                  <span class="text-center">Reps</span>
-                                  <span class="text-center">Weight</span>
+                                  <span class="text-center">{{ cols[0].label }}</span>
+                                  <span class="text-center">{{ cols[1]?.label ?? '' }}</span>
                                   <span class="text-center inline-flex items-center justify-center gap-1 cursor-help"
                                         pTooltip="Rate of Perceived Exertion — how hard the set felt on a 1–10 scale (10 = max effort, no reps left in the tank)."
                                         tooltipPosition="top">
@@ -221,9 +222,13 @@
                                       }
                                     </select>
 
-                                    <input type="number" inputmode="numeric" min="1" max="99" formControlName="targetReps" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' reps'" />
+                                    <input type="number" inputmode="numeric" min="0" [max]="cols[0].max" [attr.step]="cols[0].control === 'targetWeightKg' ? 0.5 : 1" placeholder="—" [formControlName]="cols[0].control" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 placeholder:text-inv-grey-400 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' ' + cols[0].label" />
 
-                                    <input type="number" inputmode="decimal" step="0.5" min="0" placeholder="—" formControlName="targetWeightKg" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 placeholder:text-inv-grey-400 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' weight (kg)'" />
+                                    @if (cols[1]; as c2) {
+                                      <input type="number" inputmode="numeric" min="0" [max]="c2.max" [attr.step]="c2.control === 'targetWeightKg' ? 0.5 : 1" placeholder="—" [formControlName]="c2.control" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 placeholder:text-inv-grey-400 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' ' + c2.label" />
+                                    } @else {
+                                      <span></span>
+                                    }
 
                                     <input type="number" inputmode="numeric" min="1" max="10" step="1" placeholder="—" formControlName="targetRpe" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 placeholder:text-inv-grey-400 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' RPE'" />
 
@@ -242,30 +247,6 @@
                                       <span></span>
                                     }
                                   </div>
-
-                                  <!-- Mode-aware extra targets (cardio/timed/HIIT) — shown only when the exercise uses them. -->
-                                  @if (showTargetAt(wi, ei, 'duration') || showTargetAt(wi, ei, 'distance') || showTargetAt(wi, ei, 'rounds')) {
-                                    <div class="pb-set-grid__extra grid items-center gap-2 px-1" style="grid-template-columns: 28px 1fr;" [formGroupName]="si">
-                                      <span></span>
-                                      <div class="flex flex-wrap items-center gap-3 text-inv-body-mini text-inv-grey-500">
-                                        @if (showTargetAt(wi, ei, 'duration')) {
-                                          <label class="inline-flex items-center gap-1">Duration
-                                            <input type="number" inputmode="numeric" min="1" placeholder="sec" formControlName="targetDurationSeconds" class="h-8 w-20 rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 placeholder:text-inv-grey-400 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' target duration in seconds'" />
-                                          </label>
-                                        }
-                                        @if (showTargetAt(wi, ei, 'distance')) {
-                                          <label class="inline-flex items-center gap-1">Distance
-                                            <input type="number" inputmode="numeric" min="1" placeholder="m" formControlName="targetDistanceM" class="h-8 w-20 rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 placeholder:text-inv-grey-400 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' target distance in metres'" />
-                                          </label>
-                                        }
-                                        @if (showTargetAt(wi, ei, 'rounds')) {
-                                          <label class="inline-flex items-center gap-1">Rounds
-                                            <input type="number" inputmode="numeric" min="1" placeholder="—" formControlName="targetRounds" class="h-8 w-20 rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 placeholder:text-inv-grey-400 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' target rounds'" />
-                                          </label>
-                                        }
-                                      </div>
-                                    </div>
-                                  }
                                 }
                               </div>
                               </div>
