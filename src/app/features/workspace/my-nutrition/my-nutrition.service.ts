@@ -71,8 +71,9 @@ export class MyNutritionService {
   loadToday(date?: string): void {
     this.todayLoading.set(true);
     this.todayError.set(null);
-    let params = new HttpParams().set('timezone', browserTimezone());
-    if (date) params = params.set('date', date);
+    const params = new HttpParams()
+      .set('timezone', browserTimezone())
+      .set('date', date ?? localToday());
     this.http.get<DailyNutritionLogDto>(`${this.meBase}/today`, { params }).subscribe({
       next: (log) => {
         this.today.set(log);
@@ -115,8 +116,7 @@ export class MyNutritionService {
   /** Load the latest check-in (weight + sleep) — newest-first metrics, first entry per type wins. */
   loadCheckin(date?: string): void {
     this.checkinLoading.set(true);
-    let params = new HttpParams();
-    if (date) params = params.set('date', date);
+    const params = new HttpParams().set('date', date ?? localToday());
     this.http.get<MetricEntryListDto>(`${this.meBase}/metrics`, { params }).subscribe({
       next: (res) => {
         this.checkin.set(latestCheckin(res.items ?? []));
@@ -255,7 +255,10 @@ export class MyNutritionService {
     const current = this.checkin();
     this.checkin.set(optimistic(current));
     try {
-      await this.post<LogMetricRequest, { logged: boolean }>(`${this.meBase}/metrics`, body);
+      await this.post<LogMetricRequest, { logged: boolean }>(
+        `${this.meBase}/metrics`,
+        { ...body, localDate: body.localDate ?? localToday() }
+      );
     } catch (err) {
       this.checkin.set(current);
       throw err;
@@ -298,4 +301,13 @@ function browserTimezone(): string {
   } catch {
     return 'UTC';
   }
+}
+
+/** Today's calendar date in the user's LOCAL timezone, as `YYYY-MM-DD`.
+ *  Sent to the API so "today" rolls over at the user's local midnight, not UTC. */
+function localToday(): string {
+  const d = new Date();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${d.getFullYear()}-${m}-${day}`;
 }
