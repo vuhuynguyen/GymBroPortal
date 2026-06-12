@@ -235,7 +235,11 @@ describe('MyNutritionService', () => {
     expect(service.checkin().weightKg).toBe(78.5);
     const req = http.expectOne('/api/me/nutrition/metrics');
     expect(req.request.method).toBe('POST');
-    expect(req.request.body).toEqual({ type: 'weight', value: 78.5, unit: 'kg' });
+    expect(req.request.body).toEqual(
+      jasmine.objectContaining({ type: 'weight', value: 78.5, unit: 'kg' })
+    );
+    // The write is stamped with the user's local date (so it lands on the local "today").
+    expect(req.request.body.localDate).toMatch(/^\d{4}-\d{2}-\d{2}$/);
     req.flush({ logged: true });
     await promise;
   });
