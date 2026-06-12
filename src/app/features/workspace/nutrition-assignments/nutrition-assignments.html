@@ -1,0 +1,39 @@
+<app-confirm-split-dialog
+  [open]="revokeTarget() !== null"
+  (openChange)="!$event && revokeTarget.set(null)"
+  heading="Revoke assignment?"
+  [message]="revokeDialogMessage()"
+  confirmLabel="Revoke"
+  (confirmed)="onRevokeConfirm()" />
+
+<app-ui-page-container class="flex flex-col gap-inv-5">
+  <app-page-header
+    title="Nutrition assignments"
+    subtitle="Assign nutrition plan templates to trainees with a date range and visibility controls.">
+    <div class="ui-page-actions flex flex-wrap items-center gap-4">
+      <app-button label="Assign plan" icon="pi pi-plus" (clicked)="assignmentModalOpen.set(true)" />
+    </div>
+  </app-page-header>
+
+  <app-nutrition-assignment-list
+    [loading]="loading()"
+    [assignments]="assignments()"
+    [trainees]="trainees()"
+    (editClicked)="onEditRequested($event)"
+    (revokeClicked)="onRevokeRequested($event)"
+    (pauseToggled)="onPauseToggled($event)" />
+</app-ui-page-container>
+
+<app-assign-nutrition-plan-modal
+  [(open)]="assignmentModalOpen"
+  [saving]="saving()"
+  [plans]="plans()"
+  [trainees]="assignableTrainees()"
+  (confirmed)="onAssignConfirmed($event)" />
+
+<app-nutrition-assignment-edit-panel
+  [open]="editAssignment() !== null"
+  [assignment]="editAssignment()"
+  [saving]="saving()"
+  (closed)="editAssignment.set(null)"
+  (saved)="onEditSave($event)" />

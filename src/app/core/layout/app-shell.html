@@ -46,6 +46,8 @@
               @if (
                 item.route === '/workspace/plans' ||
                 item.route === '/workspace/plan-assignments' ||
+                item.route === '/workspace/nutrition-plans' ||
+                item.route === '/workspace/nutrition-assignments' ||
                 item.route === '/exercises'
               ) {
                 <a
@@ -91,6 +93,15 @@
               (click)="isMobile() && closeMobileSidebar()">
               <i class="pi pi-history" aria-hidden="true"></i>
               <span class="app-shell-nav-link-label">Workout Log</span>
+            </a>
+            <a
+              routerLink="/workspace/nutrition"
+              routerLinkActive="app-shell-nav-link--active"
+              [routerLinkActiveOptions]="{ exact: false }"
+              class="app-shell-nav-link"
+              (click)="isMobile() && closeMobileSidebar()">
+              <i class="pi pi-apple" aria-hidden="true"></i>
+              <span class="app-shell-nav-link-label">My Nutrition</span>
             </a>
           </nav>
         }

@@ -1,0 +1,251 @@
+<div class="fpp-overlay" (click)="close()" role="presentation">
+  <aside
+    class="fpp-panel"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="fpp-title"
+    (click)="$event.stopPropagation()">
+    <header class="fpp-header">
+      <div class="min-w-0">
+        <h2 id="fpp-title" class="fpp-title">Add Food</h2>
+        <p class="fpp-subtitle">
+          @if (mealLabel(); as ml) {
+            Search and select a food for <span class="font-medium text-inv-grey-800">{{ ml }}</span>, then set the quantity.
+          } @else {
+            Search and select a food, then set the quantity.
+          }
+        </p>
+      </div>
+      <button class="fpp-close" type="button" aria-label="Close" (click)="close()">
+        <i class="pi pi-times" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <div class="fpp-body">
+      <div class="fpp-search">
+        <p-iconfield iconPosition="left">
+          <p-inputicon>
+            <i class="pi pi-search" aria-hidden="true"></i>
+          </p-inputicon>
+          <input
+            pInputText
+            type="search"
+            autocomplete="off"
+            class="w-full"
+            placeholder="Search foods…"
+            [formControl]="searchControl" />
+        </p-iconfield>
+      </div>
+
+      <nav class="fpp-tabs" role="tablist" aria-label="Filter by kind">
+        @for (tab of kindTabs; track tab) {
+          <button
+            type="button"
+            role="tab"
+            class="fpp-tab"
+            [class.fpp-tab--active]="activeKind() === tab"
+            [attr.aria-selected]="activeKind() === tab"
+            (click)="setKind(tab)">
+            {{ tab }}
+          </button>
+        }
+      </nav>
+
+      <!-- Inline custom-food form (covers the list when open) — builder creates a catalog food, off-plan logs inline -->
+      @if (customOpen()) {
+        <form class="fpp-custom" [formGroup]="customForm" (ngSubmit)="submitCustom()" novalidate>
+          <div class="fpp-custom__head">
+            <h3 class="fpp-custom__title m-0">New custom food</h3>
+            <button type="button" class="fpp-custom__back" (click)="cancelCustom()">
+              <i class="pi pi-arrow-left" aria-hidden="true"></i> Back to search
+            </button>
+          </div>
+
+          <label class="fpp-field">
+            <span class="fpp-field__label">Name</span>
+            <input
+              pInputText
+              type="text"
+              autocomplete="off"
+              formControlName="name"
+              placeholder="e.g. Homemade protein bar"
+              class="w-full" />
+          </label>
+
+          <div class="fpp-field">
+            <span class="fpp-field__label">Kind</span>
+            <div class="fpp-pills" role="group" aria-label="Food kind">
+              @for (k of customKinds; track k) {
+                <button
+                  type="button"
+                  class="fpp-pill"
+                  [class.fpp-pill--active]="customForm.controls.kind.value === k"
+                  [attr.aria-pressed]="customForm.controls.kind.value === k"
+                  (click)="setCustomKind(k)">
+                  {{ k }}
+                </button>
+              }
+            </div>
+          </div>
+
+          <label class="fpp-field">
+            <span class="fpp-field__label">Serving label</span>
+            <input
+              pInputText
+              type="text"
+              autocomplete="off"
+              formControlName="servingLabel"
+              placeholder="1 serving"
+              class="w-full" />
+          </label>
+
+          <div class="fpp-custom__macros">
+            <label class="fpp-num">
+              <span class="fpp-num__label">Calories (kcal)<span aria-hidden="true"> *</span></span>
+              <input type="number" inputmode="decimal" min="0" step="1" formControlName="energyKcal" class="fpp-num__input" />
+            </label>
+            <label class="fpp-num">
+              <span class="fpp-num__label">Protein (g)</span>
+              <input type="number" inputmode="decimal" min="0" step="0.1" formControlName="proteinG" class="fpp-num__input" />
+            </label>
+            <label class="fpp-num">
+              <span class="fpp-num__label">Carbs (g)</span>
+              <input type="number" inputmode="decimal" min="0" step="0.1" formControlName="carbsG" class="fpp-num__input" />
+            </label>
+            <label class="fpp-num">
+              <span class="fpp-num__label">Fat (g)</span>
+              <input type="number" inputmode="decimal" min="0" step="0.1" formControlName="fatG" class="fpp-num__input" />
+            </label>
+          </div>
+        </form>
+      } @else {
+        <ul class="fpp-list" role="listbox" aria-label="Food catalog">
+          @if (allowCustom()) {
+            <li class="fpp-list-item fpp-list-item--custom">
+              <button type="button" class="fpp-row fpp-row--custom" (click)="openCustom()">
+                <span class="fpp-row__thumb" aria-hidden="true">
+                  <i class="pi pi-plus-circle"></i>
+                </span>
+                <span class="fpp-row__body">
+                  <span class="fpp-row__name">New custom food</span>
+                  <span class="fpp-row__meta">Not in the catalog? Add it here</span>
+                </span>
+              </button>
+            </li>
+          }
+          @if (loading()) {
+            <li class="fpp-empty">
+              <i class="pi pi-spin pi-spinner text-inv-grey-300" aria-hidden="true"></i>
+              <p class="m-0 text-inv-body-sm text-inv-grey-500">Searching foods…</p>
+            </li>
+          } @else {
+            @for (food of filtered(); track food.id) {
+              <li class="fpp-list-item" [class.fpp-list-item--selected]="isSelected(food.id)">
+                <button
+                  type="button"
+                  class="fpp-row"
+                  [attr.aria-pressed]="isSelected(food.id)"
+                  (click)="selectFood(food)">
+                  <span class="fpp-row__thumb" aria-hidden="true">
+                    <i [class]="kindIcon(food.kind)"></i>
+                  </span>
+                  <span class="fpp-row__body">
+                    <span class="fpp-row__name">{{ food.name }}</span>
+                    <span class="fpp-row__meta">{{ foodMeta(food) }}</span>
+                  </span>
+                  <span class="fpp-row__cta" aria-hidden="true">
+                    <i class="pi" [class.pi-plus]="!isSelected(food.id)" [class.pi-check]="isSelected(food.id)"></i>
+                  </span>
+                </button>
+              </li>
+            } @empty {
+              <li class="fpp-empty">
+                <i class="pi pi-search text-inv-grey-300" aria-hidden="true"></i>
+                <p class="m-0 text-inv-body-sm text-inv-grey-500">No foods match your filter.</p>
+              </li>
+            }
+          }
+        </ul>
+      }
+    </div>
+
+    <form class="fpp-footer" [formGroup]="detailsForm" (ngSubmit)="submit()" novalidate>
+      <div class="fpp-details flex flex-col gap-3">
+        <div class="flex items-baseline justify-between gap-3">
+          <h3 class="fpp-details__title m-0">Quantity</h3>
+          @if (customOpen()) {
+            <p class="fpp-details__hint m-0 truncate">New custom food</p>
+          } @else if (selected(); as sf) {
+            <p class="fpp-details__hint m-0 truncate">Selected: <span class="font-medium text-inv-grey-800">{{ sf.name }}</span></p>
+          } @else {
+            <p class="fpp-details__hint m-0">Pick a food to set the quantity.</p>
+          }
+        </div>
+
+        <div class="flex items-center gap-3">
+          <input
+            type="number"
+            inputmode="decimal"
+            min="0.25"
+            step="0.25"
+            formControlName="quantity"
+            class="h-9 w-24 rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40"
+            aria-label="Quantity (servings)" />
+          <span class="text-inv-body-sm text-inv-grey-600">
+            @if (!customOpen() && selected(); as sf) {
+              × {{ sf.servingLabel }}
+            } @else {
+              servings
+            }
+          </span>
+        </div>
+
+        @if (!customOpen() && selectedMacroLine(); as macros) {
+          <p class="m-0 text-inv-body-mini text-inv-grey-600">{{ macros }}</p>
+        }
+
+        <!-- Off-plan "Log under" meal selector -->
+        @if (showMealSelector() && mealOptions().length) {
+          <label class="flex flex-col gap-1">
+            <span class="fpp-details__title">Log under</span>
+            <select
+              formControlName="mealName"
+              class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-inv-body-sm text-inv-grey-900 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40"
+              aria-label="Log under which meal">
+              @for (opt of mealOptions(); track opt) {
+                <option [value]="opt">{{ opt }}</option>
+              }
+            </select>
+          </label>
+        }
+
+        <label class="fpp-check">
+          <input type="checkbox" formControlName="addAnother" />
+          <span class="text-inv-body-sm text-inv-grey-700">Add another food after this one</span>
+        </label>
+      </div>
+
+      <div class="fpp-actions">
+        <app-button label="Cancel" severity="secondary" [outlined]="true" type="button" (clicked)="close()" />
+        @if (customOpen()) {
+          <app-button
+            label="Add Custom Food"
+            icon="pi pi-plus"
+            severity="primary"
+            type="button"
+            [loading]="savingCustom()"
+            [disabled]="savingCustom()"
+            (clicked)="submitCustom()" />
+        } @else {
+          <app-button
+            label="Add Food"
+            icon="pi pi-plus"
+            severity="primary"
+            type="button"
+            [disabled]="!canAdd()"
+            (clicked)="submit()" />
+        }
+      </div>
+    </form>
+  </aside>
+</div>

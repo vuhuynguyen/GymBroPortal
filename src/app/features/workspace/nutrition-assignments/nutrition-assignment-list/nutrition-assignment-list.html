@@ -1,0 +1,65 @@
+<app-data-table
+  [columns]="columns"
+  [data]="rowData()"
+  [loading]="loading()"
+  [globalFilterExtraFields]="['visibility']"
+  globalSearchPlaceholder="Search by trainee or plan"
+  emptyMessage="No nutrition assignments yet. Use Assign Plan to get started."
+  loadingMessage="Loading assignments..."
+  itemLabel="assignments">
+  <ng-template appDataTableCell="status" let-row>
+    <div class="flex flex-wrap items-center gap-2">
+      @if (row['isActive']) {
+        <span class="pa-badge">Active</span>
+      } @else {
+        <span class="pa-badge pa-badge--warn">Inactive</span>
+      }
+      @if (row['hideMacroTargets']) {
+        <span class="pa-badge pa-badge--custom">Macros hidden</span>
+      }
+      @if (row['disableTraineeEditing']) {
+        <span class="pa-badge pa-badge--custom">Locked</span>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template appDataTableCell="actions" let-row>
+    <div class="flex flex-nowrap items-center justify-end gap-2">
+      <app-button
+        icon="pi pi-pencil"
+        size="small"
+        [rounded]="true"
+        [text]="true"
+        severity="secondary"
+        [ariaLabel]="'Edit assignment for ' + row['trainee']"
+        (clicked)="editClicked.emit($any(row['id']) || '')" />
+      @if (row['isActive']) {
+        <app-button
+          icon="pi pi-pause"
+          size="small"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          [ariaLabel]="'Pause assignment for ' + row['trainee']"
+          (clicked)="pauseToggled.emit({ id: $any(row['id']) || '', active: false })" />
+      } @else {
+        <app-button
+          icon="pi pi-play"
+          size="small"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          [ariaLabel]="'Resume assignment for ' + row['trainee']"
+          (clicked)="pauseToggled.emit({ id: $any(row['id']) || '', active: true })" />
+      }
+      <app-button
+        icon="pi pi-trash"
+        size="small"
+        [rounded]="true"
+        [text]="true"
+        severity="danger"
+        [ariaLabel]="'Revoke assignment for ' + row['trainee']"
+        (clicked)="revokeClicked.emit($any(row['id']) || '')" />
+    </div>
+  </ng-template>
+</app-data-table>

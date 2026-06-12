@@ -103,6 +103,19 @@
               </div>
             </header>
 
+            <!-- ① Form-cue strip — always-visible, zero-tap guidance affordance -->
+            @if (activeCue(); as cue) {
+              <button type="button" class="form-cue-strip" (click)="openCoachSheet()" aria-label="Open form guide for {{ exerciseName(ax) }}">
+                <span class="form-cue-strip__icon" aria-hidden="true">
+                  <i class="pi pi-bullseye"></i>
+                </span>
+                <span class="form-cue-strip__text">{{ cue }}</span>
+                <span class="form-cue-strip__cta" aria-hidden="true">
+                  Guide <i class="pi pi-chevron-right"></i>
+                </span>
+              </button>
+            }
+
             <!-- Coach note (only when the exercise carries a note) -->
             @if (ax.notes?.trim(); as note) {
               <div class="coach-note">
@@ -317,5 +330,131 @@
         (closed)="closePicker()"
         (added)="onExercisePicked($event)" />
     }
+  }
+
+  <!-- ② Coach sheet — progressive disclosure, one tap from the cue strip ── -->
+  @if (coachSheetOpen()) {
+    <div class="coach-sheet-backdrop" (click)="closeCoachSheet()" role="presentation"></div>
+    <div class="coach-sheet" role="dialog" [attr.aria-label]="'Form guide: ' + exerciseName(activeExercise())" aria-modal="true">
+      <div class="coach-sheet__handle" aria-hidden="true"></div>
+
+      <!-- Identity header -->
+      <div class="coach-sheet__head">
+        <div class="coach-sheet__eyebrow">How to do this</div>
+        <div class="coach-sheet__title-row">
+          <h2 class="coach-sheet__title">{{ exerciseName(activeExercise()) }}</h2>
+          @if (coachDetail()?.difficulty) {
+            <span class="coach-sheet__difficulty">
+              <i class="pi pi-bolt" aria-hidden="true"></i>{{ coachDetail()!.difficulty }}
+            </span>
+          }
+          <button type="button" class="coach-sheet__close" (click)="closeCoachSheet()" aria-label="Close form guide">
+            <i class="pi pi-times" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <!-- Image slot -->
+        @if (coachDetail()?.media?.[0]?.url) {
+          <div class="coach-sheet__media">
+            <img [src]="coachDetail()!.media[0].url" [alt]="exerciseName(activeExercise())" />
+            <div class="coach-sheet__media-chips">
+              <span class="coach-sheet__media-chip">
+                <i class="pi pi-dumbbell" aria-hidden="true"></i>
+                {{ exerciseEquipment(activeExercise()) ?? 'Equipment' }}
+              </span>
+            </div>
+          </div>
+        } @else {
+          <div class="coach-sheet__media coach-sheet__media--empty">
+            <i class="pi pi-image" aria-hidden="true"></i>
+            <span>Exercise photo or demo</span>
+          </div>
+        }
+
+        <!-- Muscle targets -->
+        <div class="coach-sheet__muscles">
+          <span class="coach-sheet__muscles-label">Targets</span>
+          <div class="coach-sheet__muscle-pills">
+            @for (m of coachPrimaryMuscles(); track m) {
+              <span class="coach-sheet__muscle-pill coach-sheet__muscle-pill--primary">
+                <span class="coach-sheet__muscle-dot coach-sheet__muscle-dot--primary"></span>{{ m }}
+              </span>
+            }
+            @for (m of coachSecondaryMuscles(); track m) {
+              <span class="coach-sheet__muscle-pill">
+                <span class="coach-sheet__muscle-dot"></span>{{ m }}
+              </span>
+            }
+          </div>
+        </div>
+
+        <!-- Tabs -->
+        @if (!coachDetailLoading() && coachDetail()?.instructions?.length) {
+          <div class="coach-sheet__tabs" role="tablist">
+            @for (tab of [['steps','Steps'],['setup','Setup'],['cues','Cues'],['mistakes','Mistakes']]; track tab[0]) {
+              <button
+                role="tab"
+                type="button"
+                class="coach-sheet__tab"
+                [class.coach-sheet__tab--active]="coachSheetTab() === tab[0]"
+                [attr.aria-selected]="coachSheetTab() === tab[0]"
+                (click)="setCoachTab($any(tab[0]))">
+                {{ tab[1] }}
+              </button>
+            }
+          </div>
+        }
+      </div>
+
+      <!-- Sheet body -->
+      <div class="coach-sheet__body" role="tabpanel">
+        @if (coachDetailLoading()) {
+          <div class="coach-sheet__loading">
+            <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+            <span>Loading guide…</span>
+          </div>
+        } @else if (coachDetail(); as d) {
+          @if (d.instructions.length) {
+            @if (coachSheetTab() === 'steps') {
+              <ol class="coach-sheet__steps">
+                @for (step of d.instructions; track $index) {
+                  <li class="coach-sheet__step">
+                    <span class="coach-sheet__step-num" aria-hidden="true">{{ $index + 1 }}</span>
+                    <span class="coach-sheet__step-text">{{ step }}</span>
+                  </li>
+                }
+              </ol>
+            }
+            @if (coachSheetTab() === 'setup' || coachSheetTab() === 'cues' || coachSheetTab() === 'mistakes') {
+              <div class="coach-sheet__no-content">
+                <i class="pi pi-pencil" aria-hidden="true"></i>
+                <p>Detailed {{ coachSheetTab() }} guidance coming soon for this exercise.</p>
+              </div>
+            }
+          } @else {
+            <div class="coach-sheet__no-content">
+              <i class="pi pi-pencil" aria-hidden="true"></i>
+              <p>Full guide coming soon — no step-by-step has been authored for this exercise yet.</p>
+            </div>
+          }
+
+          @if (d.warnings.length) {
+            <div class="coach-sheet__warnings">
+              @for (w of d.warnings; track $index) {
+                <div class="coach-sheet__warning">
+                  <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
+                  <span>{{ w }}</span>
+                </div>
+              }
+            </div>
+          }
+        } @else {
+          <div class="coach-sheet__no-content">
+            <i class="pi pi-info-circle" aria-hidden="true"></i>
+            <p>Could not load guide — check your connection and try again.</p>
+          </div>
+        }
+      </div>
+    </div>
   }
 </section>

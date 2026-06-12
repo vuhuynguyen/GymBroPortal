@@ -1,0 +1,54 @@
+<ng-template #dialogTpl>
+  <div
+    class="ui-nutrition-plan-details-dialog ui-dialog-animate-in w-full max-w-lg overflow-hidden rounded-xl bg-inv-surface-base shadow-lg"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="titleDomId"
+    (click)="$event.stopPropagation()">
+    <form id="nutrition-plan-details-dialog-form" class="flex max-h-[85vh] min-w-0 flex-col" [formGroup]="form" (ngSubmit)="onSubmit()" novalidate>
+      <div class="shrink-0 border-b border-inv-border-card px-6 py-4">
+        <h2 [id]="titleDomId" class="m-0 text-lg font-semibold text-inv-grey-900">{{ heading() }}</h2>
+        <p class="m-0 mt-1 text-inv-body-sm leading-snug text-inv-grey-500">{{ subheading() }}</p>
+      </div>
+
+      <div class="min-h-0 flex-1 overflow-y-auto px-6 py-4">
+        <div class="flex min-w-0 flex-col gap-4">
+          <app-form-field label="Name" forId="npdd-name" [required]="true" [errorMessage]="fieldError('name')">
+            <app-input
+              inputId="npdd-name"
+              formControlName="name"
+              placeholder="e.g. High-protein cut · 4 meals"
+              autocomplete="off" />
+          </app-form-field>
+
+          <app-form-field label="Description" forId="npdd-desc" [errorMessage]="fieldError('description')">
+            <app-input
+              inputId="npdd-desc"
+              formControlName="description"
+              [multiline]="true"
+              [rows]="3"
+              placeholder="Goal, dietary notes, or context (optional)"
+              autocomplete="off" />
+          </app-form-field>
+        </div>
+      </div>
+
+      <div class="flex shrink-0 items-center justify-end gap-3 border-t border-inv-border-card px-6 py-4">
+        <app-button
+          label="Cancel"
+          severity="secondary"
+          [outlined]="true"
+          type="button"
+          [disabled]="primaryBusy()"
+          (clicked)="onCancel()" />
+        <app-button
+          [label]="primaryLabel()"
+          icon="pi pi-check"
+          severity="primary"
+          type="submit"
+          [loading]="primaryBusy()"
+          [disabled]="primaryBusy()" />
+      </div>
+    </form>
+  </div>
+</ng-template>
