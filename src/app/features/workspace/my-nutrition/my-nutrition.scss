@@ -1,0 +1,690 @@
+/* "My Nutrition" self-log surface. Cards come from app-ui-panel-card; this file holds only the
+   inner layout/atoms the shared components can't express (ring, macro chips, item rows, badges). */
+
+/* These panel cards are title-less, but the global `.p-card-content` sets `padding-top: 0`
+   (it assumes a card title supplies the top space), so content sits flush against the top.
+   Restore a top padding matching the side/bottom. */
+:host ::ng-deep app-ui-panel-card .p-card.ui-panel-card .p-card-content {
+  padding-top: var(--inv-space-5);
+}
+
+/* View toggle — same segmented tablist idiom as food-picker (.fpp-tabs) / active-session. */
+.mn-tabs {
+  display: inline-flex;
+  gap: 0.25rem;
+  padding: 0.25rem;
+  background: var(--inv-grey-50);
+  border: 1px solid var(--inv-border-card);
+  border-radius: var(--inv-radius-md);
+  /* Match the card→card rhythm so tabs→first-card isn't tighter than the rest. */
+  margin-bottom: var(--inv-space-5);
+}
+
+.mn-tab {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  padding: 0.375rem var(--inv-space-4);
+  border-radius: var(--inv-radius-sm);
+  font-size: var(--inv-text-body-sm);
+  font-weight: 600;
+  color: var(--inv-grey-500);
+  cursor: pointer;
+  transition: background 0.12s ease, color 0.12s ease;
+
+  &:hover {
+    color: var(--inv-grey-800);
+  }
+
+  &--active {
+    background: var(--inv-surface-base);
+    color: var(--inv-primary-600);
+    box-shadow: var(--inv-shadow-card);
+  }
+}
+
+.mn-loading {
+  display: flex;
+  justify-content: center;
+  padding: var(--inv-space-12) 0;
+  color: var(--inv-grey-300);
+  font-size: 1.5rem;
+}
+
+.mn-error {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--inv-space-4);
+  padding: var(--inv-space-8) 0;
+
+  &__text {
+    margin: 0;
+    font-size: var(--inv-text-body-md);
+    color: var(--inv-grey-600);
+  }
+}
+
+.mn-banner {
+  display: flex;
+  align-items: center;
+  gap: var(--inv-space-3);
+  padding: var(--inv-space-3) var(--inv-space-4);
+  border-radius: var(--inv-radius-md);
+  background: var(--inv-grey-50);
+  border: 1px solid var(--inv-border-card);
+  color: var(--inv-grey-600);
+  font-size: var(--inv-text-body-sm);
+}
+
+/* ── Day summary hero (adherence ring + consumed-macro chips) — inside a panel-card ─── */
+.mn-hero {
+  display: flex;
+  flex-direction: column;
+  gap: var(--inv-space-4);
+
+  &__lead {
+    display: flex;
+    align-items: center;
+    gap: var(--inv-space-5);
+  }
+
+  &__body {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 0;
+  }
+
+  &__eyebrow {
+    margin: 0;
+    font-size: var(--inv-text-body-mini);
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: var(--inv-grey-400);
+  }
+
+  &__headline {
+    margin: 0;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: var(--inv-grey-800);
+  }
+
+  &__meta {
+    margin: 0;
+    font-size: var(--inv-text-body-sm);
+    color: var(--inv-grey-500);
+  }
+}
+
+/* Consumed-macro chips — kcal / P / C / F readouts in the day summary. */
+.mn-macros {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--inv-space-3);
+  padding-top: var(--inv-space-4);
+  border-top: 1px solid var(--inv-border-card);
+
+  &__chip {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    padding: var(--inv-space-3);
+    border-radius: var(--inv-radius-md);
+    background: var(--inv-grey-50);
+    border: 1px solid var(--inv-border-card);
+  }
+
+  &__value {
+    font-size: var(--inv-text-body-md);
+    font-weight: 700;
+    color: var(--inv-grey-800);
+    font-variant-numeric: tabular-nums;
+  }
+
+  &__label {
+    font-size: var(--inv-text-body-mini);
+    font-weight: 600;
+    color: var(--inv-grey-400);
+  }
+
+  &__chip--kcal {
+    background: var(--inv-primary-0);
+    border-color: var(--inv-primary-0);
+    .mn-macros__value { color: var(--inv-primary-600); }
+    .mn-macros__label { color: var(--inv-primary-500); }
+  }
+}
+
+@media (max-width: 520px) {
+  .mn-macros {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.mn-ring {
+  position: relative;
+  flex: 0 0 auto;
+  width: 74px;
+  height: 74px;
+
+  &__track {
+    fill: none;
+    stroke: var(--inv-grey-100);
+    stroke-width: 6;
+  }
+
+  &__value {
+    fill: none;
+    stroke-width: 6;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.3s ease;
+
+    &--good { stroke: var(--inv-primary-500); }
+    &--ok { stroke: var(--inv-warning-500); }
+    &--low { stroke: var(--inv-error-300); }
+    &--none { stroke: var(--inv-grey-200); }
+  }
+
+  &__center {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    line-height: 1.1;
+  }
+
+  &__pct {
+    font-size: 1.0625rem;
+    font-weight: 700;
+    color: var(--inv-grey-800);
+  }
+
+  &__sub {
+    font-size: var(--inv-text-body-mini);
+    color: var(--inv-grey-400);
+  }
+}
+
+/* ── Daily check-in popup — hosted in the shared centered-dialog overlay ────
+   Self-contained dialog surface (the overlay only positions + scrims). Title +
+   subtitle header, then weight + sleep metrics, each an inline input with a
+   unit suffix + icon-only log button. */
+.mn-checkin-dialog {
+  width: min(28rem, calc(100vw - var(--inv-space-6)));
+  max-width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: var(--inv-space-5);
+  padding: var(--inv-space-6);
+  background: var(--inv-surface-base);
+  border: 1px solid var(--inv-border-card);
+  border-radius: var(--inv-radius-lg);
+  box-shadow: var(--inv-shadow-overlay, var(--inv-shadow-card));
+
+  &__head {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: var(--inv-space-4);
+  }
+
+  &__heading {
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 0;
+  }
+
+  &__title {
+    margin: 0;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: var(--inv-grey-800);
+  }
+
+  &__subtitle {
+    margin: 0;
+    font-size: var(--inv-text-body-sm);
+    color: var(--inv-grey-500);
+  }
+
+  &__close {
+    flex: 0 0 auto;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    border: 0;
+    border-radius: var(--inv-radius-md);
+    background: transparent;
+    color: var(--inv-grey-400);
+    font-size: 0.875rem;
+    cursor: pointer;
+    transition: background 0.12s ease, color 0.12s ease;
+
+    &:hover {
+      background: var(--inv-grey-50);
+      color: var(--inv-grey-700);
+    }
+
+    &:focus-visible {
+      outline: 2px solid var(--inv-primary-500);
+      outline-offset: 2px;
+    }
+  }
+}
+
+@media (max-width: 639px) {
+  .mn-checkin-dialog {
+    padding: var(--inv-space-4);
+  }
+}
+
+.mn-checkin {
+  display: flex;
+  flex-direction: column;
+  gap: var(--inv-space-3);
+
+  &__metrics {
+    display: flex;
+    flex-direction: column;
+    gap: var(--inv-space-4);
+  }
+}
+
+/* One metric row = label + a compact input-with-unit + icon log button.
+   Natural height (the metrics stack in the dialog column — never stretch). */
+.mn-metric {
+  flex: 0 0 auto;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  gap: var(--inv-space-3);
+
+  &__label {
+    /* Fixed width so Weight/Sleep labels align → both input shells start at the same x. */
+    flex: 0 0 4.5rem;
+    font-size: var(--inv-text-body-sm);
+    font-weight: 600;
+    color: var(--inv-grey-600);
+  }
+
+  /* The input, its inline unit, and the log button share one rounded shell. */
+  &__control {
+    /* Compact fixed width — don't stretch to the full dialog. */
+    flex: 0 0 auto;
+    width: 13rem;
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: var(--inv-space-2);
+    padding: 0.125rem 0.125rem 0.125rem var(--inv-space-3);
+    border: 1px solid var(--inv-border-card);
+    border-radius: var(--inv-radius-md);
+    background: var(--inv-surface-base);
+    transition: border-color 0.12s ease, box-shadow 0.12s ease;
+
+    &:focus-within {
+      border-color: var(--inv-primary-500);
+      box-shadow: 0 0 0 2px var(--inv-primary-0);
+    }
+  }
+
+  /* Borderless input — the wrapping shell carries the chrome. */
+  &__input.p-inputtext {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+    border: 0;
+    background: transparent;
+    padding: var(--inv-space-2) 0;
+    box-shadow: none;
+    font-variant-numeric: tabular-nums;
+
+    &:enabled:focus,
+    &:enabled:hover {
+      border: 0;
+      box-shadow: none;
+    }
+  }
+
+  &__unit {
+    flex: 0 0 auto;
+    font-size: var(--inv-text-body-sm);
+    font-weight: 600;
+    color: var(--inv-grey-400);
+  }
+
+  /* Small rounded icon-only log button at the trailing edge of the shell. */
+  ::ng-deep .mn-metric__log.p-button {
+    flex: 0 0 auto;
+    width: 1.875rem;
+    height: 1.875rem;
+    padding: 0;
+  }
+}
+
+.mn-section-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--inv-grey-800);
+
+  /* Standalone list heading (above the meal / history cards). Spacing is owned by the parent
+     flex column's gap-inv-5, so the heading sits in the same even rhythm as every other card. */
+  &--list {
+    margin: 0;
+  }
+}
+
+/* ── Meals / items — inside a panel-card (card chrome comes from the wrapper) ───── */
+.mn-meal {
+  display: flex;
+  flex-direction: column;
+
+  &__head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--inv-space-3);
+    padding-bottom: var(--inv-space-3);
+    padding-top: var(--inv-space-3);
+    border-bottom: 1px solid var(--inv-border-card);
+  }
+
+  &__name {
+    font-size: var(--inv-text-body-md);
+    font-weight: 600;
+    color: var(--inv-grey-800);
+  }
+
+  &__time {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.25rem;
+    font-size: var(--inv-text-body-sm);
+    color: var(--inv-grey-400);
+  }
+}
+
+.mn-items {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.mn-item {
+  display: flex;
+  align-items: center;
+  gap: var(--inv-space-3);
+  padding: var(--inv-space-3) 0;
+
+  & + & {
+    border-top: 1px solid var(--inv-border-card);
+  }
+
+  &--skipped,
+  &--missed {
+    .mn-item__name {
+      text-decoration: line-through;
+      color: var(--inv-grey-400);
+    }
+  }
+
+  &__body {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 0;
+  }
+
+  &__title-row {
+    display: flex;
+    align-items: center;
+    gap: var(--inv-space-2);
+    flex-wrap: wrap;
+  }
+
+  &__name {
+    font-size: var(--inv-text-body-md);
+    font-weight: 600;
+    color: var(--inv-grey-800);
+  }
+
+  &__detail {
+    font-size: var(--inv-text-body-sm);
+    color: var(--inv-grey-500);
+  }
+
+  &__actions {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+    flex: 0 0 auto;
+  }
+}
+
+.mn-control {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 1.75rem;
+  height: 1.75rem;
+  border-radius: 999px;
+  border: 1.5px solid var(--inv-grey-200);
+  background: var(--inv-surface-base);
+  color: var(--inv-surface-base);
+  font-size: 0.75rem;
+  cursor: pointer;
+  transition: background 0.12s ease, border-color 0.12s ease;
+
+  &:disabled {
+    cursor: default;
+    opacity: 0.6;
+  }
+
+  &--completed,
+  &--substituted {
+    background: var(--inv-primary-500);
+    border-color: var(--inv-primary-500);
+  }
+
+  &--skipped,
+  &--missed {
+    background: var(--inv-grey-200);
+    border-color: var(--inv-grey-200);
+    color: var(--inv-grey-500);
+  }
+}
+
+.mn-tag {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.0625rem var(--inv-space-2);
+  border-radius: var(--inv-radius-sm);
+  font-size: var(--inv-text-body-mini);
+  font-weight: 600;
+
+  &--extra {
+    background: var(--inv-primary-0);
+    color: var(--inv-primary-600);
+  }
+
+  &--swap {
+    background: var(--inv-warning-0);
+    color: var(--inv-warning-700);
+  }
+
+  &--skip,
+  &--missed {
+    background: var(--inv-grey-50);
+    color: var(--inv-grey-500);
+  }
+}
+
+/* ── Empty state — inside a panel-card, app's centered empty idiom ─────── */
+.mn-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--inv-space-4);
+  padding: var(--inv-space-6) var(--inv-space-2);
+
+  &__icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 3.75rem;
+    height: 3.75rem;
+    border-radius: var(--inv-radius-md);
+    background: var(--inv-primary-0);
+    color: var(--inv-primary-400);
+    font-size: 1.5rem;
+  }
+
+  &__heading {
+    margin: 0;
+    font-size: 1.0625rem;
+    font-weight: 600;
+    color: var(--inv-grey-800);
+  }
+
+  &__text {
+    margin: 0 auto;
+    font-size: var(--inv-text-body-sm);
+    color: var(--inv-grey-500);
+    line-height: 1.6;
+    max-width: 28rem;
+  }
+}
+
+/* ── History list — inside a panel-card (rows are full-bleed within it) ── */
+.mn-history {
+  list-style: none;
+  /* Horizontal bleed only so rows reach the card edge; no vertical pull (that
+     would clip the first row's hover/focus rounding against the card's top). */
+  margin: 0 calc(-1 * var(--inv-space-1));
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.mn-hrow {
+  & + & {
+    border-top: 1px solid var(--inv-border-card);
+  }
+
+  &__main {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    gap: var(--inv-space-4);
+    padding: var(--inv-space-4) var(--inv-space-2);
+    background: transparent;
+    border: 0;
+    text-align: left;
+    cursor: pointer;
+    border-radius: var(--inv-radius-md);
+    transition: background 0.12s ease;
+
+    &:hover {
+      background: var(--inv-primary-0);
+    }
+  }
+
+  &__date {
+    flex: 0 0 5.5rem;
+    font-size: var(--inv-text-body-sm);
+    font-weight: 600;
+    color: var(--inv-grey-500);
+  }
+
+  &__info {
+    flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 0.125rem;
+    min-width: 0;
+  }
+
+  &__title {
+    font-size: var(--inv-text-body-md);
+    font-weight: 600;
+    color: var(--inv-grey-800);
+  }
+
+  &__meta {
+    font-size: var(--inv-text-body-sm);
+    color: var(--inv-grey-500);
+  }
+
+  &__stats {
+    display: flex;
+    align-items: center;
+    gap: var(--inv-space-4);
+    flex: 0 0 auto;
+  }
+
+  &__chev {
+    flex: 0 0 auto;
+    color: var(--inv-grey-300);
+    font-size: 0.75rem;
+  }
+}
+
+.mn-stat {
+  font-size: var(--inv-text-body-sm);
+  color: var(--inv-grey-500);
+  white-space: nowrap;
+
+  b {
+    color: var(--inv-grey-800);
+    font-weight: 600;
+  }
+}
+
+.mn-badge {
+  flex: 0 0 auto;
+  display: inline-flex;
+  align-items: center;
+  padding: 0.125rem var(--inv-space-3);
+  border-radius: var(--inv-radius-sm);
+  font-size: var(--inv-text-body-mini);
+  font-weight: 600;
+
+  &--good {
+    background: var(--inv-primary-0);
+    color: var(--inv-primary-600);
+  }
+
+  &--ok {
+    background: var(--inv-warning-0);
+    color: var(--inv-warning-700);
+  }
+
+  &--low {
+    background: var(--inv-error-0);
+    color: var(--inv-error-300);
+  }
+
+  &--none {
+    background: transparent;
+    border: 1px solid var(--inv-border-card);
+    color: var(--inv-grey-500);
+  }
+}
+
+@media (max-width: 640px) {
+  .mn-hrow__stats {
+    display: none;
+  }
+}

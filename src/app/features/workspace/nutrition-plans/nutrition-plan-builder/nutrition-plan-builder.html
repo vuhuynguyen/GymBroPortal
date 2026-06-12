@@ -1,0 +1,309 @@
+<section class="npb-page flex min-h-[calc(100dvh-6rem)] min-w-0 flex-col bg-[var(--dashboard-page-bg)] pb-24 md:min-h-[calc(100dvh-6.5rem)] md:pb-[5.5rem]">
+  <app-ui-page-container class="flex w-full min-w-0 flex-1 flex-col gap-6">
+    @if (loading()) {
+      <div class="flex justify-center py-8">
+        <i class="pi pi-spin pi-spinner text-2xl text-inv-grey-500" aria-hidden="true"></i>
+      </div>
+    } @else {
+      <form id="nutrition-plan-builder-form" class="flex min-w-0 flex-col gap-6" [formGroup]="form" novalidate>
+        <div class="grid min-w-0 grid-cols-1 items-start gap-8 lg:grid-cols-12 lg:gap-10">
+          <div class="order-2 flex min-w-0 flex-col gap-8 lg:order-none lg:col-span-8">
+            <header class="min-w-0">
+              <div class="flex min-w-0 flex-wrap items-center gap-2">
+                <h1 class="m-0 min-w-0 flex-1 text-2xl font-semibold text-inv-grey-900">
+                  {{ (form.get('name')?.value || '').toString().trim() || 'Untitled nutrition plan' }}
+                </h1>
+                @if (canEdit()) {
+                  <button
+                    type="button"
+                    class="inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-inv-sm border-0 bg-transparent text-inv-grey-500 hover:bg-inv-grey-25 hover:text-inv-grey-800"
+                    aria-label="Edit plan name and description"
+                    (click)="openPlanDetailsDialog()">
+                    <i class="pi pi-pencil text-inv-body-sm" aria-hidden="true"></i>
+                  </button>
+                }
+              </div>
+              @if (form.get('description')?.value) {
+                <p class="m-0 mt-3 text-inv-body-sm leading-relaxed text-inv-grey-600">{{ form.get('description')?.value }}</p>
+              }
+            </header>
+
+            <div class="min-w-0">
+              <div class="mb-4 flex min-w-0 flex-wrap items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <h2 class="m-0 text-inv-body-lg font-semibold text-inv-grey-900">Meals</h2>
+                  <p class="m-0 mt-1 text-inv-body-sm leading-snug text-inv-grey-500">
+                    Add meals with foods and quantities to build the day.
+                  </p>
+                </div>
+                @if (canEdit()) {
+                  <app-button
+                    class="shrink-0"
+                    label="Add Meal"
+                    icon="pi pi-plus"
+                    severity="primary"
+                    type="button"
+                    [disabled]="!canAddMeal()"
+                    (clicked)="addMeal()" />
+                }
+              </div>
+
+              @if (meals().length === 0) {
+                @if (canEdit()) {
+                  <button type="button" class="npb-add-meal-link" (click)="addMeal()">+ Add meal</button>
+                } @else {
+                  <p class="m-0 text-inv-body-sm text-inv-grey-600">No meals yet.</p>
+                }
+              } @else {
+                <div
+                  formArrayName="meals"
+                  class="npb-meal-cards flex min-w-0 flex-col gap-4"
+                  cdkDropList
+                  [cdkDropListDisabled]="!canEdit()"
+                  (cdkDropListDropped)="onMealsDropped($event)">
+                  @for (mg of meals().controls; track trackKey($index, mg); let mi = $index) {
+                    <section
+                      class="npb-meal-card"
+                      [class.npb-meal-card--open]="isMealExpanded(mi)"
+                      cdkDrag
+                      [cdkDragDisabled]="!canEdit()"
+                      [formGroupName]="mi">
+                      <div class="npb-meal-card__head">
+                        @if (canEdit()) {
+                          <span
+                            class="npb-meal-card__grip"
+                            cdkDragHandle
+                            tabindex="0"
+                            role="button"
+                            [attr.aria-label]="'Drag to reorder meal ' + (mi + 1)">
+                            <i class="pi pi-bars" aria-hidden="true"></i>
+                          </span>
+                        } @else {
+                          <span class="npb-meal-card__grip npb-meal-card__grip--static" aria-hidden="true">
+                            <i class="pi pi-bars"></i>
+                          </span>
+                        }
+                        <span class="npb-meal-card__num" aria-hidden="true">{{ mi + 1 }}</span>
+                        <select
+                          class="npb-meal-card__name"
+                          formControlName="name"
+                          [attr.aria-label]="'Meal ' + (mi + 1) + ' name'"
+                          [disabled]="!canEdit()">
+                          @if (mg.get('name')?.value; as currentName) {
+                            @if (!mealNameSuggestions.includes(currentName)) {
+                              <option [value]="currentName">{{ currentName }}</option>
+                            }
+                          }
+                          @for (name of mealNameSuggestions; track name) {
+                            <option [value]="name" [disabled]="isMealNameTaken(mi, name)">{{ name }}</option>
+                          }
+                        </select>
+                        @if (canEdit()) {
+                          <div class="npb-meal-card__head-end">
+                            <button
+                              type="button"
+                              class="npb-meal-card__menu-btn inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-inv-sm border-0 bg-transparent text-inv-grey-500 hover:bg-inv-grey-25 hover:text-inv-grey-800"
+                              aria-label="Meal menu"
+                              (click)="openMealMenu($event, mi)">
+                              <i class="pi pi-ellipsis-v" aria-hidden="true"></i>
+                            </button>
+                            <button
+                              type="button"
+                              class="npb-meal-card__chev inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-inv-sm border-0 bg-transparent text-inv-grey-500 hover:bg-inv-grey-25"
+                              [attr.aria-expanded]="isMealExpanded(mi)"
+                              [attr.aria-label]="isMealExpanded(mi) ? 'Collapse' : 'Expand'"
+                              (click)="toggleMealExpanded(mi)">
+                              <i
+                                class="pi"
+                                [class.pi-chevron-up]="isMealExpanded(mi)"
+                                [class.pi-chevron-down]="!isMealExpanded(mi)"
+                                aria-hidden="true"></i>
+                            </button>
+                          </div>
+                        } @else {
+                          <button
+                            type="button"
+                            class="npb-meal-card__chev inline-flex h-9 w-9 cursor-pointer items-center justify-center rounded-inv-sm border-0 bg-transparent text-inv-grey-500"
+                            [attr.aria-expanded]="isMealExpanded(mi)"
+                            (click)="toggleMealExpanded(mi)">
+                            <i
+                              class="pi"
+                              [class.pi-chevron-up]="isMealExpanded(mi)"
+                              [class.pi-chevron-down]="!isMealExpanded(mi)"
+                              aria-hidden="true"></i>
+                          </button>
+                        }
+                      </div>
+
+                      @if (isMealExpanded(mi)) {
+                        <div class="npb-meal-card__body flex flex-col gap-4">
+                          <!-- Item rows: mirror the workout builder's bordered exercise block -->
+                          <div class="flex min-w-0 flex-col gap-3" [formArrayName]="'items'">
+                            @for (ig of itemsAt(mi).controls; track trackKey($index, ig); let ii = $index) {
+                              <div class="npb-food-block flex min-w-0 flex-wrap items-center gap-x-3 gap-y-2 rounded-inv-md border border-inv-border-card bg-white p-4" [formGroupName]="ii">
+                                <span class="flex w-56 shrink-0 flex-col">
+                                  <span class="truncate text-inv-body-sm font-semibold text-inv-grey-900">{{ ig.get('foodName')?.value }}</span>
+                                  <span class="truncate text-inv-body-mini text-inv-grey-500">{{ ig.get('servingLabel')?.value }}</span>
+                                </span>
+                                <span class="flex shrink-0 items-center gap-1.5">
+                                  <input
+                                    type="number"
+                                    inputmode="decimal"
+                                    min="0.25"
+                                    step="0.25"
+                                    formControlName="quantity"
+                                    class="h-9 w-16 rounded-inv-sm border border-inv-border-card bg-white px-2 text-center text-inv-body-sm tabular-nums text-inv-grey-900 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40"
+                                    [attr.aria-label]="(ig.get('foodName')?.value || 'Item') + ' quantity (servings)'" />
+                                  <span class="text-inv-body-mini text-inv-grey-500">×</span>
+                                </span>
+                                <span class="hidden shrink-0 text-inv-body-mini tabular-nums text-inv-grey-600 sm:block">{{ itemMacroLine(mi, ii) || '—' }}</span>
+                                @if (canEdit()) {
+                                  <div class="ml-auto flex shrink-0 items-center">
+                                    <app-button
+                                      type="button"
+                                      icon="pi pi-trash"
+                                      size="small"
+                                      severity="danger"
+                                      [text]="true"
+                                      [rounded]="true"
+                                      [ariaLabel]="'Remove ' + (ig.get('foodName')?.value || 'item')"
+                                      (clicked)="removeItem(mi, ii)" />
+                                  </div>
+                                }
+                              </div>
+                            } @empty {
+                              <p class="m-0 text-inv-body-sm text-inv-grey-500">No foods yet.</p>
+                            }
+                          </div>
+
+                          <!-- Meal footer: subtotal + add food -->
+                          <div class="flex min-w-0 flex-wrap items-center justify-between gap-3">
+                            <span class="text-inv-body-mini font-medium tabular-nums text-inv-grey-600">{{ mealMacroLines()[mi] }}</span>
+                            @if (canEdit()) {
+                              <button type="button" class="npb-add-food" (click)="openFoodPicker(mi)">+ Add Food</button>
+                            }
+                          </div>
+                        </div>
+                      } @else {
+                        <p class="npb-meal-card__collapsed m-0 text-inv-body-sm text-inv-grey-500">
+                          @if (itemsAt(mi).length === 0) {
+                            <span>No foods</span>
+                          } @else {
+                            <span class="font-medium text-inv-grey-700">{{ mealMacroLines()[mi] }}</span>
+                          }
+                        </p>
+                      }
+                    </section>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+
+          <aside
+            class="order-1 flex min-w-0 flex-col gap-5 lg:order-none lg:col-span-4 lg:self-start"
+            aria-label="Plan sidebar">
+            <app-ui-panel-card header="Day totals">
+              <dl class="m-0 flex flex-col gap-2.5">
+                <div class="flex items-center justify-between gap-3 text-inv-body-sm">
+                  <dt class="m-0 font-medium text-inv-grey-500">Calories</dt>
+                  <dd class="m-0 font-semibold tabular-nums text-inv-grey-900">
+                    @if (dayMacros().energyKcal; as kcal) { {{ kcal }} kcal } @else { — }
+                  </dd>
+                </div>
+                <div class="flex items-center justify-between gap-3 text-inv-body-sm">
+                  <dt class="m-0 font-medium text-inv-grey-500">Protein</dt>
+                  <dd class="m-0 font-semibold tabular-nums text-inv-grey-900">
+                    @if (dayMacros().proteinG; as p) { {{ p }} g } @else { — }
+                  </dd>
+                </div>
+                <div class="flex items-center justify-between gap-3 text-inv-body-sm">
+                  <dt class="m-0 font-medium text-inv-grey-500">Carbs</dt>
+                  <dd class="m-0 font-semibold tabular-nums text-inv-grey-900">
+                    @if (dayMacros().carbsG; as c) { {{ c }} g } @else { — }
+                  </dd>
+                </div>
+                <div class="flex items-center justify-between gap-3 text-inv-body-sm">
+                  <dt class="m-0 font-medium text-inv-grey-500">Fat</dt>
+                  <dd class="m-0 font-semibold tabular-nums text-inv-grey-900">
+                    @if (dayMacros().fatG; as f) { {{ f }} g } @else { — }
+                  </dd>
+                </div>
+                <div class="flex items-center justify-between gap-3 text-inv-body-sm">
+                  <dt class="m-0 font-medium text-inv-grey-500">Meals</dt>
+                  <dd class="m-0 font-semibold tabular-nums text-inv-grey-900">{{ planSummary().mealCount }}</dd>
+                </div>
+                <div class="flex items-center justify-between gap-3 text-inv-body-sm">
+                  <dt class="m-0 font-medium text-inv-grey-500">Foods</dt>
+                  <dd class="m-0 font-semibold tabular-nums text-inv-grey-900">{{ planSummary().totalItems }}</dd>
+                </div>
+              </dl>
+            </app-ui-panel-card>
+
+            <app-ui-panel-card header="Tips">
+              <div class="rounded-inv-md bg-inv-grey-0 px-4 py-3 mt-2">
+                <p class="m-0 flex gap-2 text-inv-body-sm leading-relaxed text-inv-grey-700">
+                  <i class="pi pi-lightbulb mt-0.5 shrink-0 text-inv-primary-600" aria-hidden="true"></i>
+                  <span>3–5 meals per day is typical. Use training/rest day meals only when intake should differ.</span>
+                </p>
+              </div>
+            </app-ui-panel-card>
+          </aside>
+        </div>
+      </form>
+
+      <app-nutrition-plan-details-dialog
+        [open]="planDetailsDialogOpen()"
+        (openChange)="planDetailsDialogOpen.set($event)"
+        mode="edit"
+        [formSeed]="planDetailsDialogSeed()"
+        [initialValues]="planDetailsDialogSnapshot()"
+        (saved)="onPlanDetailsDialogSaved($event)" />
+    }
+  </app-ui-page-container>
+
+  <app-ui-page-sticky-footer>
+    <div class="flex min-w-0 items-center gap-3">
+      @if (canEdit()) {
+        @if (hasUnsavedChanges()) {
+          <span class="h-2 w-2 shrink-0 rounded-full bg-inv-warning-100" aria-hidden="true"></span>
+          <span class="text-inv-body-sm font-medium text-inv-grey-800">Unsaved changes</span>
+        } @else {
+          <span class="text-inv-body-sm text-inv-grey-500">No unsaved changes</span>
+        }
+      } @else {
+        <span class="text-inv-body-sm text-inv-grey-500">You can review this plan; edits are owner-only.</span>
+      }
+    </div>
+
+    <div class="flex shrink-0 flex-wrap items-center justify-end gap-3">
+      @if (canEdit()) {
+        <app-button
+          label="Cancel"
+          severity="secondary"
+          [outlined]="true"
+          type="button"
+          [disabled]="saving() || loading()"
+          (clicked)="onCancel()" />
+        <app-button
+          label="Save Plan"
+          icon="pi pi-check"
+          severity="primary"
+          type="button"
+          [loading]="saving()"
+          [disabled]="saving() || loading()"
+          (clicked)="savePlan()" />
+      }
+    </div>
+  </app-ui-page-sticky-footer>
+
+  <p-menu #mealMenu [model]="mealMenuModel()" [popup]="true" appendTo="body" />
+
+  @if (pickerMealIndex() !== null) {
+    <app-food-picker-panel
+      mode="builder"
+      [mealLabel]="pickerTargetName()"
+      (closed)="cancelPicker()"
+      (added)="onFoodAdded($event)" />
+  }
+</section>

@@ -24,7 +24,7 @@ import {
   SelectComponent
 } from '../../../../shared/ui';
 import { ExerciseService } from '../../../exercises/exercise';
-import type { ExerciseDto } from '../../../exercises/exercise.model';
+import type { ExerciseDetailDto, ExerciseDto } from '../../../exercises/exercise.model';
 import {
   hasRequiredMetric,
   requiredMetricMessage,
@@ -118,6 +118,14 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   readonly pickerOpen = signal(false);
   readonly pickerMode = signal<PickerMode>('add');
 
+  // ── Form Coach (exercise guidance) ───────────────────────────────────
+  readonly coachSheetOpen = signal(false);
+  readonly coachSheetTab = signal<'steps' | 'setup' | 'cues' | 'mistakes'>('steps');
+  readonly coachDetail = signal<ExerciseDetailDto | null>(null);
+  readonly coachDetailLoading = signal(false);
+  /** Cache detail by exercise id so repeated opens don't re-fetch. */
+  private readonly coachDetailCache = new Map<string, ExerciseDetailDto>();
+
   readonly catalogExercises = this.exerciseService.exercises;
 
   /**
@@ -162,6 +170,22 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   readonly snapshotExercises = computed<SessionSnapshotExerciseDto[]>(
     () => this.session()?.snapshot?.exercises ?? []
   );
+
+  /**
+   * Concise coaching cue shown on the always-visible form-cue strip.
+   * Derived from catalog data (no extra API call needed for the strip itself).
+   */
+  readonly activeCue = computed(() => {
+    const ex = this.activeExercise();
+    if (!ex) return null;
+    const meta = this.catalogById().get(ex.exerciseId);
+    if (!meta) return 'See form guide';
+    const muscle = meta.muscleGroup?.toLowerCase() ?? 'target muscles';
+    const equip = meta.equipment ? meta.equipment.toLowerCase() : null;
+    return equip
+      ? `Focus on your ${muscle} — controlled movement with ${equip}`
+      : `Focus on your ${muscle} — controlled tempo throughout`;
+  });
 
   /** Catalog lookup so we can resolve equipment / muscle for performed exercises. */
   private readonly catalogById = computed<Map<string, ExerciseDto>>(() => {
@@ -1005,6 +1029,58 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
           this.messageService.add({ severity: 'error', summary: 'Could not abandon session' });
         }
       });
+  }
+
+  // ── Form Coach sheet ─────────────────────────────────────────────────
+  openCoachSheet(): void {
+    const ex = this.activeExercise();
+    if (!ex) return;
+    this.coachSheetTab.set('steps');
+    this.coachSheetOpen.set(true);
+    const cached = this.coachDetailCache.get(ex.exerciseId);
+    if (cached) {
+      this.coachDetail.set(cached);
+      return;
+    }
+    this.coachDetailLoading.set(true);
+    this.coachDetail.set(null);
+    this.exerciseService
+      .getById(ex.exerciseId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (d) => {
+          this.coachDetailCache.set(ex.exerciseId, d);
+          if (this.coachSheetOpen() && this.activeExercise()?.exerciseId === ex.exerciseId) {
+            this.coachDetail.set(d);
+          }
+          this.coachDetailLoading.set(false);
+        },
+        error: () => {
+          this.coachDetailLoading.set(false);
+        }
+      });
+  }
+
+  closeCoachSheet(): void {
+    this.coachSheetOpen.set(false);
+  }
+
+  setCoachTab(tab: 'steps' | 'setup' | 'cues' | 'mistakes'): void {
+    this.coachSheetTab.set(tab);
+  }
+
+  /** Primary muscles for the coach sheet muscle row — from detail when loaded, else catalog group. */
+  coachPrimaryMuscles(): string[] {
+    const d = this.coachDetail();
+    if (d?.muscles?.length) return d.muscles.filter((m) => m.isPrimary).map((m) => m.muscle);
+    const meta = this.catalogById().get(this.activeExercise()?.exerciseId ?? '');
+    return meta?.muscleGroup ? [meta.muscleGroup] : [];
+  }
+
+  coachSecondaryMuscles(): string[] {
+    const d = this.coachDetail();
+    if (!d?.muscles?.length) return [];
+    return d.muscles.filter((m) => !m.isPrimary).map((m) => m.muscle);
   }
 
   // ── trackBy ──────────────────────────────────────────────────────────

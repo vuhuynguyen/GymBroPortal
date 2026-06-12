@@ -64,6 +64,13 @@
               [ariaLabel]="'View ' + client.name + ' workouts'"
               (clicked)="viewWorkouts(client)" />
             <app-button
+              label="Nutrition"
+              icon="pi pi-apple"
+              size="small"
+              [text]="true"
+              [ariaLabel]="'View ' + client.name + ' nutrition'"
+              (clicked)="viewNutrition(client)" />
+            <app-button
               icon="pi pi-user-minus"
               size="small"
               [rounded]="true"

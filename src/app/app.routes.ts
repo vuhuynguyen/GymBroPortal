@@ -71,6 +71,36 @@ export const routes: Routes = [
             ]
           },
           {
+            path: 'nutrition-plans',
+            // Owner-only: nutrition plan list + create/meal builder (defense-in-depth; API is the boundary)
+            canActivate: [roleGuard(['Owner'])],
+            children: [
+              {
+                path: '',
+                loadComponent: () =>
+                  import('./features/workspace/nutrition-plans/nutrition-plans-list/nutrition-plans-list').then(
+                    (m) => m.NutritionPlansListComponent
+                  )
+              },
+              {
+                path: ':planId',
+                loadComponent: () =>
+                  import('./features/workspace/nutrition-plans/nutrition-plan-builder/nutrition-plan-builder').then(
+                    (m) => m.NutritionPlanBuilderComponent
+                  )
+              }
+            ]
+          },
+          {
+            path: 'nutrition-assignments',
+            // Owner-only: nutrition assignment management
+            canActivate: [roleGuard(['Owner'])],
+            loadComponent: () =>
+              import('./features/workspace/nutrition-assignments/nutrition-assignments').then(
+                (m) => m.NutritionAssignmentsComponent
+              )
+          },
+          {
             path: 'plan-assignments',
             // Owner-only: plan assignment management
             canActivate: [roleGuard(['Owner'])],
@@ -83,6 +113,14 @@ export const routes: Routes = [
             path: 'logs',
             loadComponent: () =>
               import('./features/workspace/logs/logs').then((m) => m.LogsComponent)
+          },
+          {
+            path: 'nutrition',
+            // Any authenticated member: self-scoped nutrition log + daily check-in.
+            loadComponent: () =>
+              import('./features/workspace/my-nutrition/my-nutrition').then(
+                (m) => m.MyNutritionComponent
+              )
           },
           {
             path: 'logs/session/:id',
@@ -105,6 +143,15 @@ export const routes: Routes = [
             loadComponent: () =>
               import('./features/workspace/client-workouts/client-workouts').then(
                 (m) => m.ClientWorkoutsComponent
+              )
+          },
+          {
+            path: 'clients/:clientId/nutrition',
+            // Owner-only: coach views a specific client's nutrition adherence (tenant-scoped).
+            canActivate: [roleGuard(['Owner'])],
+            loadComponent: () =>
+              import('./features/workspace/client-nutrition/client-nutrition').then(
+                (m) => m.ClientNutritionComponent
               )
           },
           {

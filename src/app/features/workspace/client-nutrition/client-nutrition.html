@@ -1,0 +1,63 @@
+<app-ui-page-container class="flex flex-col gap-inv-5">
+
+  <app-page-header [title]="clientName() + ' · nutrition'" [subtitle]="subtitle()">
+    <div class="ui-page-actions flex flex-wrap items-center gap-4">
+      <app-button
+        label="Back to clients"
+        icon="pi pi-arrow-left"
+        severity="secondary"
+        [outlined]="true"
+        ariaLabel="Back to clients"
+        (clicked)="back()" />
+    </div>
+  </app-page-header>
+
+  @if (loading()) {
+
+    <div class="cn-loading"><i class="pi pi-spin pi-spinner"></i></div>
+
+  } @else if (days().length === 0) {
+
+    <div class="cn-empty">
+      <div class="cn-empty__icon"><i class="pi pi-calendar" aria-hidden="true"></i></div>
+      <h2 class="cn-empty__heading">No nutrition days yet</h2>
+      <p class="cn-empty__text">{{ clientName() }} hasn't logged any nutrition in your gym yet.</p>
+    </div>
+
+  } @else {
+
+    <ul class="cn-list" role="list">
+      @for (day of days(); track trackByDate($index, day)) {
+        <li class="cn-row">
+          <button
+            type="button"
+            class="cn-row__main"
+            (click)="openDay(day)"
+            [attr.aria-label]="'View nutrition for ' + day.localDate">
+            <div class="cn-row__date">{{ dayLabel(day) }}</div>
+            <div class="cn-row__info">
+              <span class="cn-row__title">{{ day.localDate }}</span>
+              <span class="cn-row__meta">{{ completion(day) || 'No planned items' }}</span>
+            </div>
+            <div class="cn-row__stats">
+              <span class="cn-stat"><b>{{ day.completedCount }}</b> done</span>
+              <span class="cn-stat"><b>{{ day.plannedCount }}</b> planned</span>
+              <span class="cn-stat">{{ statusLabel(day) }}</span>
+            </div>
+            <span class="cn-badge cn-badge--{{ tone(day) }}">{{ adherenceLabel(day) }}</span>
+          </button>
+        </li>
+      }
+    </ul>
+
+  }
+
+</app-ui-page-container>
+
+@if (detailOpen()) {
+  <app-nutrition-day-detail-dialog
+    [detail]="selectedDay()"
+    [loading]="detailLoading()"
+    [titleFallback]="clientName() + ' nutrition'"
+    (closed)="closeDetail()" />
+}
