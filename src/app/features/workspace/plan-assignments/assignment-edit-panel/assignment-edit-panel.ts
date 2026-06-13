@@ -13,7 +13,7 @@ import type {
   standalone: true,
   imports: [ReactiveFormsModule, FormFieldComponent, InputComponent, ButtonComponent],
   templateUrl: './assignment-edit-panel.html',
-  styleUrl: './assignment-edit-panel.scss',
+  styleUrl: '../../shared/assignment-edit-panel.shared.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AssignmentEditPanelComponent {

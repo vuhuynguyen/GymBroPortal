@@ -8,17 +8,17 @@
     iconClass="pi pi-exclamation-triangle"
     (confirmed)="onAbandonConfirmed()" />
 
-  <app-session-detail-dialog
-    *ngIf="isDetailOpen()"
-    [detail]="selectedSession()"
-    [loading]="detailLoading()"
-    (closed)="closeDetail()"
-    (repeat)="onRepeatWorkout()" />
+  @if (isDetailOpen()) {
+    <app-session-detail-dialog
+      [detail]="selectedSession()"
+      [loading]="detailLoading()"
+      (closed)="closeDetail()"
+      (repeat)="onRepeatWorkout()" />
+  }
 
   <app-ui-page-container>
    <div class="flex flex-col gap-inv-5">
 
-    <!-- Header -->
     <app-page-header
       title="Workout Log"
       [subtitle]="headerSubtitle()">
@@ -31,36 +31,34 @@
       </div>
     </app-page-header>
 
-    <!-- Active session banner (full-bleed) -->
-    <div *ngIf="heroSession() as hero" class="v4-active v4-active--desk">
-      <div class="min-w-0">
-        <span class="v4-active__eyebrow">
-          <span class="v4-live"></span>In progress
-          <ng-container *ngIf="hero.program">· {{ hero.program }}</ng-container>
-          <ng-container *ngIf="hero.day">· {{ hero.day }}</ng-container>
-        </span>
-        <div class="v4-active__title">{{ hero.title }}</div>
-        <div class="v4-active__mid">
-          <span class="v4-active__bar"><i [style.width.%]="heroProgressPercent()"></i></span>
-          <div class="v4-active__metric"><b>{{ heroProgressPercent() }}%</b><span>Complete</span></div>
-          <div class="v4-active__metric"><b>{{ hero.completedSets }}/{{ hero.totalSets }}</b><span>Sets</span></div>
-          <div class="v4-active__metric"><b>{{ formatDuration(hero.durationSeconds) }}</b><span>Elapsed</span></div>
+    @if (heroSession(); as hero) {
+      <div class="v4-active v4-active--desk">
+        <div class="min-w-0">
+          <span class="v4-active__eyebrow">
+            <span class="v4-live"></span>In progress
+            @if (hero.program) {· {{ hero.program }}}
+            @if (hero.day) {· {{ hero.day }}}
+          </span>
+          <div class="v4-active__title">{{ hero.title }}</div>
+          <div class="v4-active__mid">
+            <span class="v4-active__bar"><i [style.width.%]="heroProgressPercent()"></i></span>
+            <div class="v4-active__metric"><b>{{ heroProgressPercent() }}%</b><span>Complete</span></div>
+            <div class="v4-active__metric"><b>{{ hero.completedSets }}/{{ hero.totalSets }}</b><span>Sets</span></div>
+            <div class="v4-active__metric"><b>{{ formatDuration(hero.durationSeconds) }}</b><span>Elapsed</span></div>
+          </div>
         </div>
+        <button
+          class="v4-active__btn"
+          [disabled]="!hero.canResume"
+          (click)="hero.canResume && resumeHero(hero.id)">
+          <i [class]="hero.canResume ? 'pi pi-play' : 'pi pi-eye'" aria-hidden="true"></i>
+          {{ hero.canResume ? 'Resume workout' : 'View live' }}
+        </button>
       </div>
-      <button
-        class="v4-active__btn"
-        [disabled]="!hero.canResume"
-        (click)="hero.canResume && resumeHero(hero.id)">
-        <i [class]="hero.canResume ? 'pi pi-play' : 'pi pi-eye'" aria-hidden="true"></i>
-        {{ hero.canResume ? 'Resume workout' : 'View live' }}
-      </button>
-    </div>
+    }
 
-    <!-- Two-column body -->
     <div class="v4-grid">
-      <!-- Main column: filters + week timeline -->
       <div class="v4-main">
-        <!-- Search + date range -->
         <div class="flex flex-col sm:flex-row gap-3">
           <div class="flex-1">
             <p-iconfield iconPosition="left">
@@ -81,138 +79,160 @@
               severity="secondary"
               [outlined]="true"
               (clicked)="dateRangeOpen.set(!dateRangeOpen())" />
-            <div *ngIf="dateRangeOpen()"
-                 class="absolute right-0 top-full mt-2 w-72 bg-white rounded-lg shadow-lg border border-inv-border-card p-3 z-30">
-              <div class="flex flex-col gap-2.5">
-                <div>
-                  <label class="block text-[11px] font-medium text-inv-grey-700 mb-1">From</label>
-                  <p-datepicker [formControl]="fromControl" appendTo="body" dateFormat="yy-mm-dd"
-                    showIcon="true" iconDisplay="input" styleClass="w-full"
-                    (onSelect)="applyDateFilter()" (onClear)="applyDateFilter()" />
-                </div>
-                <div>
-                  <label class="block text-[11px] font-medium text-inv-grey-700 mb-1">To</label>
-                  <p-datepicker [formControl]="toControl" appendTo="body" dateFormat="yy-mm-dd"
-                    showIcon="true" iconDisplay="input" styleClass="w-full"
-                    (onSelect)="applyDateFilter()" (onClear)="applyDateFilter()" />
-                </div>
-                <div class="flex items-center justify-end gap-2 pt-1">
-                  <app-button label="Clear" severity="secondary" [text]="true" size="small" (clicked)="clearFilters()" />
-                  <app-button label="Apply" severity="primary" size="small" (clicked)="dateRangeOpen.set(false)" />
+            @if (dateRangeOpen()) {
+              <div class="absolute right-0 top-full mt-2 w-72 bg-white rounded-lg shadow-lg border border-inv-border-card p-3 z-30">
+                <div class="flex flex-col gap-2.5">
+                  <div>
+                    <label class="block text-[11px] font-medium text-inv-grey-700 mb-1">From</label>
+                    <p-datepicker [formControl]="fromControl" appendTo="body" dateFormat="yy-mm-dd"
+                      showIcon="true" iconDisplay="input" styleClass="w-full"
+                      (onSelect)="applyDateFilter()" (onClear)="applyDateFilter()" />
+                  </div>
+                  <div>
+                    <label class="block text-[11px] font-medium text-inv-grey-700 mb-1">To</label>
+                    <p-datepicker [formControl]="toControl" appendTo="body" dateFormat="yy-mm-dd"
+                      showIcon="true" iconDisplay="input" styleClass="w-full"
+                      (onSelect)="applyDateFilter()" (onClear)="applyDateFilter()" />
+                  </div>
+                  <div class="flex items-center justify-end gap-2 pt-1">
+                    <app-button label="Clear" severity="secondary" [text]="true" size="small" (clicked)="clearFilters()" />
+                    <app-button label="Apply" severity="primary" size="small" (clicked)="dateRangeOpen.set(false)" />
+                  </div>
                 </div>
               </div>
-            </div>
+            }
           </div>
         </div>
 
-        <!-- Filter chips (horizontal scroll) -->
         <div class="v4-filters">
-          <button
-            *ngFor="let chip of filterChips()"
-            class="v4-filter"
-            [class.is-active]="activeFilter() === chip.id"
-            (click)="activeFilter.set(chip.id)">
-            <i [class]="chip.icon" aria-hidden="true"></i>{{ chip.label }}
-            <span class="v4-filter__n">{{ chip.count }}</span>
-          </button>
+          @for (chip of filterChips(); track chip.id) {
+            <button
+              class="v4-filter"
+              [class.is-active]="activeFilter() === chip.id"
+              (click)="activeFilter.set(chip.id)">
+              <i [class]="chip.icon" aria-hidden="true"></i>{{ chip.label }}
+              <span class="v4-filter__n">{{ chip.count }}</span>
+            </button>
+          }
         </div>
 
-        <!-- Loading -->
-        <div *ngIf="loading()" class="bg-white rounded-xl border border-inv-border-card py-10 text-center">
-          <i class="pi pi-spin pi-spinner text-inv-grey-400 text-2xl"></i>
-          <p class="text-sm text-inv-grey-500 mt-2">Loading sessions…</p>
-        </div>
+        @if (loading()) {
+          <div class="bg-white rounded-xl border border-inv-border-card py-10 text-center">
+            <i class="pi pi-spin pi-spinner text-inv-grey-400 text-2xl"></i>
+            <p class="text-sm text-inv-grey-500 mt-2">Loading sessions…</p>
+          </div>
+        }
 
-        <!-- Week groups -->
-        <ng-container *ngIf="!loading()">
-          <div *ngFor="let wk of weekGroups(); let i = index; trackBy: trackByWeek"
-               class="v4-wk" [class.is-open]="isWeekOpen(wk, i)">
-            <div class="v4-wkhdr" (click)="toggleWeek(wk, i)">
-              <div class="v4-wkhdr__l">
-                <i class="pi pi-chevron-right v4-wkhdr__chev" aria-hidden="true"></i>
-                <span class="v4-wkhdr__name">{{ wk.label }}</span>
-                <span class="v4-wkhdr__src">{{ wk.source }}</span>
+        @if (!loading()) {
+          @for (wk of weekGroups(); track wk.key; let i = $index) {
+            <div class="v4-wk" [class.is-open]="isWeekOpen(wk, i)">
+              <div class="v4-wkhdr" (click)="toggleWeek(wk, i)">
+                <div class="v4-wkhdr__l">
+                  <i class="pi pi-chevron-right v4-wkhdr__chev" aria-hidden="true"></i>
+                  <span class="v4-wkhdr__name">{{ wk.label }}</span>
+                  <span class="v4-wkhdr__src">{{ wk.source }}</span>
+                </div>
+                <div class="v4-wkhdr__r">
+                  @if (wk.prCount > 0) {
+                    <span class="r2-chip r2-chip--pr r2-chip--sm">
+                      <i class="pi pi-trophy" aria-hidden="true"></i>{{ wk.prCount }}
+                    </span>
+                  }
+                  @if (wk.goal) {
+                    <span class="v4-wkhdr__ring">
+                      <app-completion-ring [value]="wk.done" [total]="wk.goal" [size]="28" [stroke]="3.5" />
+                      {{ wk.done }}/{{ wk.goal }}
+                    </span>
+                  }
+                  @if (!wk.goal) {
+                    <span class="v4-wkhdr__ring">{{ wk.done }} done</span>
+                  }
+                </div>
               </div>
-              <div class="v4-wkhdr__r">
-                <span *ngIf="wk.prCount > 0" class="r2-chip r2-chip--pr r2-chip--sm">
-                  <i class="pi pi-trophy" aria-hidden="true"></i>{{ wk.prCount }}
-                </span>
-                <span *ngIf="wk.goal" class="v4-wkhdr__ring">
-                  <app-completion-ring [value]="wk.done" [total]="wk.goal" [size]="28" [stroke]="3.5" />
-                  {{ wk.done }}/{{ wk.goal }}
-                </span>
-                <span *ngIf="!wk.goal" class="v4-wkhdr__ring">{{ wk.done }} done</span>
-              </div>
+
+              @if (isWeekOpen(wk, i)) {
+                @for (s of wk.items; track s.id) {
+                  <div class="v4-sess" (click)="openSession(s)">
+                    <span class="v4-sess__day" [class]="dayBadge(s).cls">{{ dayBadge(s).abbr }}</span>
+                    <div class="min-w-0">
+                      <div class="v4-sess__top">
+                        <span class="v4-sess__title">{{ s.workoutName ?? 'Ad-hoc workout' }}</span>
+                        <span class="r2s-src"
+                              [class.r2s-src--adhoc]="isAdhocSession(s)"
+                              [class.r2s-src--plan]="!isAdhocSession(s)">
+                          <i [class]="isAdhocSession(s) ? 'pi pi-bolt' : 'pi pi-folder'" aria-hidden="true"></i>{{ sourceTag(s) }}
+                        </span>
+                        @if (isAbandoned(s)) {
+                          <span class="v4-sess__stopped">· stopped early</span>
+                        }
+                      </div>
+                      <div class="v4-sess__meta">
+                        <span class="m">{{ relativeDay(s.startedAt) }}</span>
+                        @if (isOwner() && s.traineeName) {
+                          <span class="m">{{ s.traineeName }}</span>
+                        }
+                        @if (!isAbandoned(s) && s.durationSeconds) {
+                          <span class="m">
+                            <i class="pi pi-clock" aria-hidden="true"></i>{{ formatDuration(s.durationSeconds) }}
+                          </span>
+                        }
+                        @if (s.totalSets) {
+                          <span class="m">
+                            <i class="pi pi-bars" aria-hidden="true"></i>{{ s.totalSets }} sets
+                          </span>
+                        }
+                        @if (s.totalVolumeKg) {
+                          <span class="m">
+                            <i class="pi pi-chart-bar" aria-hidden="true"></i>{{ formatVolume(s.totalVolumeKg) }} kg
+                          </span>
+                        }
+                      </div>
+                    </div>
+                    <div class="v4-sess__right">
+                      @if (s.rpeOverall != null) {
+                        <span class="v4-sess__rpe">RPE {{ s.rpeOverall }}</span>
+                      }
+                      @if (s.prCount > 0) {
+                        <span class="r2-chip r2-chip--pr r2-chip--sm">
+                          <i class="pi pi-trophy" aria-hidden="true"></i>PR
+                        </span>
+                      }
+                    </div>
+                  </div>
+                }
+              }
             </div>
+          }
 
-            <ng-container *ngIf="isWeekOpen(wk, i)">
-              <div *ngFor="let s of wk.items; trackBy: trackById"
-                   class="v4-sess" (click)="openSession(s)">
-                <span class="v4-sess__day" [class]="dayBadge(s).cls">{{ dayBadge(s).abbr }}</span>
-                <div class="min-w-0">
-                  <div class="v4-sess__top">
-                    <span class="v4-sess__title">{{ s.workoutName ?? 'Ad-hoc workout' }}</span>
-                    <span class="r2s-src"
-                          [class.r2s-src--adhoc]="isAdhocSession(s)"
-                          [class.r2s-src--plan]="!isAdhocSession(s)">
-                      <i [class]="isAdhocSession(s) ? 'pi pi-bolt' : 'pi pi-folder'" aria-hidden="true"></i>{{ sourceTag(s) }}
-                    </span>
-                    <span *ngIf="isAbandoned(s)" class="v4-sess__stopped">· stopped early</span>
-                  </div>
-                  <div class="v4-sess__meta">
-                    <span class="m">{{ relativeDay(s.startedAt) }}</span>
-                    <span *ngIf="isOwner() && s.traineeName" class="m">{{ s.traineeName }}</span>
-                    <span *ngIf="!isAbandoned(s) && s.durationSeconds" class="m">
-                      <i class="pi pi-clock" aria-hidden="true"></i>{{ formatDuration(s.durationSeconds) }}
-                    </span>
-                    <span *ngIf="s.totalSets" class="m">
-                      <i class="pi pi-bars" aria-hidden="true"></i>{{ s.totalSets }} sets
-                    </span>
-                    <span *ngIf="s.totalVolumeKg" class="m">
-                      <i class="pi pi-chart-bar" aria-hidden="true"></i>{{ formatVolume(s.totalVolumeKg) }} kg
-                    </span>
-                  </div>
-                </div>
-                <div class="v4-sess__right">
-                  <span *ngIf="s.rpeOverall != null" class="v4-sess__rpe">RPE {{ s.rpeOverall }}</span>
-                  <span *ngIf="s.prCount > 0" class="r2-chip r2-chip--pr r2-chip--sm">
-                    <i class="pi pi-trophy" aria-hidden="true"></i>PR
-                  </span>
-                </div>
-              </div>
-            </ng-container>
-          </div>
-
-          <!-- Empty state -->
-          <div *ngIf="weekGroups().length === 0"
-               class="bg-white rounded-xl border border-inv-border-card py-12 text-center">
-            <i class="pi pi-inbox text-inv-grey-300 text-3xl"></i>
-            <p class="text-inv-grey-500 font-medium mt-2 text-sm">No workout sessions found</p>
-            <p class="text-xs text-inv-grey-400 mt-1">
-              {{ isOwner() ? 'No sessions match the current filters.' : 'Start a new workout to begin tracking.' }}
-            </p>
-          </div>
-
-          <!-- Pagination -->
-          <div *ngIf="totalCount() > pageSize()" class="bg-white rounded-xl border border-inv-border-card px-4 py-3">
-            <div class="flex items-center justify-between">
-              <p class="text-xs text-inv-grey-700">
-                Page <span class="font-medium">{{ page() }}</span> of {{ totalPages() }} · {{ totalCount() }} total
+          @if (weekGroups().length === 0) {
+            <div class="bg-white rounded-xl border border-inv-border-card py-12 text-center">
+              <i class="pi pi-inbox text-inv-grey-300 text-3xl"></i>
+              <p class="text-inv-grey-500 font-medium mt-2 text-sm">No workout sessions found</p>
+              <p class="text-xs text-inv-grey-400 mt-1">
+                {{ isOwner() ? 'No sessions match the current filters.' : 'Start a new workout to begin tracking.' }}
               </p>
-              <div class="flex items-center gap-2">
-                <app-button label="Previous" severity="secondary" [outlined]="true" size="small"
-                  [disabled]="page() === 1" (clicked)="prevPage()" />
-                <app-button label="Next" severity="secondary" [outlined]="true" size="small"
-                  [disabled]="page() >= totalPages()" (clicked)="nextPage()" />
+            </div>
+          }
+
+          @if (totalCount() > pageSize()) {
+            <div class="bg-white rounded-xl border border-inv-border-card px-4 py-3">
+              <div class="flex items-center justify-between">
+                <p class="text-xs text-inv-grey-700">
+                  Page <span class="font-medium">{{ page() }}</span> of {{ totalPages() }} · {{ totalCount() }} total
+                </p>
+                <div class="flex items-center gap-2">
+                  <app-button label="Previous" severity="secondary" [outlined]="true" size="small"
+                    [disabled]="page() === 1" (clicked)="prevPage()" />
+                  <app-button label="Next" severity="secondary" [outlined]="true" size="small"
+                    [disabled]="page() >= totalPages()" (clicked)="nextPage()" />
+                </div>
               </div>
             </div>
-          </div>
-        </ng-container>
+          }
+        }
       </div>
 
-      <!-- Right rail -->
       <aside class="v4-rail">
-        <!-- This week -->
         <div class="v4-railcard">
           <div class="v4-railcard__h"><span class="v4-railcard__t">This week</span></div>
           <div class="v4-railcard__body">
@@ -225,54 +245,63 @@
                   [stroke]="6" />
                 <div class="v4-week__ringtxt">
                   <span class="v4-week__big">
-                    {{ thisWeek().done }}<b *ngIf="thisWeek().goal"> / {{ thisWeek().goal }}</b>
+                    {{ thisWeek().done }}@if (thisWeek().goal) {<b> / {{ thisWeek().goal }}</b>}
                   </span>
                   <span class="v4-week__lbl">sessions this week</span>
                 </div>
               </div>
               <div class="v4-week__support">
-                <div *ngIf="thisWeek().volumeKg > 0" class="v4-stat">
-                  <b>{{ formatVolume(thisWeek().volumeKg) }}<small>kg</small></b><span>Volume</span>
-                </div>
+                @if (thisWeek().volumeKg > 0) {
+                  <div class="v4-stat">
+                    <b>{{ formatVolume(thisWeek().volumeKg) }}<small>kg</small></b><span>Volume</span>
+                  </div>
+                }
                 <div class="v4-stat"><b>{{ thisWeek().sets }}</b><span>Sets</span></div>
               </div>
             </div>
           </div>
         </div>
 
-        <!-- Program -->
-        <div *ngIf="program() as p" class="v4-railcard">
-          <div class="v4-railcard__h"><span class="v4-railcard__t">Program</span></div>
-          <div class="v4-railcard__body">
-            <div class="v4-follow">
-              <span class="v4-follow__ico"><i class="pi pi-bolt" aria-hidden="true"></i></span>
-              <span class="v4-follow__name">{{ p.name }}</span>
-              <span *ngIf="p.week != null" class="v4-follow__wk">Wk {{ p.week }}</span>
-              <a
-                *ngIf="isOwner()"
-                routerLink="/workspace/plan-assignments"
-                class="v4-follow__link">
-                Adjust<i class="pi pi-arrow-right" aria-hidden="true"></i>
-              </a>
-            </div>
-          </div>
-        </div>
-
-        <!-- Jump to week -->
-        <div *ngIf="weekGroups().length > 0" class="v4-railcard">
-          <div class="v4-railcard__h"><span class="v4-railcard__t">Jump to week</span></div>
-          <div class="v4-railcard__body" style="padding-top: 6px; padding-bottom: 6px;">
-            <div class="v4-jump">
-              <div class="v4-jump__item" *ngFor="let wk of weekGroups(); trackBy: trackByWeek">
-                {{ wk.label }}
-                <span class="v4-jump__meta">
-                  <span>{{ wk.done }}<ng-container *ngIf="wk.goal">/{{ wk.goal }}</ng-container></span>
-                  <ng-container *ngIf="wk.volumeKg">·<span>{{ formatVolume(wk.volumeKg) }} kg</span></ng-container>
-                </span>
+        @if (program(); as p) {
+          <div class="v4-railcard">
+            <div class="v4-railcard__h"><span class="v4-railcard__t">Program</span></div>
+            <div class="v4-railcard__body">
+              <div class="v4-follow">
+                <span class="v4-follow__ico"><i class="pi pi-bolt" aria-hidden="true"></i></span>
+                <span class="v4-follow__name">{{ p.name }}</span>
+                @if (p.week != null) {
+                  <span class="v4-follow__wk">Wk {{ p.week }}</span>
+                }
+                @if (isOwner()) {
+                  <a
+                    routerLink="/workspace/plan-assignments"
+                    class="v4-follow__link">
+                    Adjust<i class="pi pi-arrow-right" aria-hidden="true"></i>
+                  </a>
+                }
               </div>
             </div>
           </div>
-        </div>
+        }
+
+        @if (weekGroups().length > 0) {
+          <div class="v4-railcard">
+            <div class="v4-railcard__h"><span class="v4-railcard__t">Jump to week</span></div>
+            <div class="v4-railcard__body" style="padding-top: 6px; padding-bottom: 6px;">
+              <div class="v4-jump">
+                @for (wk of weekGroups(); track wk.key) {
+                  <div class="v4-jump__item">
+                    {{ wk.label }}
+                    <span class="v4-jump__meta">
+                      <span>{{ wk.done }}@if (wk.goal) {/{{ wk.goal }}}</span>
+                      @if (wk.volumeKg) {·<span>{{ formatVolume(wk.volumeKg) }} kg</span>}
+                    </span>
+                  </div>
+                }
+              </div>
+            </div>
+          </div>
+        }
       </aside>
     </div>
    </div>

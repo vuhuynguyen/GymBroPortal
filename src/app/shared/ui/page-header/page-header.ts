@@ -1,10 +1,11 @@
-import { Component, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, input } from '@angular/core';
 
 @Component({
   selector: 'app-page-header',
   standalone: true,
   templateUrl: './page-header.html',
-  styleUrl: './page-header.scss'
+  styleUrl: './page-header.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PageHeaderComponent {
   /** `hero` — large title + spacing for full-page editors (Figma Edit Exercise). */

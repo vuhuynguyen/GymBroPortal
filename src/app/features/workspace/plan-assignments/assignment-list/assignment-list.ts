@@ -14,7 +14,7 @@ import type { MemberDto } from '../../workspace.model';
   standalone: true,
   imports: [DataTableComponent, DataTableCellTemplateDirective, ButtonComponent],
   templateUrl: './assignment-list.html',
-  styleUrl: './assignment-list.scss',
+  styleUrl: '../../shared/assignment-list.shared.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AssignmentListComponent {

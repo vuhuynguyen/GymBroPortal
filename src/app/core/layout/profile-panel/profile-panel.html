@@ -1,6 +1,5 @@
 <div class="profile-overlay" (click)="close()" role="presentation">
   <div class="profile-panel" (click)="$event.stopPropagation()" role="dialog" aria-label="My Profile" aria-modal="true">
-    <!-- Header -->
     <div class="profile-panel-header">
       <div>
         <h2 class="profile-panel-title">My Profile</h2>
@@ -19,10 +18,8 @@
       </div>
     </div>
 
-    <!-- Body -->
     <div class="profile-panel-body">
       <div class="profile-card">
-        <!-- Avatar banner -->
         <div class="profile-card-banner">
           <div class="profile-card-avatar">
             <span>{{ getInitial() }}</span>
@@ -37,7 +34,6 @@
           </div>
         </div>
 
-        <!-- Form -->
         <div class="profile-card-form">
           @if (error()) {
             <div class="profile-form-error">
@@ -46,7 +42,6 @@
             </div>
           }
 
-          <!-- Full Name -->
           <div class="profile-form-field">
             <label class="profile-form-label">Full Name</label>
             @if (isEditing()) {
@@ -68,7 +63,6 @@
             }
           </div>
 
-          <!-- Email Address -->
           <div class="profile-form-field">
             <label class="profile-form-label">Email Address</label>
             @if (isEditing()) {
@@ -90,7 +84,6 @@
             <p class="profile-form-hint">Your email cannot be changed. Contact support if needed.</p>
           </div>
 
-          <!-- Account type -->
           <div class="profile-form-field">
             <label class="profile-form-label">Account Type</label>
             <div class="profile-badge">
@@ -99,7 +92,6 @@
             </div>
           </div>
 
-          <!-- Edit actions -->
           @if (isEditing()) {
             <div class="profile-form-actions">
               <button class="profile-btn-cancel" (click)="cancel()">

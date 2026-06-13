@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, OnInit, computed, inject, signal } from '@angular/core';
-import { CommonModule } from '@angular/common';
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { MessageService } from 'primeng/api';
@@ -52,7 +51,6 @@ const MS_PER_DAY = 24 * 60 * 60 * 1000;
   selector: 'app-logs',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     PageContainerComponent,
@@ -568,13 +566,5 @@ export class LogsComponent implements OnInit {
     if (s === 'inprogress') return 'InProgress';
     if (s === 'abandoned') return 'Abandoned';
     return 'Completed';
-  }
-
-  trackByWeek(_index: number, item: WeekGroup): string {
-    return item.key;
-  }
-
-  trackById(_index: number, item: SessionSummaryDto): string {
-    return item.id;
   }
 }

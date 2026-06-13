@@ -1,4 +1,4 @@
-import { booleanAttribute, Component, computed, forwardRef, input } from '@angular/core';
+import { booleanAttribute, ChangeDetectionStrategy, Component, computed, forwardRef, input } from '@angular/core';
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { InputTextModule } from 'primeng/inputtext';
 import { TextareaModule } from 'primeng/textarea';
@@ -45,7 +45,8 @@ import { TextareaModule } from 'primeng/textarea';
       multi: true
     }
   ],
-  host: { class: 'block w-full min-w-0' }
+  host: { class: 'block w-full min-w-0' },
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class InputComponent implements ControlValueAccessor {
   readonly inputId = input<string>('');

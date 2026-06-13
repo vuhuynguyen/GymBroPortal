@@ -1,4 +1,4 @@
-import { Component, computed, forwardRef, input } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, forwardRef, input } from '@angular/core';
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
 import { SelectModule } from 'primeng/select';
 
@@ -29,7 +29,8 @@ import { SelectModule } from 'primeng/select';
       multi: true
     }
   ],
-  host: { class: 'block w-full min-w-0' }
+  host: { class: 'block w-full min-w-0' },
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class SelectComponent implements ControlValueAccessor {
   readonly options = input.required<readonly string[]>();

@@ -38,7 +38,6 @@
 
       <div class="app-shell-sidebar-scroll">
 
-        <!-- Training -->
         @if (generalNavItems().length > 0) {
           <p class="app-shell-section-label">Training</p>
           <nav class="app-shell-nav" aria-label="Training">
@@ -164,7 +163,6 @@
     </div>
 
     <div class="app-shell-sidebar-bottom">
-      <!-- Popup menu -->
       @if (userMenuOpen()) {
         <div class="app-shell-user-menu" role="menu">
 
@@ -193,7 +191,6 @@
         </div>
       }
 
-      <!-- User row -->
       <button
         class="app-shell-sidebar-user"
         [class.app-shell-sidebar-user--open]="userMenuOpen()"

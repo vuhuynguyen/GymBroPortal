@@ -22,7 +22,7 @@
     [trainees]="trainees()"
     (editClicked)="onEditRequested($event)"
     (revokeClicked)="onRevokeRequested($event)"
-    (applyLatestClicked)="onApplyLatestById($event)"
+    (applyLatestClicked)="onApplyLatest($event)"
     (pauseToggled)="onPauseToggled($event)" />
 </app-ui-page-container>
 
@@ -39,4 +39,4 @@
   [saving]="saving()"
   (closed)="editAssignment.set(null)"
   (saved)="onEditSave($event)"
-  (applyLatest)="onApplyLatest(editAssignment()!)" />
+  (applyLatest)="onApplyLatest(editAssignment()!.id)" />

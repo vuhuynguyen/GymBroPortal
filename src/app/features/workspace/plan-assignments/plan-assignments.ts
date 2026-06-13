@@ -1,26 +1,22 @@
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
-import { forkJoin } from 'rxjs';
-import { MessageService } from 'primeng/api';
+import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import {
   ButtonComponent,
   ConfirmSplitDialogComponent,
   PageContainerComponent,
   PageHeaderComponent
 } from '../../../shared/ui';
-import { TenantService } from '../../../core/tenant/tenant';
-import { WorkspaceService } from '../workspace';
-import type { MemberDto } from '../workspace.model';
 import { WorkoutPlanService } from '../plans/workout-plan.service';
 import type { WorkoutPlanSummaryDto } from '../plans/workout-plan.model';
 import { AssignmentListComponent } from './assignment-list/assignment-list';
 import { AssignmentEditPanelComponent } from './assignment-edit-panel/assignment-edit-panel';
 import { AssignPlanModalComponent } from './assign-plan-modal/assign-plan-modal';
-import {
+import type {
   CreatePlanAssignmentRequest,
   PlanAssignmentSummaryDto,
   UpdatePlanAssignmentRequest
 } from './plan-assignment.model';
 import { PlanAssignmentService } from './plan-assignment.service';
+import { AssignmentsPageBase, type AssignmentsPort } from '../shared/assignments-page-base';
 
 @Component({
   selector: 'app-plan-assignments',
@@ -38,222 +34,44 @@ import { PlanAssignmentService } from './plan-assignment.service';
   styleUrl: './plan-assignments.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class PlanAssignmentsComponent {
+export class PlanAssignmentsComponent extends AssignmentsPageBase<
+  PlanAssignmentSummaryDto,
+  WorkoutPlanSummaryDto,
+  CreatePlanAssignmentRequest,
+  UpdatePlanAssignmentRequest
+> {
   private readonly assignmentService = inject(PlanAssignmentService);
   private readonly workoutPlanService = inject(WorkoutPlanService);
-  private readonly workspaceService = inject(WorkspaceService);
-  private readonly tenantService = inject(TenantService);
-  private readonly messageService = inject(MessageService);
 
-  readonly loading = signal(false);
-  readonly saving = signal(false);
-  readonly assignmentModalOpen = signal(false);
-  readonly editAssignment = signal<PlanAssignmentSummaryDto | null>(null);
-  readonly revokeTarget = signal<PlanAssignmentSummaryDto | null>(null);
-
-  readonly plans = signal<WorkoutPlanSummaryDto[]>([]);
-  readonly assignments = signal<PlanAssignmentSummaryDto[]>([]);
-  readonly trainees = computed<MemberDto[]>(() => this.workspaceService.members());
-  /**
-   * Assignment is coach → client: the picker offers only Clients, never the coach themselves.
-   * A coach who wants to follow their own plan uses "Train this myself" on the Plans page, which
-   * self-assigns with full visibility — so they never need to pick themselves here.
-   */
-  readonly assignableTrainees = computed<MemberDto[]>(() =>
-    this.trainees().filter((m) => m.role !== 'Owner')
-  );
-  readonly revokeDialogMessage = computed(() => {
-    const assignment = this.revokeTarget();
-    if (!assignment) return '';
-    const trainee = this.trainees().find((x) => x.userId === assignment.traineeId)?.name ?? 'this trainee';
-    const plan = this.plans().find((x) => x.id === assignment.planId)?.name ?? 'this plan';
-    return `Revoke "${plan}" for ${trainee}?`;
-  });
-
-  /** Avoid refetching when tenants[] refreshes but own workspace id is unchanged. */
-  private lastFetchedOwnTenantId: string | null = null;
+  protected readonly port: AssignmentsPort<
+    PlanAssignmentSummaryDto,
+    WorkoutPlanSummaryDto,
+    CreatePlanAssignmentRequest,
+    UpdatePlanAssignmentRequest
+  > = {
+    listPlans: (q) => this.workoutPlanService.list(q),
+    listAssignments: (q) => this.assignmentService.list(q),
+    create: (body) => this.assignmentService.create(body),
+    update: (id, body) => this.assignmentService.update(id, body),
+    pause: (id) => this.assignmentService.pause(id),
+    resume: (id) => this.assignmentService.resume(id),
+    applyLatestVersion: (id) => this.assignmentService.applyLatestVersion(id),
+    revoke: (id) => this.assignmentService.revoke(id),
+    /**
+     * Assignment is coach → client: the picker offers only Clients, never the coach themselves.
+     * A coach who wants to follow their own plan uses "Train this myself" on the Plans page.
+     */
+    assignableTrainees: (members) => members.filter((m) => m.role !== 'Owner'),
+    revokePlanName: (assignment, plans) => plans.find((x) => x.id === assignment.planId)?.name ?? 'this plan',
+    nouns: {
+      loadFailure: 'assignments',
+      assignedDetail: (count) => `Assigned plan to ${count} trainee${count === 1 ? '' : 's'}.`,
+      pausedDetail: 'Assignment paused — hidden from the trainee’s workout picker.',
+      revokedDetail: 'Plan assignment was removed.'
+    }
+  };
 
   constructor() {
-    effect(() => {
-      const id = this.tenantService.ownTenant()?.id ?? null;
-      if (!id) {
-        this.lastFetchedOwnTenantId = null;
-        return;
-      }
-      this.tenantService.selectOwnWorkspace();
-      if (this.lastFetchedOwnTenantId === id) return;
-      this.lastFetchedOwnTenantId = id;
-      this.workspaceService.loadMembers(id);
-      this.refresh();
-    });
-  }
-
-  refresh(): void {
-    this.loading.set(true);
-    forkJoin({
-      plans: this.workoutPlanService.list({ page: 1, pageSize: 200 }),
-      assignments: this.assignmentService.list({ page: 1, pageSize: 200 })
-    }).subscribe({
-      next: ({ plans, assignments }) => {
-        this.loading.set(false);
-        this.plans.set(plans.items);
-        this.assignments.set(assignments.items);
-      },
-      error: () => {
-        this.loading.set(false);
-        this.messageService.add({
-          severity: 'error',
-          summary: 'Could not load assignments',
-          detail: 'Try refreshing the page.'
-        });
-      }
-    });
-  }
-
-  onAssignConfirmed(payloads: CreatePlanAssignmentRequest[]): void {
-    if (payloads.length === 0) return;
-    this.saving.set(true);
-    forkJoin(payloads.map((payload) => this.assignmentService.create(payload))).subscribe({
-      next: () => {
-        this.saving.set(false);
-        this.assignmentModalOpen.set(false);
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Assignments created',
-          detail: `Assigned plan to ${payloads.length} trainee${payloads.length === 1 ? '' : 's'}.`
-        });
-        this.refresh();
-      },
-      error: (err: { error?: unknown }) => {
-        this.saving.set(false);
-        const msg = typeof err.error === 'string' ? err.error : 'Could not create assignments.';
-        this.messageService.add({ severity: 'error', summary: 'Assignment failed', detail: msg });
-      }
-    });
-  }
-
-  onEditSave(payload: UpdatePlanAssignmentRequest): void {
-    const assignment = this.editAssignment();
-    if (!assignment) return;
-    this.saving.set(true);
-    this.assignmentService.update(assignment.id, payload).subscribe({
-      next: () => {
-        this.saving.set(false);
-        this.editAssignment.set(null);
-        this.messageService.add({ severity: 'success', summary: 'Updated', detail: 'Assignment settings saved.' });
-        this.refresh();
-      },
-      error: (err: { error?: unknown }) => {
-        this.saving.set(false);
-        const msg = typeof err.error === 'string' ? err.error : 'Could not update assignment.';
-        this.messageService.add({ severity: 'error', summary: 'Update failed', detail: msg });
-      }
-    });
-  }
-
-  onPauseToggled(event: { id: string; active: boolean }): void {
-    const request = event.active
-      ? this.assignmentService.resume(event.id)
-      : this.assignmentService.pause(event.id);
-
-    request.subscribe({
-      next: () => {
-        this.messageService.add({
-          severity: 'success',
-          summary: event.active ? 'Resumed' : 'Paused',
-          detail: event.active
-            ? 'Assignment is active again.'
-            : 'Assignment paused — hidden from the trainee’s workout picker.'
-        });
-        this.refresh();
-      },
-      error: (err: { error?: unknown }) => {
-        const msg = typeof err?.error === 'string' ? err.error : 'Could not update the assignment.';
-        this.messageService.add({ severity: 'error', summary: 'Update failed', detail: msg });
-      }
-    });
-  }
-
-  onEditRequested(assignmentId: string): void {
-    const assignment = this.assignments().find((x) => x.id === assignmentId);
-    if (!assignment) {
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'Cannot open editor',
-        detail: 'Assignment was not found in current list. Please refresh and try again.'
-      });
-      return;
-    }
-
-    this.editAssignment.set(assignment);
-  }
-
-  onApplyLatestById(assignmentId: string): void {
-    const assignment = this.assignments().find((x) => x.id === assignmentId);
-    if (!assignment) {
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'Cannot update version',
-        detail: 'Assignment was not found in current list. Please refresh and try again.'
-      });
-      return;
-    }
-    this.onApplyLatest(assignment);
-  }
-
-  onApplyLatest(assignment: PlanAssignmentSummaryDto): void {
-    this.saving.set(true);
-    this.assignmentService.applyLatestVersion(assignment.id).subscribe({
-      next: () => {
-        this.saving.set(false);
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Version updated',
-          detail: `Assignment updated to v${assignment.latestPlanVersion}.`
-        });
-        this.refresh();
-      },
-      error: (err: { error?: unknown }) => {
-        this.saving.set(false);
-        const msg = typeof err.error === 'string' ? err.error : 'Could not apply latest version.';
-        this.messageService.add({ severity: 'error', summary: 'Update failed', detail: msg });
-      }
-    });
-  }
-
-  onRevokeRequested(assignmentId: string): void {
-    const assignment = this.assignments().find((x) => x.id === assignmentId);
-    if (!assignment) {
-      this.messageService.add({
-        severity: 'warn',
-        summary: 'Cannot revoke assignment',
-        detail: 'Assignment was not found in current list. Please refresh and try again.'
-      });
-      return;
-    }
-    this.revokeTarget.set(assignment);
-  }
-
-  onRevokeConfirm(): void {
-    const assignment = this.revokeTarget();
-    if (!assignment) return;
-    this.saving.set(true);
-    this.assignmentService.revoke(assignment.id).subscribe({
-      next: () => {
-        this.saving.set(false);
-        this.revokeTarget.set(null);
-        this.messageService.add({
-          severity: 'success',
-          summary: 'Assignment revoked',
-          detail: 'Plan assignment was removed.'
-        });
-        this.refresh();
-      },
-      error: (err: { error?: unknown }) => {
-        this.saving.set(false);
-        const msg = typeof err.error === 'string' ? err.error : 'Could not revoke assignment.';
-        this.messageService.add({ severity: 'error', summary: 'Revoke failed', detail: msg });
-      }
-    });
+    super();
   }
 }

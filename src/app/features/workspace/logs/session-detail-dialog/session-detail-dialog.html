@@ -1,7 +1,6 @@
 <div class="v4d-scrim" (click)="closed.emit()">
   <div #dialog tabindex="-1" class="v4d-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" [attr.aria-label]="title()">
 
-    <!-- Header -->
     <div class="v4d-top">
       <button class="v4d-back" (click)="closed.emit()" aria-label="Close">
         <i class="pi pi-times" aria-hidden="true"></i>
@@ -12,109 +11,134 @@
       </span>
     </div>
 
-    <!-- Loading -->
-    <div *ngIf="loading() || !detail()" class="v4d-loading">
-      <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
-      <span>Loading session…</span>
-    </div>
-
-    <div *ngIf="!loading() && detail() as d" class="v4d-body">
-      <!-- Hero -->
-      <div>
-        <div class="v4d-hero__ctx">
-          <span class="r2s-src" [class.r2s-src--adhoc]="isAdhoc()" [class.r2s-src--plan]="!isAdhoc()">
-            <i [class]="isAdhoc() ? 'pi pi-bolt' : 'pi pi-folder'" aria-hidden="true"></i>{{ sourceTag() }}
-          </span>
-          <span *ngIf="contextTag() as ctx" class="r2-tag">{{ ctx }}</span>
-        </div>
-        <div class="v4d-hero__title">{{ title() }}</div>
-        <div class="v4d-hero__date">{{ dateLine() }}</div>
+    @if (loading() || !detail()) {
+      <div class="v4d-loading">
+        <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+        <span>Loading session…</span>
       </div>
+    }
 
-      <!-- Stat strip (only metrics that exist; columns fit the tile count) -->
-      <div class="v4d-stats" [style.grid-template-columns]="'repeat(' + statTiles().length + ', minmax(0, 1fr))'">
-        <div class="v4d-stat" *ngFor="let t of statTiles()"><b>{{ t.value }}</b><span>{{ t.label }}</span></div>
-      </div>
-
-      <!-- PR banner(s) -->
-      <div *ngFor="let pr of d.prs" class="v4d-pr">
+    @if (!loading() && detail(); as d) {
+      <div class="v4d-body">
         <div>
-          <span class="v4d-pr__eyebrow"><i class="pi pi-trophy" aria-hidden="true"></i>New personal record</span>
-          <div class="v4d-pr__lift">{{ pr.exerciseName ?? 'Lift' }}</div>
-          <div class="v4d-pr__val">
-            {{ pr.weightKg }} kg × {{ pr.reps }} · e1RM {{ pr.estimatedOneRepMaxKg | number: '1.0-1' }}
-            <b *ngIf="pr.previousEstimatedOneRepMaxKg != null">
-              +{{ pr.estimatedOneRepMaxKg - pr.previousEstimatedOneRepMaxKg | number: '1.0-1' }} vs last
-            </b>
+          <div class="v4d-hero__ctx">
+            <span class="r2s-src" [class.r2s-src--adhoc]="isAdhoc()" [class.r2s-src--plan]="!isAdhoc()">
+              <i [class]="isAdhoc() ? 'pi pi-bolt' : 'pi pi-folder'" aria-hidden="true"></i>{{ sourceTag() }}
+            </span>
+            @if (contextTag(); as ctx) {
+              <span class="r2-tag">{{ ctx }}</span>
+            }
           </div>
+          <div class="v4d-hero__title">{{ title() }}</div>
+          <div class="v4d-hero__date">{{ dateLine() }}</div>
         </div>
-      </div>
 
-      <!-- Notes -->
-      <div *ngIf="d.notes" class="v4d-notes">
-        <div class="v4d-notes__h">{{ isAbandoned() ? 'Why it stopped' : 'Notes' }}</div>
-        <div class="v4d-notes__p">{{ d.notes }}</div>
-      </div>
-
-      <!-- Exercises -->
-      <div *ngIf="exerciseRows().length > 0">
-        <div class="v4d-sech">
-          <ng-container *ngIf="isAbandoned(); else exCount">Logged before stopping</ng-container>
-          <ng-template #exCount>
-            {{ exerciseRows().length }} {{ exerciseRows().length === 1 ? 'exercise' : 'exercises' }}
-            · {{ totalSets() }} {{ totalSets() === 1 ? 'set' : 'sets' }}
-          </ng-template>
+        <!-- Stat strip (only metrics that exist; columns fit the tile count) -->
+        <div class="v4d-stats" [style.grid-template-columns]="'repeat(' + statTiles().length + ', minmax(0, 1fr))'">
+          @for (t of statTiles(); track t.label) {
+            <div class="v4d-stat"><b>{{ t.value }}</b><span>{{ t.label }}</span></div>
+          }
         </div>
-        <div class="v4d-exs">
-          <div *ngFor="let ex of exerciseRows()" class="v4d-ex">
-            <button type="button" class="v4d-ex__h w-full cursor-pointer border-0 bg-transparent text-left"
-                    (click)="toggleExercise(ex)" [attr.aria-expanded]="isExerciseOpen(ex)">
-              <span class="v4d-ex__idx">{{ ex.index }}</span>
-              <span class="v4d-ex__name">{{ ex.name }}</span>
-              <span *ngIf="ex.hasPr" class="r2-chip r2-chip--pr r2-chip--sm">
-                <i class="pi pi-trophy" aria-hidden="true"></i>PR
-              </span>
-              <span class="v4d-ex__sub">{{ ex.workingCount }} working</span>
-              <i class="pi ml-auto" [class.pi-chevron-down]="!isExerciseOpen(ex)" [class.pi-chevron-up]="isExerciseOpen(ex)" aria-hidden="true"></i>
-            </button>
-            <table *ngIf="isExerciseOpen(ex)" class="v4d-sets">
-              <thead>
-                <tr>
-                  <th style="width: 28px">Set</th>
-                  <th>Type</th>
-                  <th class="num">Result</th>
-                  <th class="num">RPE</th>
-                  <th class="num">e1RM</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let st of ex.sets"
-                    [class.warmup]="isWarmup(st.setType)"
-                    [class.pr]="st.isPr"
-                    [class.top]="st.isTop && !st.isPr">
-                  <td class="num">{{ st.setNumber }}</td>
-                  <td><span class="v4d-settype" [class]="setTypeClass(st.setType)">{{ setTypeLabel(st.setType) }}</span></td>
-                  <td class="num">
-                    {{ weightReps(st) }}
-                    <span *ngIf="st.isPr" class="v4d-settag"><i class="pi pi-trophy" aria-hidden="true"></i>PR</span>
-                    <span *ngIf="st.isTop && !st.isPr" class="v4d-settag best">Top</span>
-                  </td>
-                  <td class="num">{{ st.rpe != null ? (st.rpe | number: '1.0-1') : '—' }}</td>
-                  <td class="num">{{ st.estimatedOneRepMaxKg != null ? (st.estimatedOneRepMaxKg | number: '1.0-1') : '—' }}</td>
-                </tr>
-              </tbody>
-            </table>
+
+        @for (pr of d.prs; track pr.exerciseId) {
+          <div class="v4d-pr">
+            <div>
+              <span class="v4d-pr__eyebrow"><i class="pi pi-trophy" aria-hidden="true"></i>New personal record</span>
+              <div class="v4d-pr__lift">{{ pr.exerciseName ?? 'Lift' }}</div>
+              <div class="v4d-pr__val">
+                {{ pr.weightKg }} kg × {{ pr.reps }} · e1RM {{ pr.estimatedOneRepMaxKg | number: '1.0-1' }}
+                @if (pr.previousEstimatedOneRepMaxKg != null) {
+                  <b>
+                    +{{ pr.estimatedOneRepMaxKg - pr.previousEstimatedOneRepMaxKg | number: '1.0-1' }} vs last
+                  </b>
+                }
+              </div>
+            </div>
           </div>
-        </div>
-      </div>
-    </div>
+        }
 
-    <!-- Footer -->
-    <div *ngIf="!loading() && detail()" class="v4d-foot">
-      @if (showRepeat()) {
-        <app-button label="Repeat workout" icon="pi pi-replay" styleClass="w-full v4d-foot__btn" (clicked)="onRepeat()" />
-      }
-      <app-button label="Close" severity="secondary" [outlined]="true" styleClass="w-full v4d-foot__btn" (clicked)="closed.emit()" />
-    </div>
+        @if (d.notes) {
+          <div class="v4d-notes">
+            <div class="v4d-notes__h">{{ isAbandoned() ? 'Why it stopped' : 'Notes' }}</div>
+            <div class="v4d-notes__p">{{ d.notes }}</div>
+          </div>
+        }
+
+        @if (exerciseRows().length > 0) {
+          <div>
+            <div class="v4d-sech">
+              @if (isAbandoned()) {
+                Logged before stopping
+              } @else {
+                {{ exerciseRows().length }} {{ exerciseRows().length === 1 ? 'exercise' : 'exercises' }}
+                · {{ totalSets() }} {{ totalSets() === 1 ? 'set' : 'sets' }}
+              }
+            </div>
+            <div class="v4d-exs">
+              @for (ex of exerciseRows(); track ex.id) {
+                <div class="v4d-ex">
+                  <button type="button" class="v4d-ex__h w-full cursor-pointer border-0 bg-transparent text-left"
+                          (click)="toggleExercise(ex)" [attr.aria-expanded]="isExerciseOpen(ex)">
+                    <span class="v4d-ex__idx">{{ ex.index }}</span>
+                    <span class="v4d-ex__name">{{ ex.name }}</span>
+                    @if (ex.hasPr) {
+                      <span class="r2-chip r2-chip--pr r2-chip--sm">
+                        <i class="pi pi-trophy" aria-hidden="true"></i>PR
+                      </span>
+                    }
+                    <span class="v4d-ex__sub">{{ ex.workingCount }} working</span>
+                    <i class="pi ml-auto" [class.pi-chevron-down]="!isExerciseOpen(ex)" [class.pi-chevron-up]="isExerciseOpen(ex)" aria-hidden="true"></i>
+                  </button>
+                  @if (isExerciseOpen(ex)) {
+                    <table class="v4d-sets">
+                      <thead>
+                        <tr>
+                          <th style="width: 28px">Set</th>
+                          <th>Type</th>
+                          <th class="num">Result</th>
+                          <th class="num">RPE</th>
+                          <th class="num">e1RM</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        @for (st of ex.sets; track st.id) {
+                          <tr
+                              [class.warmup]="isWarmup(st.setType)"
+                              [class.pr]="st.isPr"
+                              [class.top]="st.isTop && !st.isPr">
+                            <td class="num">{{ st.setNumber }}</td>
+                            <td><span class="v4d-settype" [class]="setTypeClass(st.setType)">{{ setTypeLabel(st.setType) }}</span></td>
+                            <td class="num">
+                              {{ weightReps(st) }}
+                              @if (st.isPr) {
+                                <span class="v4d-settag"><i class="pi pi-trophy" aria-hidden="true"></i>PR</span>
+                              }
+                              @if (st.isTop && !st.isPr) {
+                                <span class="v4d-settag best">Top</span>
+                              }
+                            </td>
+                            <td class="num">{{ st.rpe != null ? (st.rpe | number: '1.0-1') : '—' }}</td>
+                            <td class="num">{{ st.estimatedOneRepMaxKg != null ? (st.estimatedOneRepMaxKg | number: '1.0-1') : '—' }}</td>
+                          </tr>
+                        }
+                      </tbody>
+                    </table>
+                  }
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    }
+
+    @if (!loading() && detail()) {
+      <div class="v4d-foot">
+        @if (showRepeat()) {
+          <app-button label="Repeat workout" icon="pi pi-replay" styleClass="w-full v4d-foot__btn" (clicked)="onRepeat()" />
+        }
+        <app-button label="Close" severity="secondary" [outlined]="true" styleClass="w-full v4d-foot__btn" (clicked)="closed.emit()" />
+      </div>
+    }
   </div>
 </div>
