@@ -183,7 +183,7 @@
                       @case ('active') {
                         <tr class="set-row--active">
                           <td class="col-n"><span class="set-num">{{ row.setNumber }}</span></td>
-                          <td class="col-last">{{ row.lastTime }}</td>
+                          <td class="col-last" [title]="lastTimeTitle(ax)">{{ row.lastTime }}</td>
                           <td class="col-entry">
                             <div class="entry-metrics">
                               @if (showField('weight')) {

@@ -7,6 +7,10 @@ export interface NutritionAssignmentSummaryDto {
   traineeId: string;
   planId: string;
   planVersion: number;
+  /** Latest published version of the plan's template (equals planVersion when nothing newer is published). */
+  latestPlanVersion: number;
+  /** True when a newer published version exists — drives the "New vX" badge + apply-latest action. */
+  hasNewerVersion: boolean;
   planName: string;
   /** ISO date (yyyy-MM-dd). */
   startDate: string;

@@ -11,6 +11,10 @@ export interface WorkoutPlanSummaryDto {
   createdOnUtc: string;
   workoutCount: number;
   isArchived: boolean;
+  /** The head row is an unpublished draft (has edits not yet published). */
+  isDraft: boolean;
+  /** Latest published version of this template; null when never published (draft-only, not assignable). */
+  latestPublishedVersion: number | null;
 }
 
 export interface WorkoutPlanListResponseDto {
@@ -85,6 +89,10 @@ export interface WorkoutPlanDetailDto {
   workoutsPerWeek: number | null;
   createdOnUtc: string;
   workouts: PlanWorkoutDetailDto[];
+  /** The head row is an unpublished draft (has edits not yet published). */
+  isDraft: boolean;
+  /** Latest published version of this template; null when never published. */
+  latestPublishedVersion: number | null;
 }
 
 export interface CreateWorkoutPlanRequest {

@@ -112,7 +112,8 @@ export class NutritionPlansListComponent {
       mealCount: p.mealCount,
       version: `v${p.version}`,
       createdOnUtc: p.createdOnUtc,
-      isArchived: p.isArchived
+      isArchived: p.isArchived,
+      isDraft: p.isDraft
     }))
   );
 

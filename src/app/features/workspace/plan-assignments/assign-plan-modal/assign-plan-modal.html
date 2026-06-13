@@ -18,8 +18,8 @@
             <app-form-field label="Plan" [required]="true" [errorMessage]="planError()">
               <select id="assignment-plan" class="pa-native-select" formControlName="planId">
                 <option value="">Select plan</option>
-                @for (plan of plans(); track plan.id) {
-                  <option [value]="plan.id">{{ plan.name }} (v{{ plan.version }})</option>
+                @for (plan of assignablePlans(); track plan.id) {
+                  <option [value]="plan.id">{{ plan.name }} (v{{ plan.latestPublishedVersion }})</option>
                 }
               </select>
             </app-form-field>

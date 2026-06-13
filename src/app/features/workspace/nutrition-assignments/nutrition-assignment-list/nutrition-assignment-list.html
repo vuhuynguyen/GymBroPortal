@@ -14,6 +14,11 @@
       } @else {
         <span class="pa-badge pa-badge--warn">Inactive</span>
       }
+      @if (row['hasNewerVersion']) {
+        <span class="pa-badge pa-badge--warn">New v{{ row['latestPlanVersion'] }}</span>
+      } @else {
+        <span class="pa-badge">In sync</span>
+      }
       @if (row['hideMacroTargets']) {
         <span class="pa-badge pa-badge--custom">Macros hidden</span>
       }
@@ -33,6 +38,16 @@
         severity="secondary"
         [ariaLabel]="'Edit assignment for ' + row['trainee']"
         (clicked)="editClicked.emit($any(row['id']) || '')" />
+      @if (row['hasNewerVersion']) {
+        <app-button
+          icon="pi pi-refresh"
+          size="small"
+          [rounded]="true"
+          [text]="true"
+          severity="secondary"
+          [ariaLabel]="'Update assignment to v' + row['latestPlanVersion']"
+          (clicked)="applyLatestClicked.emit($any(row['id']) || '')" />
+      }
       @if (row['isActive']) {
         <app-button
           icon="pi pi-pause"
