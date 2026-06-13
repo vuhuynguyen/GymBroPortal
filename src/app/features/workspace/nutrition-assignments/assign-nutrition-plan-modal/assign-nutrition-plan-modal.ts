@@ -21,7 +21,7 @@ import type { CreateNutritionAssignmentRequest } from '../nutrition-assignment.m
     ButtonComponent
   ],
   templateUrl: './assign-nutrition-plan-modal.html',
-  styleUrl: './assign-nutrition-plan-modal.scss',
+  styleUrl: '../../shared/assign-plan-modal.shared.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AssignNutritionPlanModalComponent {

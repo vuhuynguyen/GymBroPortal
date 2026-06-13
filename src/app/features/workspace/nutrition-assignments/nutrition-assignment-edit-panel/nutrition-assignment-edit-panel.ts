@@ -14,7 +14,7 @@ import type {
   standalone: true,
   imports: [ReactiveFormsModule, FormFieldComponent, InputComponent, ButtonComponent],
   templateUrl: './nutrition-assignment-edit-panel.html',
-  styleUrl: './nutrition-assignment-edit-panel.scss',
+  styleUrl: '../../shared/assignment-edit-panel.shared.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class NutritionAssignmentEditPanelComponent {

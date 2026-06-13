@@ -77,7 +77,6 @@
       <!-- ── Two-column grid ───────────────────────────────────────── -->
       <div class="session-grid">
 
-        <!-- Active exercise panel -->
         @if (activeExercise(); as ax) {
           <app-ui-panel-card cardClass="session-card" class="ax-panel">
             <header class="ax-panel__head">
@@ -124,7 +123,6 @@
               </div>
             }
 
-            <!-- Rest banner -->
             @if (resting()) {
               <div class="rest-banner">
                 <span class="rest-banner__ico"><i class="pi pi-stopwatch" aria-hidden="true"></i></span>
@@ -144,7 +142,6 @@
               </div>
             }
 
-            <!-- Sets table -->
             <form [formGroup]="setForm" (ngSubmit)="logSet()">
               <div class="set-table-scroll">
               <table class="set-table">
@@ -280,7 +277,6 @@
           </app-ui-panel-card>
         }
 
-        <!-- Workout outline (right rail) -->
         <div class="session-outline-wrap">
           <app-ui-panel-card cardClass="session-card" class="panel--outline">
             <header class="outline-head">
@@ -338,7 +334,6 @@
     <div class="coach-sheet" role="dialog" [attr.aria-label]="'Form guide: ' + exerciseName(activeExercise())" aria-modal="true">
       <div class="coach-sheet__handle" aria-hidden="true"></div>
 
-      <!-- Identity header -->
       <div class="coach-sheet__head">
         <div class="coach-sheet__eyebrow">How to do this</div>
         <div class="coach-sheet__title-row">
@@ -353,7 +348,6 @@
           </button>
         </div>
 
-        <!-- Image slot -->
         @if (coachDetail()?.media?.[0]?.url) {
           <div class="coach-sheet__media">
             <img [src]="coachDetail()!.media[0].url" [alt]="exerciseName(activeExercise())" />
@@ -371,7 +365,6 @@
           </div>
         }
 
-        <!-- Muscle targets -->
         <div class="coach-sheet__muscles">
           <span class="coach-sheet__muscles-label">Targets</span>
           <div class="coach-sheet__muscle-pills">
@@ -388,7 +381,6 @@
           </div>
         </div>
 
-        <!-- Tabs -->
         @if (!coachDetailLoading() && coachDetail()?.instructions?.length) {
           <div class="coach-sheet__tabs" role="tablist">
             @for (tab of [['steps','Steps'],['setup','Setup'],['cues','Cues'],['mistakes','Mistakes']]; track tab[0]) {
@@ -406,7 +398,6 @@
         }
       </div>
 
-      <!-- Sheet body -->
       <div class="coach-sheet__body" role="tabpanel">
         @if (coachDetailLoading()) {
           <div class="coach-sheet__loading">

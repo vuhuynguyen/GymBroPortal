@@ -1,4 +1,4 @@
-import { booleanAttribute, Component, computed, input, output } from '@angular/core';
+import { booleanAttribute, ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core';
 import { CardModule } from 'primeng/card';
 
 @Component({
@@ -6,7 +6,8 @@ import { CardModule } from 'primeng/card';
   standalone: true,
   imports: [CardModule],
   templateUrl: './panel-card.html',
-  styleUrl: './panel-card.scss'
+  styleUrl: './panel-card.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class PanelCardComponent {
   /** Extra classes on the inner `p-card` (e.g. `content-card p-dark`). */

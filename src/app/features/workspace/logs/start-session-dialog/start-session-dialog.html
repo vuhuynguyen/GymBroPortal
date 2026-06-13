@@ -12,7 +12,6 @@
       </header>
 
       <div class="ssd-body">
-        <!-- Mode selector -->
         <div class="ssd-mode-row" role="radiogroup" aria-label="Session source">
           <button
             type="button"
@@ -38,7 +37,6 @@
           </button>
         </div>
 
-        <!-- Plan picker -->
         @if (mode() === 'FromAssignment') {
           <section class="ssd-section">
             <h4 class="ssd-section__title">Select plan</h4>
@@ -77,7 +75,6 @@
             }
           </section>
 
-          <!-- Workout picker -->
           @if (selectedAssignment()) {
             <section class="ssd-section">
               <h4 class="ssd-section__title">Select workout</h4>
@@ -116,7 +113,6 @@
           }
         }
 
-        <!-- Optional bodyweight -->
         <section class="ssd-section">
           <app-form-field label="Bodyweight (kg)" forId="ssd-bw">
             <app-input

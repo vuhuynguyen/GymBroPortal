@@ -21,7 +21,7 @@ import type { CreatePlanAssignmentRequest, PlanVisibilityMode } from '../plan-as
     ButtonComponent
   ],
   templateUrl: './assign-plan-modal.html',
-  styleUrl: './assign-plan-modal.scss',
+  styleUrl: '../../shared/assign-plan-modal.shared.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AssignPlanModalComponent {

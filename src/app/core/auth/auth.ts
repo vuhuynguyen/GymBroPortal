@@ -129,9 +129,6 @@ export class AuthService {
       this.profileRequestToken = null;
       return;
     }
-    if (!force && this.profile() && this.profileRequestToken === token) {
-      return;
-    }
     if (!force && this.profileRequestToken === token) {
       return;
     }
