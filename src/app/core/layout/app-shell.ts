@@ -117,7 +117,7 @@ export class AppShellComponent {
     items.push(
       { label: 'My Plans', icon: 'pi pi-calendar', route: '/workspace/plans', activeMatch: 'prefix', section: 'general' },
       { label: 'Workout Log', icon: 'pi pi-history', route: '/workspace/logs', activeMatch: 'prefix', section: 'general' },
-      { label: 'My Nutrition', icon: 'pi pi-heart', route: '/workspace/nutrition', activeMatch: 'prefix', section: 'general' }
+      { label: 'My Nutrition', icon: 'pi pi-apple', route: '/workspace/nutrition', activeMatch: 'prefix', section: 'general' }
     );
 
     // Trainer section — invite always visible; clients only once someone has joined

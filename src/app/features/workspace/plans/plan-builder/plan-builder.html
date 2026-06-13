@@ -146,10 +146,14 @@
 
                       @if (isWorkoutExpanded(wi)) {
                         <div class="pb-workout-card__body flex flex-col gap-4" [formArrayName]="'exercises'">
+                          <div class="flex items-center px-1 text-inv-body-mini font-medium uppercase tracking-wider text-inv-grey-500">
+                            {{ workoutExerciseCount(wi) }} {{ workoutExerciseCount(wi) === 1 ? 'exercise' : 'exercises' }}
+                          </div>
                           @for (eg of exercisesAt(wi).controls; track eg; let ei = $index) {
                             <div class="pb-exercise-block flex flex-col gap-3 rounded-inv-md border border-inv-border-card bg-white p-4" [formGroupName]="ei">
-                              <!-- Exercise header: thumb + name + remove -->
+                              <!-- Exercise header: order # + thumb + name + collapse + remove -->
                               <div class="flex items-center gap-3">
+                                <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-inv-grey-25 text-inv-body-mini font-bold text-inv-grey-600" aria-hidden="true">{{ ei + 1 }}</span>
                                 <span class="pb-ex-grid-row__thumb" aria-hidden="true">
                                   @if (exerciseImageForId(eg.get('exerciseId')?.value); as img) {
                                     <img [src]="img" alt="" loading="lazy" />
@@ -188,8 +192,17 @@
                                     ariaLabel="Remove exercise"
                                     (clicked)="removeExercise(wi, ei)" />
                                 }
+                                <button
+                                  type="button"
+                                  class="inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center self-center rounded-inv-sm border-0 bg-transparent text-inv-grey-500 hover:bg-inv-grey-25"
+                                  [attr.aria-expanded]="isExerciseExpanded(wi, ei)"
+                                  [attr.aria-label]="isExerciseExpanded(wi, ei) ? 'Collapse exercise' : 'Expand exercise'"
+                                  (click)="toggleExerciseExpanded(wi, ei)">
+                                  <i class="pi" [class.pi-chevron-up]="isExerciseExpanded(wi, ei)" [class.pi-chevron-down]="!isExerciseExpanded(wi, ei)" aria-hidden="true"></i>
+                                </button>
                               </div>
 
+                              @if (isExerciseExpanded(wi, ei)) {
                               <!-- Per-set table -->
                               <div class="pb-set-scroll">
                               <div class="pb-set-grid flex flex-col gap-1.5" [formArrayName]="'sets'">
@@ -259,6 +272,7 @@
                                   <i class="pi pi-plus" aria-hidden="true"></i>
                                   Add Set
                                 </button>
+                              }
                               }
                             </div>
                           }
