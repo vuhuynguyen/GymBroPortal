@@ -9,6 +9,7 @@ import {
   inject,
   input,
   output,
+  signal,
   viewChild
 } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
@@ -158,6 +159,20 @@ export class SessionDetailDialogComponent implements AfterViewInit, OnDestroy {
       .sort((a, b) => a.order - b.order)
       .map((ex, i) => this.toExerciseRow(ex, i));
   });
+
+  /** Exercises start collapsed (a long session stays scannable); this holds the ones the user expanded. */
+  private readonly openExercises = signal<ReadonlySet<string>>(new Set());
+
+  isExerciseOpen(ex: ExerciseRow): boolean {
+    return this.openExercises().has(ex.id);
+  }
+
+  toggleExercise(ex: ExerciseRow): void {
+    const next = new Set(this.openExercises());
+    if (next.has(ex.id)) next.delete(ex.id);
+    else next.add(ex.id);
+    this.openExercises.set(next);
+  }
 
   private toExerciseRow(ex: PerformedExerciseDto, i: number): ExerciseRow {
     const sets = [...ex.sets].sort((a, b) => a.setNumber - b.setNumber);

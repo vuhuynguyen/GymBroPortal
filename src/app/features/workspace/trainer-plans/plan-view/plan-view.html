@@ -138,23 +138,24 @@
                 @if (day.exercises.length === 0) {
                   <p class="pv-note pv-exercise pv-exercise--empty">No exercises in this workout yet.</p>
                 }
-                @for (ex of day.exercises; track ex.id) {
+                @for (ex of day.exercises; track ex.id; let ei = $index) {
                   <div class="pv-exercise" [class.pv-exercise--hidden]="ex.hidden">
-                    <div class="pv-exercise__head">
+                    <button type="button" class="pv-exercise__head w-full cursor-pointer border-0 bg-transparent text-left" (click)="toggleExercise(ex)" [attr.aria-expanded]="isExerciseOpen(ex)">
                       <span class="pv-thumb" aria-hidden="true">
                         <i [class]="ex.hidden ? 'pi pi-lock' : 'pi pi-image'"></i>
                       </span>
                       <div>
-                        <div class="pv-exercise__name">{{ ex.name }}</div>
+                        <div class="pv-exercise__name">{{ ei + 1 }}. {{ ex.name }}</div>
                         @if (ex.hidden) {
                           <div class="pv-exercise__sub">Revealed by your coach during the session</div>
                         } @else {
                           <div class="pv-exercise__sub">{{ ex.setSummary }}</div>
                         }
                       </div>
-                    </div>
+                      <i class="pi pv-chev ml-auto" [class.pi-chevron-down]="!isExerciseOpen(ex)" [class.pi-chevron-up]="isExerciseOpen(ex)" aria-hidden="true"></i>
+                    </button>
 
-                    @if (!ex.hidden) {
+                    @if (isExerciseOpen(ex) && !ex.hidden) {
                       @if (ex.hiddenTargets) {
                         <div class="pv-locked-targets">
                           <i class="pi pi-eye-slash" aria-hidden="true"></i>

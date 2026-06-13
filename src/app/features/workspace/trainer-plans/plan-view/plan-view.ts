@@ -255,6 +255,20 @@ export class PlanViewComponent {
     this.openDayIds.set(next);
   }
 
+  /** Exercises start collapsed (long workouts stay scannable); this holds the ones the trainee opened. */
+  private readonly openExerciseIds = signal<ReadonlySet<string>>(new Set());
+
+  isExerciseOpen(ex: ExerciseVm): boolean {
+    return this.openExerciseIds().has(ex.id);
+  }
+
+  toggleExercise(ex: ExerciseVm): void {
+    const next = new Set(this.openExerciseIds());
+    if (next.has(ex.id)) next.delete(ex.id);
+    else next.add(ex.id);
+    this.openExerciseIds.set(next);
+  }
+
   back(): void {
     void this.router.navigate(['/workspace/trainer', this.trainerId(), 'plans']);
   }

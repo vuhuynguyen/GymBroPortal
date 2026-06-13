@@ -105,6 +105,12 @@ export class PlanBuilderComponent {
   /** Single-open accordion index for workouts; -1 when everything is collapsed. */
   readonly expandedWorkoutIndex = signal(-1);
 
+  /**
+   * Builder exercises start EXPANDED (you're editing their sets); this holds the ones the user has
+   * collapsed to tidy a long workout. Keyed `workoutIndex:exerciseIndex`.
+   */
+  readonly collapsedExercises = signal<ReadonlySet<string>>(new Set());
+
   readonly form = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(200)]],
     description: ['', [Validators.maxLength(2000)]],
@@ -479,6 +485,17 @@ export class PlanBuilderComponent {
 
   workoutExerciseCount(workoutIndex: number): number {
     return this.exercisesAt(workoutIndex).length;
+  }
+
+  isExerciseExpanded(workoutIndex: number, exerciseIndex: number): boolean {
+    return !this.collapsedExercises().has(`${workoutIndex}:${exerciseIndex}`);
+  }
+
+  toggleExerciseExpanded(workoutIndex: number, exerciseIndex: number): void {
+    const key = `${workoutIndex}:${exerciseIndex}`;
+    const next = new Set(this.collapsedExercises());
+    next.has(key) ? next.delete(key) : next.add(key);
+    this.collapsedExercises.set(next);
   }
 
   workoutCollapsedPreview(workoutIndex: number): string {
