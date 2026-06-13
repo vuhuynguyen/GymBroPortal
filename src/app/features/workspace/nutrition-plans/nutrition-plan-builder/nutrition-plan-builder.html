@@ -268,6 +268,17 @@
         @if (hasUnsavedChanges()) {
           <span class="h-2 w-2 shrink-0 rounded-full bg-inv-warning-100" aria-hidden="true"></span>
           <span class="text-inv-body-sm font-medium text-inv-grey-800">Unsaved changes</span>
+        } @else if (isDraft()) {
+          <span class="h-2 w-2 shrink-0 rounded-full bg-inv-warning-100" aria-hidden="true"></span>
+          <span class="text-inv-body-sm font-medium text-inv-grey-800">
+            Draft &middot; not yet published
+            @if (latestPublishedVersion() !== null) {
+              <span class="font-normal text-inv-grey-500">(live: v{{ latestPublishedVersion() }})</span>
+            }
+          </span>
+        } @else if (version() !== null) {
+          <span class="h-2 w-2 shrink-0 rounded-full bg-inv-success-100" aria-hidden="true"></span>
+          <span class="text-inv-body-sm text-inv-grey-500">Published &middot; v{{ version() }}</span>
         } @else {
           <span class="text-inv-body-sm text-inv-grey-500">No unsaved changes</span>
         }
@@ -283,7 +294,7 @@
           severity="secondary"
           [outlined]="true"
           type="button"
-          [disabled]="saving() || loading()"
+          [disabled]="saving() || loading() || publishing()"
           (clicked)="onCancel()" />
         <app-button
           label="Save Plan"
@@ -291,8 +302,24 @@
           severity="primary"
           type="button"
           [loading]="saving()"
-          [disabled]="saving() || loading()"
+          [disabled]="saving() || loading() || publishing()"
           (clicked)="savePlan()" />
+        <app-button
+          label="Publish"
+          icon="pi pi-upload"
+          severity="success"
+          type="button"
+          [loading]="publishing()"
+          [disabled]="publishing() || saving() || loading() || hasUnsavedChanges() || !isDraft()"
+          [pTooltip]="
+            hasUnsavedChanges()
+              ? 'Save your changes before publishing.'
+              : !isDraft()
+                ? 'Nothing to publish — no unpublished changes.'
+                : 'Publish this draft so assigned trainees can move to it.'
+          "
+          tooltipPosition="top"
+          (clicked)="publishPlan()" />
       }
     </div>
   </app-ui-page-sticky-footer>

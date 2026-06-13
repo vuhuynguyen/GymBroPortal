@@ -24,6 +24,7 @@ export class NutritionAssignmentListComponent {
 
   readonly editClicked = output<string>();
   readonly revokeClicked = output<string>();
+  readonly applyLatestClicked = output<string>();
   readonly pauseToggled = output<{ id: string; active: boolean }>();
 
   readonly columns: TableColumn[] = [
@@ -44,6 +45,8 @@ export class NutritionAssignmentListComponent {
       version: `v${a.planVersion}`,
       period: this.period(a),
       visibility: a.visibilityMode,
+      hasNewerVersion: a.hasNewerVersion,
+      latestPlanVersion: a.latestPlanVersion,
       hideMacroTargets: a.hideMacroTargets,
       disableTraineeEditing: a.disableTraineeEditing,
       isActive: a.isActive

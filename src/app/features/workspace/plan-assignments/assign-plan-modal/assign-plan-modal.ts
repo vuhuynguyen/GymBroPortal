@@ -70,6 +70,10 @@ export class AssignPlanModalComponent {
   readonly selectedPlan = computed(
     () => this.plans().find((p) => p.id === this.selectedPlanId()) ?? null
   );
+  /** Only plans with a published version are assignable — a draft-only plan must be published first. */
+  readonly assignablePlans = computed(() =>
+    this.plans().filter((p) => p.latestPublishedVersion !== null)
+  );
   readonly selectedTraineeNames = computed(() => {
     const ids = new Set(this.selectedTraineeIds());
     return this.trainees()

@@ -118,7 +118,8 @@ export class PlansListComponent {
       durationWeeks: p.durationWeeks,
       workoutsPerWeek: p.workoutsPerWeek,
       createdOnUtc: p.createdOnUtc,
-      isArchived: p.isArchived
+      isArchived: p.isArchived,
+      isDraft: p.isDraft
     }))
   );
 

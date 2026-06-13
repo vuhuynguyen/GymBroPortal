@@ -159,6 +159,35 @@ export class NutritionAssignmentsComponent {
     });
   }
 
+  onApplyLatest(assignmentId: string): void {
+    const assignment = this.assignments().find((x) => x.id === assignmentId);
+    if (!assignment) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Cannot update version',
+        detail: 'Assignment was not found in current list. Please refresh and try again.'
+      });
+      return;
+    }
+    this.saving.set(true);
+    this.assignmentService.applyLatestVersion(assignment.id).subscribe({
+      next: () => {
+        this.saving.set(false);
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Version updated',
+          detail: `Assignment updated to v${assignment.latestPlanVersion}.`
+        });
+        this.refresh();
+      },
+      error: (err: { error?: unknown }) => {
+        this.saving.set(false);
+        const msg = typeof err.error === 'string' ? err.error : 'Could not apply latest version.';
+        this.messageService.add({ severity: 'error', summary: 'Update failed', detail: msg });
+      }
+    });
+  }
+
   onPauseToggled(event: { id: string; active: boolean }): void {
     const request = event.active
       ? this.assignmentService.resume(event.id)

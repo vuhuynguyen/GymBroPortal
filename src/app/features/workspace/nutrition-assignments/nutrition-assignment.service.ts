@@ -78,4 +78,9 @@ export class NutritionAssignmentService {
   resume(assignmentId: string): Observable<void> {
     return this.http.put<void>(`${this.baseUrl}/${assignmentId}/resume`, {});
   }
+
+  /** Re-point the assignment to the plan's latest published version (snapshot rebuilt server-side). */
+  applyLatestVersion(assignmentId: string): Observable<{ updated: boolean }> {
+    return this.http.put<{ updated: boolean }>(`${this.baseUrl}/${assignmentId}/apply-latest`, {});
+  }
 }

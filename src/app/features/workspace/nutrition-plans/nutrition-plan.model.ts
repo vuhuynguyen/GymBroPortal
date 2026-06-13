@@ -11,6 +11,10 @@ export interface NutritionPlanSummaryDto {
   createdOnUtc: string;
   mealCount: number;
   isArchived: boolean;
+  /** The head row is an unpublished draft (has edits not yet published). */
+  isDraft: boolean;
+  /** Latest published version of this template; null when never published (draft-only, not assignable). */
+  latestPublishedVersion: number | null;
 }
 
 export interface NutritionPlanListResponseDto {
@@ -54,6 +58,10 @@ export interface NutritionPlanDetailDto {
   description: string | null;
   createdOnUtc: string;
   meals: PlanMealDto[];
+  /** The head row is an unpublished draft (has edits not yet published). */
+  isDraft: boolean;
+  /** Latest published version of this template; null when never published. */
+  latestPublishedVersion: number | null;
 }
 
 export interface CreateNutritionPlanRequest {

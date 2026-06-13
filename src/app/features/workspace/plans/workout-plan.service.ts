@@ -113,6 +113,11 @@ export class WorkoutPlanService {
     return this.http.put<WorkoutPlanVersionRef>(`${this.baseUrl}/${id}/structure`, body);
   }
 
+  // Publishing the draft head is the only action that advances the version trainees/assignments see.
+  publish(id: string): Observable<{ version: number }> {
+    return this.http.put<{ version: number }>(`${this.baseUrl}/${id}/publish`, {});
+  }
+
   delete(id: string): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }

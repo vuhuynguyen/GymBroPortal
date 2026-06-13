@@ -306,11 +306,12 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     });
 
     const activeNumber = leads.length + 1;
-    const lastDone = leads[leads.length - 1] ?? null;
     rows.push({
       kind: 'active',
       setNumber: activeNumber,
-      lastTime: this.rollupSummary(ex, lastDone)
+      // "Last time" is the trainee's most recent PRIOR performance (a previous completed session) — never
+      // the set just logged in this session, which would only echo what's already on screen.
+      lastTime: this.lastTimeLabel(ex)
     });
 
     for (let n = activeNumber + 1; n <= planned; n++) {
@@ -323,6 +324,24 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     }
     return rows;
   });
+
+  /** "Last time" reference for a lift: the trainee's most recent prior performance (previous completed session). */
+  lastTimeLabel(ex: PerformedExerciseDto): string {
+    const lp = ex.lastPerformed;
+    if (!lp || lp.weightKg == null || lp.reps == null) return '—';
+    return `${lp.weightKg} × ${lp.reps}`;
+  }
+
+  /** Hover tooltip for the LAST TIME cell: when the trainee last performed this lift. Empty when no history. */
+  lastTimeTitle(ex: PerformedExerciseDto): string {
+    const at = ex.lastPerformed?.performedAt;
+    if (!at) return '';
+    return `Last done ${new Date(at).toLocaleDateString(undefined, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })}`;
+  }
 
   /** Drop stages logged under a lead set, in order. */
   dropStagesOf(ex: PerformedExerciseDto, lead: PerformedSetDto): PerformedSetDto[] {

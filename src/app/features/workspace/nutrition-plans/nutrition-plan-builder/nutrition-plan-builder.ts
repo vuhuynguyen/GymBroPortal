@@ -7,6 +7,7 @@ import { ActivatedRoute, Router } from '@angular/router';
 import { MessageService } from 'primeng/api';
 import type { MenuItem } from 'primeng/api';
 import { Menu } from 'primeng/menu';
+import { Tooltip } from 'primeng/tooltip';
 import { distinctUntilChanged, map, merge, startWith } from 'rxjs';
 import {
   ButtonComponent,
@@ -53,6 +54,7 @@ import {
     FoodPickerPanelComponent,
     NutritionPlanDetailsDialogComponent,
     Menu,
+    Tooltip,
     DragDropModule
   ],
   templateUrl: './nutrition-plan-builder.html',
@@ -71,7 +73,13 @@ export class NutritionPlanBuilderComponent {
   readonly planId = signal<string | null>(null);
   readonly loading = signal(true);
   readonly saving = signal(false);
+  readonly publishing = signal(false);
   readonly canEdit = computed(() => this.tenantService.currentRole() === 'Owner');
+
+  /** Publish state for the current head: edits land on a draft, only "Publish" advances the live version. */
+  readonly version = signal<number | null>(null);
+  readonly isDraft = signal(false);
+  readonly latestPublishedVersion = signal<number | null>(null);
 
   /** Which meal is currently using the slide-over food picker (null = closed). */
   readonly pickerMealIndex = signal<number | null>(null);
@@ -235,6 +243,10 @@ export class NutritionPlanBuilderComponent {
   private patchFromDto(dto: NutritionPlanDetailDto): void {
     this.form.patchValue({ name: dto.name, description: dto.description ?? '' });
     this.planDetailsDialogOpen.set(false);
+
+    this.version.set(dto.version);
+    this.isDraft.set(dto.isDraft);
+    this.latestPublishedVersion.set(dto.latestPublishedVersion);
 
     const mealsArr = this.meals();
     mealsArr.clear();
@@ -523,11 +535,13 @@ export class NutritionPlanBuilderComponent {
         next: (ref) => {
           this.saving.set(false);
           this.adoptVersionId(ref.id);
+          // The save landed on the draft head — there are now unpublished changes to publish.
+          this.isDraft.set(true);
           this.form.markAsPristine();
           this.messageService.add({
             severity: 'success',
-            summary: 'Plan saved',
-            detail: 'Changes are live for your workspace.'
+            summary: 'Draft saved',
+            detail: 'Saved as a draft. Publish to push it to assigned trainees.'
           });
         },
         error: (err: { error?: unknown }) => {
@@ -536,6 +550,45 @@ export class NutritionPlanBuilderComponent {
           this.messageService.add({ severity: 'error', summary: 'Save failed', detail: msg });
         }
       });
+  }
+
+  /**
+   * Publishes the draft head — the only action that advances the version trainees/assignments see. Requires the
+   * form to be saved first (unsaved edits aren't on the server yet), and only fires when there's a draft to publish.
+   */
+  publishPlan(): void {
+    if (!this.canEdit()) return;
+    const id = this.planId();
+    if (!id) return;
+    if (this.hasUnsavedChanges()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Save first',
+        detail: 'Save your changes before publishing.'
+      });
+      return;
+    }
+    if (!this.isDraft()) return;
+
+    this.publishing.set(true);
+    this.nutritionPlanService.publish(id).subscribe({
+      next: ({ version }) => {
+        this.publishing.set(false);
+        this.version.set(version);
+        this.latestPublishedVersion.set(version);
+        this.isDraft.set(false);
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Published',
+          detail: `Published as v${version}. Assigned trainees can now move to this version.`
+        });
+      },
+      error: (err: { error?: unknown }) => {
+        this.publishing.set(false);
+        const msg = typeof err?.error === 'string' ? err.error : 'Publish failed.';
+        this.messageService.add({ severity: 'error', summary: 'Publish failed', detail: msg });
+      }
+    });
   }
 
   private buildStructurePayload():
