@@ -92,6 +92,11 @@ constructor runs a **silent refresh** against the httpOnly `gymbro_refresh` cook
 await `auth.ready` before deciding, so a reload doesn't bounce a logged-in user. The full token lifecycle (rotation,
 revocation) is owned by the API repository's authentication doc.
 
+On profile load the client reports its **device IANA timezone** to `PUT /api/me/timezone` whenever it differs from
+the stored value (`core/timezone.ts` → `deviceTimeZone()`), keeping the server-side anchor current; coach views
+render another trainee's data in that trainee's captured zone (`relativeDayInZone`). The day-boundary rule itself
+is owned by the API docs (BUSINESS_RULES § Cross-cutting invariants).
+
 ## Design workflow (Figma Make)
 
 Figma Make exports **React + Tailwind**; this app is Angular. Never convert JSX directly:

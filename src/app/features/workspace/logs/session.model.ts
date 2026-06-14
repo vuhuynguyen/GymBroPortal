@@ -27,6 +27,8 @@ export interface SessionSummaryDto {
   planWeek: number | null;
   /** Weekly session goal from the active plan's frequency (null for ad-hoc-only). */
   weeklyGoal: number | null;
+  /** The trainee's IANA zone when the session started — used to render coach views in the trainee's local time. */
+  clientTimezone: string | null;
 }
 
 export interface SessionListResponseDto {
