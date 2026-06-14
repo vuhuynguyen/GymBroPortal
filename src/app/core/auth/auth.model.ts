@@ -12,6 +12,8 @@ export interface MeDto {
   name: string;
   email: string | null;
   isPlatformAdmin: boolean;
+  /** The user's authoritative IANA zone (e.g. "America/Toronto"); null until first reported. */
+  timeZoneId: string | null;
 }
 
 export interface AuthUser {
