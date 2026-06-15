@@ -35,11 +35,11 @@ export function computeElapsedSeconds(startMs: number, nowMs: number, pausedOffs
 }
 
 /**
- * Total number of logged sets across all performed exercises. Drop/rest-pause stages roll up into their
- * lead set, so only parentless rows are counted (a `6+4+3` cluster is one set).
+ * Total number of logged sets across all performed exercises. Every set counts, incl. drop stages, so
+ * progress matches plans that prescribe drops as separate sets (RP 6-4-3-2 = working + 3 drops).
  */
 export function countLoggedSets(exercises: readonly PerformedExerciseDto[]): number {
-  return exercises.reduce((sum, ex) => sum + ex.sets.filter((s) => !s.parentSetId).length, 0);
+  return exercises.reduce((sum, ex) => sum + ex.sets.length, 0);
 }
 
 /** Working-set volume (Σ weight × reps) over *completed* sets only, in kg. */
@@ -89,11 +89,10 @@ export function isPerformedExerciseComplete(
   ex: PerformedExerciseDto,
   plannedCount: number | null
 ): boolean {
-  // Count lead/standalone sets only — drop stages roll up into their lead.
-  const leadSets = ex.sets.filter((s) => !s.parentSetId);
-  const planned = plannedCount ?? leadSets.length;
+  // Count every set incl. drop stages, matching the prescription (which lists drops as separate sets).
+  const planned = plannedCount ?? ex.sets.length;
   if (planned === 0) return false;
-  return leadSets.filter((s) => s.isCompleted).length >= planned;
+  return ex.sets.filter((s) => s.isCompleted).length >= planned;
 }
 
 /** Logged/total as a clamped 0–100 integer percentage; 0 when there is no total. */
