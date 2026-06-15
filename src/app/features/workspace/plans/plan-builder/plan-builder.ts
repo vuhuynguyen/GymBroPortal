@@ -342,6 +342,15 @@ export class PlanBuilderComponent {
     this.form.markAsDirty();
   }
 
+  /** Reorder sets within an exercise by dragging the row handle (mirrors workout drag-drop). */
+  onSetsDropped(workoutIndex: number, exerciseIndex: number, event: CdkDragDrop<unknown>): void {
+    if (!this.canEdit() || event.previousIndex === event.currentIndex) return;
+    const sets = this.setsAt(workoutIndex, exerciseIndex);
+    moveItemInArray(sets.controls, event.previousIndex, event.currentIndex);
+    sets.updateValueAndValidity();
+    this.form.markAsDirty();
+  }
+
   setTrackKey(_index: number, group: AbstractControl): string {
     const k = (group as FormGroup).get('key')?.value;
     return typeof k === 'string' ? k : `set-${_index}`;

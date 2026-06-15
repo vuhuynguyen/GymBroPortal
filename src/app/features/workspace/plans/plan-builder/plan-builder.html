@@ -223,11 +223,20 @@
                                   <span class="text-center">Rest</span>
                                   <span></span>
                                 </div>
+                                <div class="flex flex-col gap-1.5"
+                                     cdkDropList
+                                     [cdkDropListDisabled]="!canEdit()"
+                                     (cdkDropListDropped)="onSetsDropped(wi, ei, $event)">
                                 @for (sg of setsAt(wi, ei).controls; track setTrackKey($index, sg); let si = $index) {
                                   <div class="pb-set-grid__row grid items-center gap-2"
                                        style="grid-template-columns: 28px minmax(96px, 1fr) 76px 88px 76px 84px 36px;"
-                                       [formGroupName]="si">
-                                    <span class="text-inv-body-sm font-semibold text-inv-grey-700 tabular-nums">{{ si + 1 }}</span>
+                                       [formGroupName]="si"
+                                       cdkDrag
+                                       [cdkDragDisabled]="!canEdit()">
+                                    <span class="inline-flex items-center justify-center text-inv-body-sm font-semibold text-inv-grey-700 tabular-nums"
+                                          cdkDragHandle
+                                          [class.cursor-move]="canEdit()"
+                                          [attr.title]="canEdit() ? 'Drag to reorder set' : null">{{ si + 1 }}</span>
 
                                     <select formControlName="setType" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-inv-body-sm text-inv-grey-900 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' type'">
                                       @for (opt of setTypeOptions; track opt.value) {
@@ -261,6 +270,7 @@
                                     }
                                   </div>
                                 }
+                                </div>
                               </div>
                               </div>
 
