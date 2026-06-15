@@ -281,7 +281,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     return `${this.loggedSets()} / ${total}`;
   });
 
-  /** Rendered rows for the active exercise's set table: done → active → pending. Drop stages roll up into their lead. */
+  /** Rendered rows for the active exercise's set table: done → active → pending. Every set is its own row. */
   readonly activeSetRows = computed<SetRowView[]>(() => {
     const ex = this.activeExercise();
     if (!ex) return [];
@@ -289,23 +289,21 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     const planned = snap?.sets?.length ?? 0;
     const rows: SetRowView[] = [];
 
-    // Only lead/standalone sets get a numbered row; a drop cluster shows as one row (e.g. "6+4+3").
-    const leads = ex.sets.filter((s) => !s.parentSetId);
-    leads.forEach((set, i) => {
-      // Rest is stored as "rest before this set"; show it as the rest taken *after* a set
-      // (= the next set's stored value), so the first set isn't mislabelled. Last set shows none.
-      const next = leads[i + 1] ?? null;
+    // Every logged set (incl. drop stages) gets its own numbered row, matching plans that prescribe
+    // drops as separate sets and the total-count progress.
+    ex.sets.forEach((set, i) => {
       rows.push({
         kind: 'done',
         setNumber: i + 1,
         set,
         // "Last time" is only meaningful on the upcoming (active) row — keep done rows uncluttered.
         lastTime: '',
-        restAfter: next?.restSeconds ?? null
+        // Show each set's OWN logged rest on that set (the rest taken before it was logged).
+        restAfter: set.restSeconds ?? null
       });
     });
 
-    const activeNumber = leads.length + 1;
+    const activeNumber = ex.sets.length + 1;
     rows.push({
       kind: 'active',
       setNumber: activeNumber,
@@ -409,9 +407,9 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   }
 
   /** Set-progress dots for an outline row. */
-  /** Number of logged lead/standalone sets (drop stages roll up, so they don't add to the count). */
+  /** Number of logged sets — every set incl. drop stages (plans prescribe drops as separate sets). */
   private leadCount(ex: PerformedExerciseDto): number {
-    return ex.sets.filter((s) => !s.parentSetId).length;
+    return ex.sets.length;
   }
 
   outlineDots(ex: PerformedExerciseDto): Array<'done' | 'active' | ''> {
@@ -649,7 +647,8 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
       rounds: last?.rounds ?? target?.targetRounds ?? null,
       // Left blank → the actual rest taken (restElapsed) is auto-captured; a typed value overrides it.
       restSeconds: null,
-      rpe: null
+      // Pre-fill the set's prescribed RPE so it's logged even when "More" stays collapsed (matches mobile).
+      rpe: target?.targetRpe != null ? String(target.targetRpe) : null
     });
   }
 

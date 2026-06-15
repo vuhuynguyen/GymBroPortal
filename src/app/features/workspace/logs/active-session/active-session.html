@@ -161,7 +161,7 @@
                           <td class="col-n"><span class="set-num">{{ row.setNumber }}</span></td>
                           <td class="col-last">{{ row.lastTime }}</td>
                           <td class="col-entry">
-                            {{ rollupSummary(ax, row.set) }}
+                            {{ summarizeSet(row.set) }}
                             @if (row.set.rpe) {
                               <span class="set-rest-note">· RPE {{ row.set.rpe }}</span>
                             }
