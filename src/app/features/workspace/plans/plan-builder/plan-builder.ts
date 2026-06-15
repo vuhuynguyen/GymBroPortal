@@ -247,13 +247,17 @@ export class PlanBuilderComponent {
   private createExerciseGroup(
     exerciseId: string,
     sets: ReadonlyArray<Partial<PlanSetDetailDto>> = [],
-    supersetGroupId: string | null = null
+    supersetGroupId: string | null = null,
+    exerciseName: string | null = null
   ): FormGroup {
     const seedSets = sets.length > 0 ? sets : [{}, {}, {}]; // default 3 working sets
     const setGroups = seedSets.map((s) => this.createSetGroup(s));
     return this.fb.group({
       key: [uuid()],
       exerciseId: [exerciseId, Validators.required],
+      // Name resolved server-side (uncapped) and cached on the group so display never depends on the
+      // client catalog page — which is capped, so large catalogs would otherwise show "Exercise".
+      exerciseName: this.fb.control<string | null>(exerciseName),
       supersetGroupId: this.fb.control<string | null>(supersetGroupId),
       sets: this.fb.array<FormGroup>(setGroups, [Validators.required, Validators.minLength(1)])
     });
@@ -406,7 +410,7 @@ export class PlanBuilderComponent {
       const exArr = wg.get('exercises') as FormArray<FormGroup>;
       for (const ex of [...w.exercises].sort((a, b) => a.order - b.order)) {
         const sortedSets = [...(ex.sets ?? [])].sort((a, b) => a.order - b.order);
-        exArr.push(this.createExerciseGroup(ex.exerciseId, sortedSets, ex.supersetGroupId ?? null));
+        exArr.push(this.createExerciseGroup(ex.exerciseId, sortedSets, ex.supersetGroupId ?? null, ex.exerciseName ?? null));
       }
       wArr.push(wg);
     }
@@ -513,8 +517,7 @@ export class PlanBuilderComponent {
     const bits: string[] = [];
     const cap = 3;
     for (let i = 0; i < Math.min(cap, arr.length); i++) {
-      const id = (arr.at(i).get('exerciseId')?.value as string) ?? '';
-      bits.push(this.exerciseNameForId(id));
+      bits.push(this.exerciseLabel(arr.at(i)));
     }
     if (arr.length > cap) bits.push('…');
     return bits.join(' · ');
@@ -533,8 +536,17 @@ export class PlanBuilderComponent {
   onExerciseAdded(payload: ExercisePickerAddPayload): void {
     const wi = this.pickerWorkoutIndex();
     if (wi == null || !this.canEdit()) return;
-    this.exercisesAt(wi).push(this.createExerciseGroup(payload.exerciseId, payload.sets));
+    // Cache the just-picked name so it survives even if the catalog page later evicts it.
+    const name = this.exercises().find((e) => e.id === payload.exerciseId)?.name ?? null;
+    this.exercisesAt(wi).push(this.createExerciseGroup(payload.exerciseId, payload.sets, null, name));
     if (!payload.addAnother) this.cancelPicker();
+  }
+
+  /** Display name for an exercise form group: cached server name first, then catalog, then fallback. */
+  exerciseLabel(group: AbstractControl): string {
+    const cached = ((group as FormGroup).get('exerciseName')?.value as string | null)?.trim();
+    if (cached) return cached;
+    return this.exerciseNameForId((group as FormGroup).get('exerciseId')?.value);
   }
 
   exerciseNameForId(exerciseId: string | null | undefined): string {

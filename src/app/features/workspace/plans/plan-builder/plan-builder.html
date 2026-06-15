@@ -162,7 +162,7 @@
                                   }
                                 </span>
                                 <span class="flex-1 min-w-0 flex flex-col">
-                                  <span class="text-inv-body-sm font-semibold text-inv-grey-900 truncate">{{ exerciseNameForId(eg.get('exerciseId')?.value) }}</span>
+                                  <span class="text-inv-body-sm font-semibold text-inv-grey-900 truncate">{{ exerciseLabel(eg) }}</span>
                                   @if (exerciseMuscleForId(eg.get('exerciseId')?.value); as mg) {
                                     <span class="text-inv-body-mini text-inv-grey-500">{{ mg }}</span>
                                   }
