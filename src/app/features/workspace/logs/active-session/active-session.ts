@@ -647,7 +647,8 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
       rounds: last?.rounds ?? target?.targetRounds ?? null,
       // Left blank → the actual rest taken (restElapsed) is auto-captured; a typed value overrides it.
       restSeconds: null,
-      rpe: null
+      // Pre-fill the set's prescribed RPE so it's logged even when "More" stays collapsed (matches mobile).
+      rpe: target?.targetRpe != null ? String(target.targetRpe) : null
     });
   }
 
