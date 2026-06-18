@@ -194,12 +194,16 @@ export class ExercisePickerPanelComponent {
     return list.filter((e) => {
       if (muscle !== ALL_MUSCLES && e.muscleGroup !== muscle) return false;
       if (!q) return true;
-      return (
-        e.name.toLowerCase().includes(q) ||
-        e.muscleGroup.toLowerCase().includes(q) ||
-        e.equipment.toLowerCase().includes(q) ||
-        e.type.toLowerCase().includes(q)
-      );
+      // Token search: every word in the query must appear somewhere in the name / muscle group /
+      // equipment / type — order- and punctuation-insensitive (so "dumbbell rear delt fly" matches
+      // "Rear-Delt Dumbbell Fly", and "machine leg raise" matches a Machine "… Leg Raise").
+      const hay = `${e.name} ${e.muscleGroup} ${e.equipment} ${e.type}`
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, ' ');
+      return q
+        .split(/[^a-z0-9]+/)
+        .filter((t) => t.length > 0)
+        .every((t) => hay.includes(t));
     });
   });
 
