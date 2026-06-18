@@ -89,6 +89,9 @@ export class PlanBuilderComponent {
   /** Which workout is currently using the slide-over picker panel (null = closed). */
   readonly pickerWorkoutIndex = signal<number | null>(null);
 
+  /** When the picker is open to REPLACE an exercise, the index being replaced (null = adding a new one). */
+  readonly replaceTargetIndex = signal<number | null>(null);
+
   readonly planDetailsDialogOpen = signal(false);
   readonly planDetailsDialogSeed = signal(0);
   readonly planDetailsDialogSnapshot = signal<PlanDetailsFormValue>({
@@ -533,6 +536,15 @@ export class PlanBuilderComponent {
 
   cancelPicker(): void {
     this.pickerWorkoutIndex.set(null);
+    this.replaceTargetIndex.set(null);
+  }
+
+  /** Open the picker to swap which exercise this row is — keeps its sets/RPE/rest, only changes the lift. */
+  replaceExercise(workoutIndex: number, exerciseIndex: number): void {
+    if (!this.canEdit()) return;
+    this.expandedWorkoutIndex.set(workoutIndex);
+    this.pickerWorkoutIndex.set(workoutIndex);
+    this.replaceTargetIndex.set(exerciseIndex);
   }
 
   onExerciseAdded(payload: ExercisePickerAddPayload): void {
@@ -540,6 +552,16 @@ export class PlanBuilderComponent {
     if (wi == null || !this.canEdit()) return;
     // Cache the just-picked name so it survives even if the catalog page later evicts it.
     const name = this.exercises().find((e) => e.id === payload.exerciseId)?.name ?? null;
+    // Replace mode: swap the exercise on the existing row (sets untouched) rather than adding a new one.
+    const replaceAt = this.replaceTargetIndex();
+    if (replaceAt != null) {
+      const g = this.exercisesAt(wi).at(replaceAt) as FormGroup;
+      g.get('exerciseId')?.setValue(payload.exerciseId);
+      g.get('exerciseName')?.setValue(name);
+      g.markAsDirty();
+      this.cancelPicker();
+      return;
+    }
     this.exercisesAt(wi).push(this.createExerciseGroup(payload.exerciseId, payload.sets, null, name));
     if (!payload.addAnother) this.cancelPicker();
   }

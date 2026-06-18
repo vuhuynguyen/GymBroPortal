@@ -182,6 +182,16 @@
                                   </button>
                                 }
                                 @if (canEdit()) {
+                                  @if (ei > 0) {
+                                    <app-button type="button" icon="pi pi-chevron-up" size="small" [text]="true" [rounded]="true"
+                                      ariaLabel="Move exercise up" (clicked)="moveExercise(wi, ei, -1)" />
+                                  }
+                                  @if (ei < exercisesAt(wi).length - 1) {
+                                    <app-button type="button" icon="pi pi-chevron-down" size="small" [text]="true" [rounded]="true"
+                                      ariaLabel="Move exercise down" (clicked)="moveExercise(wi, ei, 1)" />
+                                  }
+                                  <app-button type="button" icon="pi pi-sync" size="small" [text]="true" [rounded]="true"
+                                    ariaLabel="Replace exercise" (clicked)="replaceExercise(wi, ei)" />
                                   <app-button
                                     type="button"
                                     icon="pi pi-trash"
