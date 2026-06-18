@@ -459,7 +459,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
 
   // ── Lifecycle ────────────────────────────────────────────────────────
   ngOnInit(): void {
-    if (this.catalogExercises().length === 0) this.exerciseService.load('', 200);
+    if (this.catalogExercises().length === 0) this.exerciseService.load('');
 
     this.route.paramMap
       .pipe(
@@ -892,7 +892,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   }
 
   private ensureCatalog(): void {
-    if (this.catalogExercises().length === 0) this.exerciseService.load('', 200);
+    if (this.catalogExercises().length === 0) this.exerciseService.load('');
   }
 
   /**

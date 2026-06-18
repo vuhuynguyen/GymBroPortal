@@ -35,7 +35,7 @@ export class ExerciseService {
    * Loads the first page of exercises (aligned with `SearchExercisesQuery`).
    * Optional `search` maps to the `Search` query parameter.
    */
-  load(search?: string, pageSize = 100): void {
+  load(search?: string, pageSize = 2000 /* whole catalog; server clamps to 2000 */): void {
     this.loading.set(true);
     let params = new HttpParams().set('page', '1').set('pageSize', String(pageSize));
     if (search?.trim()) {

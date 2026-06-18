@@ -168,9 +168,9 @@ export class PlanBuilderComponent {
   });
 
   constructor() {
-    // Load the whole catalog (cap is 500 server-side) so every plan exercise can be named and the picker
-    // can surface all of them — a smaller page left later catalog entries unnamed/unsearchable.
-    this.exerciseService.load('', 500);
+    // Load the whole catalog (server clamps to 2000) so every plan exercise can be named and the picker
+    // can surface all of them — a page below the catalog size (now 920) left later entries unsearchable.
+    this.exerciseService.load('');
 
     this.route.paramMap.pipe(takeUntilDestroyed(), map((p) => p.get('planId'))).subscribe((id) => {
       this.planId.set(id);
