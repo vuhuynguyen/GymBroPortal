@@ -24,6 +24,9 @@ export interface ExerciseMediaItemDto {
 export interface ExerciseDetailDto extends ExerciseDto {
   description: string;
   muscles: ExerciseMuscleItemDto[];
+  /** Comma-separated specific (fine) muscle slugs for the activation map; null when not enriched. */
+  detailedPrimaryMuscles: string | null;
+  detailedSecondaryMuscles: string | null;
   instructions: string[];
   tags: string[];
   media: ExerciseMediaItemDto[];

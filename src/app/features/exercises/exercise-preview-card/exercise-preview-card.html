@@ -94,6 +94,13 @@
             <span class="min-w-0 break-words">{{ secondaryMuscleLine() }}</span>
           </div>
         }
+        @if (data().primaryMuscle) {
+          <app-muscle-map
+            class="mt-1 block"
+            [exerciseName]="data().name"
+            [primaryMuscle]="data().primaryMuscle"
+            [secondaryMuscles]="data().secondaryMuscles" />
+        }
         @if (showCaloriesRow()) {
           <div class="flex items-start gap-2">
             <span class="min-w-[5rem] shrink-0 font-medium text-inv-grey-700">Calories:</span>

@@ -48,7 +48,7 @@ export interface MyPlanDto {
 }
 
 /** Serialized with `System.Text.Json` + camelCase string enums (`working`, `warmup`, …). */
-export type PlanSetTypeApi = 'warmup' | 'working' | 'drop' | 'amrap';
+export type PlanSetTypeApi = 'warmup' | 'working' | 'drop' | 'amrap' | 'cluster';
 
 export interface PlanSetDetailDto {
   id: string;

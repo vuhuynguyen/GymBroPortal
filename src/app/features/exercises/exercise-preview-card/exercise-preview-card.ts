@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core';
 import type { TableTagSeverity } from '../../../shared/ui';
 import { exerciseDifficultyTagSeverity } from '../exercise-difficulty-tag-severity';
+import { MuscleMapComponent } from '../muscle-map/muscle-map';
 
 /** Lightweight snapshot for the exercise form live preview (presentational only). */
 export interface ExercisePreviewVm {
@@ -26,7 +27,7 @@ export interface ExercisePreviewVm {
 @Component({
   selector: 'app-exercise-preview-card',
   standalone: true,
-  imports: [],
+  imports: [MuscleMapComponent],
   templateUrl: './exercise-preview-card.html',
   styleUrl: './exercise-preview-card.scss',
   changeDetection: ChangeDetectionStrategy.OnPush

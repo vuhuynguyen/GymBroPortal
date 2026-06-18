@@ -5,5 +5,6 @@ export const PLAN_BUILDER_SET_TYPE_OPTIONS: ReadonlyArray<{ value: PlanSetTypeAp
   { value: 'warmup', label: 'Warmup' },
   { value: 'working', label: 'Working' },
   { value: 'drop', label: 'Drop' },
+  { value: 'cluster', label: 'Cluster' },
   { value: 'amrap', label: 'AMRAP' }
 ];

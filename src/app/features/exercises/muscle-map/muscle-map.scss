@@ -1,0 +1,12 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+// The figure colors are a fixed red heat-map applied per-path in the component (not themeable UI chrome).
+.mm-svg {
+  display: block;
+  width: 100%;
+  max-width: 22rem;
+  height: auto;
+}
