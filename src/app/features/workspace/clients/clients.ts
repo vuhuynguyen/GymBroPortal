@@ -67,6 +67,10 @@ export class ClientsComponent {
     void this.router.navigate(['/workspace/clients', client.userId, 'workouts']);
   }
 
+  viewNutrition(client: MemberDto): void {
+    void this.router.navigate(['/workspace/clients', client.userId, 'nutrition']);
+  }
+
   confirmRemove(client: MemberDto): void { this.removeTarget.set(client); }
   onDialogChange(open: boolean): void { if (!open) this.removeTarget.set(null); }
 

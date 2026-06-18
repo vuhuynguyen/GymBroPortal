@@ -82,6 +82,7 @@ is the real authorization boundary.** The frontend keeps no permission matrix to
 ## API integration
 
 - Hand-written per-feature services issue typed `HttpClient` calls against the relative `/api`. Endpoint contracts are owned by the API repository.
+- **Nutrition (coach surfaces, implemented):** `features/workspace/nutrition-plans/` (list at `/workspace/nutrition-plans` + meal builder at `/workspace/nutrition-plans/:planId` with a `food-picker-panel` slide-over against `/api/foods` and client-side macro subtotals — pure helpers in `nutrition-macros.ts`/`nutrition-enums.ts`), `features/workspace/nutrition-assignments/` (list + 3-step assign wizard at `/workspace/nutrition-assignments`; date range, Full/Guided/Blind, hide-macros/lock flags — MVP API is list+create only), and `features/workspace/client-nutrition/` (coach adherence day list at `/workspace/clients/:clientId/nutrition` + `nutrition-day-detail-dialog`). All Owner-guarded (`roleGuard(['Owner'])`), lazy-loaded, and direct clones of the workout `plans`/`plan-assignments`/`client-workouts` siblings — one save = one new plan version via `PUT /api/nutrition/plans/{id}/structure`. Not-yet-built nutrition design (e.g. offline, reminders): `gymbro/docs/ROADMAP.md`. The trainee self-log (today checklist via `/api/me/nutrition/*`) is not built on web yet.
 - **Optional contract drift check:** `npm run check:api` regenerates a typed client from a committed `openapi.json` and fails if it drifts. It is a no-op until `openapi.json` is committed (export it from the backend's `/openapi/v1.json`). CI runs it. The app does not currently ship a generated client.
 
 ## Authentication flow
@@ -90,6 +91,11 @@ The access token is held in an **in-memory signal** (never `localStorage`). On a
 constructor runs a **silent refresh** against the httpOnly `gymbro_refresh` cookie to restore the session; guards
 await `auth.ready` before deciding, so a reload doesn't bounce a logged-in user. The full token lifecycle (rotation,
 revocation) is owned by the API repository's authentication doc.
+
+On profile load the client reports its **device IANA timezone** to `PUT /api/me/timezone` whenever it differs from
+the stored value (`core/timezone.ts` → `deviceTimeZone()`), keeping the server-side anchor current; coach views
+render another trainee's data in that trainee's captured zone (`relativeDayInZone`). The day-boundary rule itself
+is owned by the API docs (BUSINESS_RULES § Cross-cutting invariants).
 
 ## Design workflow (Figma Make)
 

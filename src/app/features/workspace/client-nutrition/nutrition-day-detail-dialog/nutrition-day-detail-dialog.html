@@ -1,0 +1,70 @@
+<div class="ndd-scrim" (click)="closed.emit()">
+  <div #dialog tabindex="-1" class="ndd-dialog" (click)="$event.stopPropagation()" role="dialog" aria-modal="true" [attr.aria-label]="title()">
+
+    <div class="ndd-top">
+      <button class="ndd-back" (click)="closed.emit()" aria-label="Close">
+        <i class="pi pi-times" aria-hidden="true"></i>
+      </button>
+      <span class="ndd-top__title">{{ title() }}</span>
+      <span class="ndd-status" [class.done]="isClosed()" [class.open]="!isClosed()">
+        {{ isClosed() ? 'Closed' : 'Open' }}
+      </span>
+    </div>
+
+    @if (loading() || !detail()) {
+      <div class="ndd-loading">
+        <i class="pi pi-spin pi-spinner" aria-hidden="true"></i>
+        <span>Loading day…</span>
+      </div>
+    } @else {
+      <div class="ndd-body">
+        <div class="ndd-stats" [style.grid-template-columns]="'repeat(' + statTiles().length + ', minmax(0, 1fr))'">
+          @for (t of statTiles(); track t.label) {
+            <div class="ndd-stat"><b>{{ t.value }}</b><span>{{ t.label }}</span></div>
+          }
+        </div>
+
+        @if (consumedMacroLine(); as macros) {
+          <p class="ndd-macros">Consumed: {{ macros }}</p>
+        }
+
+        @if (!detail()!.hasPlan) {
+          <p class="ndd-noplan">No nutrition plan applied to this day — items below are ad-hoc logs.</p>
+        }
+
+        @for (meal of mealRows(); track meal.name + meal.time) {
+          <section class="ndd-meal">
+            <header class="ndd-meal__head">
+              <span class="ndd-meal__name">{{ meal.name }}</span>
+              @if (meal.time) {
+                <span class="ndd-meal__time">{{ meal.time }}</span>
+              }
+            </header>
+            <ul class="ndd-items" role="list">
+              @for (item of meal.items; track item.id) {
+                <li class="ndd-item">
+                  <i class="ndd-item__icon {{ statusIcon(item.status) }} ndd-item__icon--{{ statusClass(item.status) }}" aria-hidden="true"></i>
+                  <span class="ndd-item__body">
+                    <span class="ndd-item__name">
+                      {{ item.name }}
+                      @if (!item.isPlanned) {
+                        <span class="ndd-item__extra">extra</span>
+                      }
+                    </span>
+                    <span class="ndd-item__detail">{{ item.detail }}</span>
+                    @if (item.note) {
+                      <span class="ndd-item__note">“{{ item.note }}”</span>
+                    }
+                  </span>
+                  <span class="ndd-item__status ndd-item__status--{{ statusClass(item.status) }}">{{ item.status }}</span>
+                </li>
+              }
+            </ul>
+          </section>
+        } @empty {
+          <p class="ndd-noplan">Nothing logged on this day.</p>
+        }
+      </div>
+    }
+  </div>
+</div>

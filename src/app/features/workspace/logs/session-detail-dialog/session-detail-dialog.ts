@@ -9,6 +9,7 @@ import {
   inject,
   input,
   output,
+  signal,
   viewChild
 } from '@angular/core';
 import { CommonModule, DOCUMENT } from '@angular/common';
@@ -106,12 +107,15 @@ export class SessionDetailDialogComponent implements AfterViewInit, OnDestroy {
     if (!d) return '';
     const date = new Date(d.startedAt);
     if (Number.isNaN(date.getTime())) return '';
+    // Render in the trainee's captured zone (UTC/device fallback) so a coach abroad sees the trainee's clock.
+    const timeZone = d.clientTimezone ?? undefined;
     const day = date.toLocaleDateString(undefined, {
       weekday: 'long',
       month: 'long',
-      day: 'numeric'
+      day: 'numeric',
+      timeZone
     });
-    const time = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+    const time = date.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit', timeZone });
     return `${day} · ${time}`;
   });
 
@@ -158,6 +162,20 @@ export class SessionDetailDialogComponent implements AfterViewInit, OnDestroy {
       .sort((a, b) => a.order - b.order)
       .map((ex, i) => this.toExerciseRow(ex, i));
   });
+
+  /** Exercises start collapsed (a long session stays scannable); this holds the ones the user expanded. */
+  private readonly openExercises = signal<ReadonlySet<string>>(new Set());
+
+  isExerciseOpen(ex: ExerciseRow): boolean {
+    return this.openExercises().has(ex.id);
+  }
+
+  toggleExercise(ex: ExerciseRow): void {
+    const next = new Set(this.openExercises());
+    if (next.has(ex.id)) next.delete(ex.id);
+    else next.add(ex.id);
+    this.openExercises.set(next);
+  }
 
   private toExerciseRow(ex: PerformedExerciseDto, i: number): ExerciseRow {
     const sets = [...ex.sets].sort((a, b) => a.setNumber - b.setNumber);

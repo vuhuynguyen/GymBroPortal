@@ -24,7 +24,7 @@ import {
   SelectComponent
 } from '../../../../shared/ui';
 import { ExerciseService } from '../../../exercises/exercise';
-import type { ExerciseDto } from '../../../exercises/exercise.model';
+import type { ExerciseDetailDto, ExerciseDto } from '../../../exercises/exercise.model';
 import {
   hasRequiredMetric,
   requiredMetricMessage,
@@ -118,6 +118,14 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   readonly pickerOpen = signal(false);
   readonly pickerMode = signal<PickerMode>('add');
 
+  // ── Form Coach (exercise guidance) ───────────────────────────────────
+  readonly coachSheetOpen = signal(false);
+  readonly coachSheetTab = signal<'steps' | 'setup' | 'cues' | 'mistakes'>('steps');
+  readonly coachDetail = signal<ExerciseDetailDto | null>(null);
+  readonly coachDetailLoading = signal(false);
+  /** Cache detail by exercise id so repeated opens don't re-fetch. */
+  private readonly coachDetailCache = new Map<string, ExerciseDetailDto>();
+
   readonly catalogExercises = this.exerciseService.exercises;
 
   /**
@@ -162,6 +170,22 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   readonly snapshotExercises = computed<SessionSnapshotExerciseDto[]>(
     () => this.session()?.snapshot?.exercises ?? []
   );
+
+  /**
+   * Concise coaching cue shown on the always-visible form-cue strip.
+   * Derived from catalog data (no extra API call needed for the strip itself).
+   */
+  readonly activeCue = computed(() => {
+    const ex = this.activeExercise();
+    if (!ex) return null;
+    const meta = this.catalogById().get(ex.exerciseId);
+    if (!meta) return 'See form guide';
+    const muscle = meta.muscleGroup?.toLowerCase() ?? 'target muscles';
+    const equip = meta.equipment ? meta.equipment.toLowerCase() : null;
+    return equip
+      ? `Focus on your ${muscle} — controlled movement with ${equip}`
+      : `Focus on your ${muscle} — controlled tempo throughout`;
+  });
 
   /** Catalog lookup so we can resolve equipment / muscle for performed exercises. */
   private readonly catalogById = computed<Map<string, ExerciseDto>>(() => {
@@ -257,7 +281,7 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     return `${this.loggedSets()} / ${total}`;
   });
 
-  /** Rendered rows for the active exercise's set table: done → active → pending. Drop stages roll up into their lead. */
+  /** Rendered rows for the active exercise's set table: done → active → pending. Every set is its own row. */
   readonly activeSetRows = computed<SetRowView[]>(() => {
     const ex = this.activeExercise();
     if (!ex) return [];
@@ -265,28 +289,27 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     const planned = snap?.sets?.length ?? 0;
     const rows: SetRowView[] = [];
 
-    // Only lead/standalone sets get a numbered row; a drop cluster shows as one row (e.g. "6+4+3").
-    const leads = ex.sets.filter((s) => !s.parentSetId);
-    leads.forEach((set, i) => {
-      // Rest is stored as "rest before this set"; show it as the rest taken *after* a set
-      // (= the next set's stored value), so the first set isn't mislabelled. Last set shows none.
-      const next = leads[i + 1] ?? null;
+    // Every logged set (incl. drop stages) gets its own numbered row, matching plans that prescribe
+    // drops as separate sets and the total-count progress.
+    ex.sets.forEach((set, i) => {
       rows.push({
         kind: 'done',
         setNumber: i + 1,
         set,
         // "Last time" is only meaningful on the upcoming (active) row — keep done rows uncluttered.
         lastTime: '',
-        restAfter: next?.restSeconds ?? null
+        // Show each set's OWN logged rest on that set (the rest taken before it was logged).
+        restAfter: set.restSeconds ?? null
       });
     });
 
-    const activeNumber = leads.length + 1;
-    const lastDone = leads[leads.length - 1] ?? null;
+    const activeNumber = ex.sets.length + 1;
     rows.push({
       kind: 'active',
       setNumber: activeNumber,
-      lastTime: this.rollupSummary(ex, lastDone)
+      // "Last time" is the trainee's most recent PRIOR performance (a previous completed session) — never
+      // the set just logged in this session, which would only echo what's already on screen.
+      lastTime: this.lastTimeLabel(ex)
     });
 
     for (let n = activeNumber + 1; n <= planned; n++) {
@@ -299,6 +322,24 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
     }
     return rows;
   });
+
+  /** "Last time" reference for a lift: the trainee's most recent prior performance (previous completed session). */
+  lastTimeLabel(ex: PerformedExerciseDto): string {
+    const lp = ex.lastPerformed;
+    if (!lp || lp.weightKg == null || lp.reps == null) return '—';
+    return `${lp.weightKg} × ${lp.reps}`;
+  }
+
+  /** Hover tooltip for the LAST TIME cell: when the trainee last performed this lift. Empty when no history. */
+  lastTimeTitle(ex: PerformedExerciseDto): string {
+    const at = ex.lastPerformed?.performedAt;
+    if (!at) return '';
+    return `Last done ${new Date(at).toLocaleDateString(undefined, {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric'
+    })}`;
+  }
 
   /** Drop stages logged under a lead set, in order. */
   dropStagesOf(ex: PerformedExerciseDto, lead: PerformedSetDto): PerformedSetDto[] {
@@ -366,9 +407,9 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
   }
 
   /** Set-progress dots for an outline row. */
-  /** Number of logged lead/standalone sets (drop stages roll up, so they don't add to the count). */
+  /** Number of logged sets — every set incl. drop stages (plans prescribe drops as separate sets). */
   private leadCount(ex: PerformedExerciseDto): number {
-    return ex.sets.filter((s) => !s.parentSetId).length;
+    return ex.sets.length;
   }
 
   outlineDots(ex: PerformedExerciseDto): Array<'done' | 'active' | ''> {
@@ -606,7 +647,8 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
       rounds: last?.rounds ?? target?.targetRounds ?? null,
       // Left blank → the actual rest taken (restElapsed) is auto-captured; a typed value overrides it.
       restSeconds: null,
-      rpe: null
+      // Pre-fill the set's prescribed RPE so it's logged even when "More" stays collapsed (matches mobile).
+      rpe: target?.targetRpe != null ? String(target.targetRpe) : null
     });
   }
 
@@ -1005,6 +1047,58 @@ export class ActiveSessionComponent implements OnInit, OnDestroy {
           this.messageService.add({ severity: 'error', summary: 'Could not abandon session' });
         }
       });
+  }
+
+  // ── Form Coach sheet ─────────────────────────────────────────────────
+  openCoachSheet(): void {
+    const ex = this.activeExercise();
+    if (!ex) return;
+    this.coachSheetTab.set('steps');
+    this.coachSheetOpen.set(true);
+    const cached = this.coachDetailCache.get(ex.exerciseId);
+    if (cached) {
+      this.coachDetail.set(cached);
+      return;
+    }
+    this.coachDetailLoading.set(true);
+    this.coachDetail.set(null);
+    this.exerciseService
+      .getById(ex.exerciseId)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (d) => {
+          this.coachDetailCache.set(ex.exerciseId, d);
+          if (this.coachSheetOpen() && this.activeExercise()?.exerciseId === ex.exerciseId) {
+            this.coachDetail.set(d);
+          }
+          this.coachDetailLoading.set(false);
+        },
+        error: () => {
+          this.coachDetailLoading.set(false);
+        }
+      });
+  }
+
+  closeCoachSheet(): void {
+    this.coachSheetOpen.set(false);
+  }
+
+  setCoachTab(tab: 'steps' | 'setup' | 'cues' | 'mistakes'): void {
+    this.coachSheetTab.set(tab);
+  }
+
+  /** Primary muscles for the coach sheet muscle row — from detail when loaded, else catalog group. */
+  coachPrimaryMuscles(): string[] {
+    const d = this.coachDetail();
+    if (d?.muscles?.length) return d.muscles.filter((m) => m.isPrimary).map((m) => m.muscle);
+    const meta = this.catalogById().get(this.activeExercise()?.exerciseId ?? '');
+    return meta?.muscleGroup ? [meta.muscleGroup] : [];
+  }
+
+  coachSecondaryMuscles(): string[] {
+    const d = this.coachDetail();
+    if (!d?.muscles?.length) return [];
+    return d.muscles.filter((m) => !m.isPrimary).map((m) => m.muscle);
   }
 
   // ── trackBy ──────────────────────────────────────────────────────────

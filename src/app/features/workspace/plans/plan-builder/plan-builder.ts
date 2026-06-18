@@ -76,12 +76,21 @@ export class PlanBuilderComponent {
   readonly planId = signal<string | null>(null);
   readonly loading = signal(true);
   readonly saving = signal(false);
+  readonly publishing = signal(false);
   readonly canEdit = computed(() => this.tenantService.currentRole() === 'Owner');
+
+  /** Publish state for the current head: edits land on a draft, only "Publish" advances the live version. */
+  readonly version = signal<number | null>(null);
+  readonly isDraft = signal(false);
+  readonly latestPublishedVersion = signal<number | null>(null);
 
   readonly exercises = this.exerciseService.exercises;
 
   /** Which workout is currently using the slide-over picker panel (null = closed). */
   readonly pickerWorkoutIndex = signal<number | null>(null);
+
+  /** When the picker is open to REPLACE an exercise, the index being replaced (null = adding a new one). */
+  readonly replaceTargetIndex = signal<number | null>(null);
 
   readonly planDetailsDialogOpen = signal(false);
   readonly planDetailsDialogSeed = signal(0);
@@ -98,6 +107,12 @@ export class PlanBuilderComponent {
 
   /** Single-open accordion index for workouts; -1 when everything is collapsed. */
   readonly expandedWorkoutIndex = signal(-1);
+
+  /**
+   * Builder exercises start EXPANDED (you're editing their sets); this holds the ones the user has
+   * collapsed to tidy a long workout. Keyed `workoutIndex:exerciseIndex`.
+   */
+  readonly collapsedExercises = signal<ReadonlySet<string>>(new Set());
 
   readonly form = this.fb.group({
     name: ['', [Validators.required, Validators.maxLength(200)]],
@@ -153,7 +168,9 @@ export class PlanBuilderComponent {
   });
 
   constructor() {
-    this.exerciseService.load('', 200);
+    // Load the whole catalog (cap is 500 server-side) so every plan exercise can be named and the picker
+    // can surface all of them — a smaller page left later catalog entries unnamed/unsearchable.
+    this.exerciseService.load('', 500);
 
     this.route.paramMap.pipe(takeUntilDestroyed(), map((p) => p.get('planId'))).subscribe((id) => {
       this.planId.set(id);
@@ -235,13 +252,17 @@ export class PlanBuilderComponent {
   private createExerciseGroup(
     exerciseId: string,
     sets: ReadonlyArray<Partial<PlanSetDetailDto>> = [],
-    supersetGroupId: string | null = null
+    supersetGroupId: string | null = null,
+    exerciseName: string | null = null
   ): FormGroup {
     const seedSets = sets.length > 0 ? sets : [{}, {}, {}]; // default 3 working sets
     const setGroups = seedSets.map((s) => this.createSetGroup(s));
     return this.fb.group({
       key: [uuid()],
       exerciseId: [exerciseId, Validators.required],
+      // Name resolved server-side (uncapped) and cached on the group so display never depends on the
+      // client catalog page — which is capped, so large catalogs would otherwise show "Exercise".
+      exerciseName: this.fb.control<string | null>(exerciseName),
       supersetGroupId: this.fb.control<string | null>(supersetGroupId),
       sets: this.fb.array<FormGroup>(setGroups, [Validators.required, Validators.minLength(1)])
     });
@@ -330,6 +351,15 @@ export class PlanBuilderComponent {
     this.form.markAsDirty();
   }
 
+  /** Reorder sets within an exercise by dragging the row handle (mirrors workout drag-drop). */
+  onSetsDropped(workoutIndex: number, exerciseIndex: number, event: CdkDragDrop<unknown>): void {
+    if (!this.canEdit() || event.previousIndex === event.currentIndex) return;
+    const sets = this.setsAt(workoutIndex, exerciseIndex);
+    moveItemInArray(sets.controls, event.previousIndex, event.currentIndex);
+    sets.updateValueAndValidity();
+    this.form.markAsDirty();
+  }
+
   setTrackKey(_index: number, group: AbstractControl): string {
     const k = (group as FormGroup).get('key')?.value;
     return typeof k === 'string' ? k : `set-${_index}`;
@@ -371,6 +401,10 @@ export class PlanBuilderComponent {
       workoutsPerWeek: dto.workoutsPerWeek != null ? String(dto.workoutsPerWeek) : ''
     });
 
+    this.version.set(dto.version);
+    this.isDraft.set(dto.isDraft);
+    this.latestPublishedVersion.set(dto.latestPublishedVersion);
+
     this.planDetailsDialogOpen.set(false);
 
     const wArr = this.workouts();
@@ -381,7 +415,7 @@ export class PlanBuilderComponent {
       const exArr = wg.get('exercises') as FormArray<FormGroup>;
       for (const ex of [...w.exercises].sort((a, b) => a.order - b.order)) {
         const sortedSets = [...(ex.sets ?? [])].sort((a, b) => a.order - b.order);
-        exArr.push(this.createExerciseGroup(ex.exerciseId, sortedSets, ex.supersetGroupId ?? null));
+        exArr.push(this.createExerciseGroup(ex.exerciseId, sortedSets, ex.supersetGroupId ?? null, ex.exerciseName ?? null));
       }
       wArr.push(wg);
     }
@@ -471,14 +505,24 @@ export class PlanBuilderComponent {
     return this.exercisesAt(workoutIndex).length;
   }
 
+  isExerciseExpanded(workoutIndex: number, exerciseIndex: number): boolean {
+    return !this.collapsedExercises().has(`${workoutIndex}:${exerciseIndex}`);
+  }
+
+  toggleExerciseExpanded(workoutIndex: number, exerciseIndex: number): void {
+    const key = `${workoutIndex}:${exerciseIndex}`;
+    const next = new Set(this.collapsedExercises());
+    next.has(key) ? next.delete(key) : next.add(key);
+    this.collapsedExercises.set(next);
+  }
+
   workoutCollapsedPreview(workoutIndex: number): string {
     const arr = this.exercisesAt(workoutIndex);
     if (arr.length === 0) return 'No exercises yet';
     const bits: string[] = [];
     const cap = 3;
     for (let i = 0; i < Math.min(cap, arr.length); i++) {
-      const id = (arr.at(i).get('exerciseId')?.value as string) ?? '';
-      bits.push(this.exerciseNameForId(id));
+      bits.push(this.exerciseLabel(arr.at(i)));
     }
     if (arr.length > cap) bits.push('…');
     return bits.join(' · ');
@@ -492,13 +536,41 @@ export class PlanBuilderComponent {
 
   cancelPicker(): void {
     this.pickerWorkoutIndex.set(null);
+    this.replaceTargetIndex.set(null);
+  }
+
+  /** Open the picker to swap which exercise this row is — keeps its sets/RPE/rest, only changes the lift. */
+  replaceExercise(workoutIndex: number, exerciseIndex: number): void {
+    if (!this.canEdit()) return;
+    this.expandedWorkoutIndex.set(workoutIndex);
+    this.pickerWorkoutIndex.set(workoutIndex);
+    this.replaceTargetIndex.set(exerciseIndex);
   }
 
   onExerciseAdded(payload: ExercisePickerAddPayload): void {
     const wi = this.pickerWorkoutIndex();
     if (wi == null || !this.canEdit()) return;
-    this.exercisesAt(wi).push(this.createExerciseGroup(payload.exerciseId, payload.sets));
+    // Cache the just-picked name so it survives even if the catalog page later evicts it.
+    const name = this.exercises().find((e) => e.id === payload.exerciseId)?.name ?? null;
+    // Replace mode: swap the exercise on the existing row (sets untouched) rather than adding a new one.
+    const replaceAt = this.replaceTargetIndex();
+    if (replaceAt != null) {
+      const g = this.exercisesAt(wi).at(replaceAt) as FormGroup;
+      g.get('exerciseId')?.setValue(payload.exerciseId);
+      g.get('exerciseName')?.setValue(name);
+      g.markAsDirty();
+      this.cancelPicker();
+      return;
+    }
+    this.exercisesAt(wi).push(this.createExerciseGroup(payload.exerciseId, payload.sets, null, name));
     if (!payload.addAnother) this.cancelPicker();
+  }
+
+  /** Display name for an exercise form group: cached server name first, then catalog, then fallback. */
+  exerciseLabel(group: AbstractControl): string {
+    const cached = ((group as FormGroup).get('exerciseName')?.value as string | null)?.trim();
+    if (cached) return cached;
+    return this.exerciseNameForId((group as FormGroup).get('exerciseId')?.value);
   }
 
   exerciseNameForId(exerciseId: string | null | undefined): string {
@@ -622,7 +694,11 @@ export class PlanBuilderComponent {
         workoutsPerWeek: meta.workoutsPerWeek
       })
       .subscribe({
-        next: (ref) => this.adoptVersionId(ref.id),
+        next: (ref) => {
+          this.adoptVersionId(ref.id);
+          // The edit landed on the draft head — there are now unpublished changes.
+          this.isDraft.set(true);
+        },
         error: (err: { error?: unknown }) => {
           const msg = typeof err?.error === 'string' ? err.error : 'Could not save plan details.';
           this.messageService.add({ severity: 'error', summary: 'Update failed', detail: msg });
@@ -717,11 +793,13 @@ export class PlanBuilderComponent {
         next: (ref) => {
           this.saving.set(false);
           this.adoptVersionId(ref.id);
+          // The save landed on the draft head — there are now unpublished changes to publish.
+          this.isDraft.set(true);
           this.form.markAsPristine();
           this.messageService.add({
             severity: 'success',
-            summary: 'Plan saved',
-            detail: 'Changes are live for your workspace.'
+            summary: 'Draft saved',
+            detail: 'Saved as a draft. Publish to push it to assigned trainees.'
           });
         },
         error: (err: { error?: unknown }) => {
@@ -730,6 +808,45 @@ export class PlanBuilderComponent {
           this.messageService.add({ severity: 'error', summary: 'Save failed', detail: msg });
         }
       });
+  }
+
+  /**
+   * Publishes the draft head — the only action that advances the version trainees/assignments see. Requires the
+   * form to be saved first (unsaved edits aren't on the server yet), and only fires when there's a draft to publish.
+   */
+  publishPlan(): void {
+    if (!this.canEdit()) return;
+    const id = this.planId();
+    if (!id) return;
+    if (this.hasUnsavedChanges()) {
+      this.messageService.add({
+        severity: 'warn',
+        summary: 'Save first',
+        detail: 'Save your changes before publishing.'
+      });
+      return;
+    }
+    if (!this.isDraft()) return;
+
+    this.publishing.set(true);
+    this.workoutPlanService.publish(id).subscribe({
+      next: ({ version }) => {
+        this.publishing.set(false);
+        this.version.set(version);
+        this.latestPublishedVersion.set(version);
+        this.isDraft.set(false);
+        this.messageService.add({
+          severity: 'success',
+          summary: 'Published',
+          detail: `Published as v${version}. Assigned trainees can now move to this version.`
+        });
+      },
+      error: (err: { error?: unknown }) => {
+        this.publishing.set(false);
+        const msg = typeof err?.error === 'string' ? err.error : 'Publish failed.';
+        this.messageService.add({ severity: 'error', summary: 'Publish failed', detail: msg });
+      }
+    });
   }
 
   private buildStructurePayload():

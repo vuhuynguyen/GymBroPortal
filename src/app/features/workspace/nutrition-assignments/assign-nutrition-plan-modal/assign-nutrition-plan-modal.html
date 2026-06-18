@@ -1,0 +1,109 @@
+@if (open()) {
+  <div class="pa-modal-backdrop" (click)="close()">
+    <div class="pa-modal" (click)="$event.stopPropagation()">
+      <div class="pa-modal__header">
+        <h3 class="m-0 text-inv-body-lg font-semibold text-inv-grey-900">Assign nutrition plan</h3>
+        <button type="button" class="pa-modal__close" (click)="close()" aria-label="Close assign nutrition plan modal">×</button>
+      </div>
+
+      <div class="pa-modal__steps">
+        <span [class.is-active]="step() === 1">1. Plan & trainees</span>
+        <span [class.is-active]="step() === 2">2. Configure</span>
+        <span [class.is-active]="step() === 3">3. Review</span>
+      </div>
+
+      <div class="pa-modal__body">
+        @if (step() === 1) {
+          <form class="flex flex-col gap-4" [formGroup]="form" autocomplete="off">
+            <app-form-field label="Plan" [required]="true" [errorMessage]="planError()">
+              <select id="nutrition-assignment-plan" class="pa-native-select" formControlName="planId">
+                <option value="">Select plan</option>
+                @for (plan of assignablePlans(); track plan.id) {
+                  <option [value]="plan.id">{{ plan.name }} (v{{ plan.latestPublishedVersion }})</option>
+                }
+              </select>
+            </app-form-field>
+
+            <app-form-field label="Find trainees">
+              <app-input [ngModel]="traineeSearch()" [ngModelOptions]="{ standalone: true }" (ngModelChange)="traineeSearch.set($event)" placeholder="Search trainee name" />
+            </app-form-field>
+
+            <div class="pa-trainee-list" [class.pa-trainee-list--invalid]="traineeError()">
+              @if (visibleTrainees().length === 0) {
+                <div class="pa-trainee-empty">
+                  @if (trainees().length === 0) {
+                    No trainees found in this workspace yet.
+                  } @else {
+                    No trainee matches "{{ traineeSearch() }}".
+                  }
+                </div>
+              } @else {
+                @for (trainee of visibleTrainees(); track trainee.userId) {
+                  <label class="pa-trainee-row">
+                    <input type="checkbox" [checked]="isSelected(trainee.userId)" (change)="toggleTrainee(trainee.userId)" />
+                    <span>{{ trainee.name }}</span>
+                  </label>
+                }
+              }
+            </div>
+            @if (traineeError(); as err) {
+              <small class="pa-field-error" role="alert">{{ err }}</small>
+            }
+          </form>
+        }
+
+        @if (step() === 2) {
+          <form class="flex flex-col gap-4" [formGroup]="form" autocomplete="off">
+            <div class="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <app-form-field label="Start date" [required]="true" [errorMessage]="startDateError()">
+                <app-input type="date" formControlName="startDate" />
+              </app-form-field>
+              <app-form-field label="End date (optional)" [errorMessage]="endDateError()">
+                <app-input type="date" formControlName="endDate" />
+              </app-form-field>
+            </div>
+
+            <fieldset class="pa-fieldset">
+              <legend>Visibility mode</legend>
+              <label><input type="radio" formControlName="visibilityMode" value="Full" /> Full access</label>
+              <label><input type="radio" formControlName="visibilityMode" value="Guided" /> Guided</label>
+              <label><input type="radio" formControlName="visibilityMode" value="Blind" /> Blind</label>
+            </fieldset>
+
+            <fieldset class="pa-fieldset">
+              <legend>Advanced options</legend>
+              <div class="pa-check-list">
+                <label><input type="checkbox" formControlName="hideMacroTargets" /> Hide macro targets</label>
+                <label><input type="checkbox" formControlName="disableTraineeEditing" /> Disable trainee editing</label>
+              </div>
+            </fieldset>
+          </form>
+        }
+
+        @if (step() === 3) {
+          <div class="pa-review">
+            <p><strong>Plan:</strong> {{ selectedPlan()?.name }} (v{{ selectedPlan()?.version }})</p>
+            <p><strong>Trainees:</strong> {{ selectedTraineeNames().join(', ') }}</p>
+            <p><strong>Start:</strong> {{ form.controls.startDate.value }}</p>
+            @if (form.controls.endDate.value) {
+              <p><strong>End:</strong> {{ form.controls.endDate.value }}</p>
+            }
+            <p><strong>Visibility:</strong> {{ form.controls.visibilityMode.value }}</p>
+          </div>
+        }
+      </div>
+
+      <div class="pa-modal__footer">
+        <app-button label="Cancel" severity="secondary" [text]="true" (clicked)="close()" />
+        @if (step() > 1) {
+          <app-button label="Back" severity="secondary" [outlined]="true" (clicked)="back()" />
+        }
+        @if (step() < 3) {
+          <app-button label="Next" icon="pi pi-arrow-right" (clicked)="next()" />
+        } @else {
+          <app-button label="Confirm assignment" icon="pi pi-check" [loading]="saving()" [disabled]="saving()" (clicked)="confirmAssignment()" />
+        }
+      </div>
+    </div>
+  </div>
+}

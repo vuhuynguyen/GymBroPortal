@@ -85,6 +85,7 @@ export class ExercisePickerPanelComponent {
     { value: 'warmup', label: 'Warmup' },
     { value: 'working', label: 'Working' },
     { value: 'drop', label: 'Drop' },
+    { value: 'cluster', label: 'Cluster' },
     { value: 'amrap', label: 'AMRAP' }
   ];
 

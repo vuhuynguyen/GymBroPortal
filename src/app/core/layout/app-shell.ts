@@ -116,7 +116,8 @@ export class AppShellComponent {
     // Base: always visible for regular users
     items.push(
       { label: 'My Plans', icon: 'pi pi-calendar', route: '/workspace/plans', activeMatch: 'prefix', section: 'general' },
-      { label: 'Workout Log', icon: 'pi pi-history', route: '/workspace/logs', activeMatch: 'prefix', section: 'general' }
+      { label: 'Workout Log', icon: 'pi pi-history', route: '/workspace/logs', activeMatch: 'prefix', section: 'general' },
+      { label: 'My Nutrition', icon: 'pi pi-apple', route: '/workspace/nutrition', activeMatch: 'prefix', section: 'general' }
     );
 
     // Trainer section — invite always visible; clients only once someone has joined
@@ -125,6 +126,20 @@ export class AppShellComponent {
         label: 'Plan Assignments',
         icon: 'pi pi-sitemap',
         route: '/workspace/plan-assignments',
+        activeMatch: 'prefix',
+        section: 'general'
+      });
+      items.push({
+        label: 'Nutrition Plans',
+        icon: 'pi pi-apple',
+        route: '/workspace/nutrition-plans',
+        activeMatch: 'prefix',
+        section: 'general'
+      });
+      items.push({
+        label: 'Nutrition Assignments',
+        icon: 'pi pi-share-alt',
+        route: '/workspace/nutrition-assignments',
         activeMatch: 'prefix',
         section: 'general'
       });
@@ -262,6 +277,19 @@ export class AppShellComponent {
     if (url.startsWith('/exercises')) return [{ label: 'Exercises', link: null }];
     if (url.startsWith('/workspace/clients')) return [{ label: 'GymBro', link: null }];
     if (url.startsWith('/workspace/members')) return [{ label: 'Team', link: null }];
+    if (url.startsWith('/workspace/nutrition-plans/'))
+      return [
+        { label: 'Nutrition Plans', link: '/workspace/nutrition-plans' },
+        { label: 'Plan', link: null }
+      ];
+    if (url.startsWith('/workspace/nutrition-plans')) return [{ label: 'Nutrition Plans', link: null }];
+    if (url.startsWith('/workspace/nutrition-assignments'))
+      return [{ label: 'Nutrition Assignments', link: null }];
+    if (url.startsWith('/workspace/nutrition'))
+      return [
+        { label: 'Home', link: '/' },
+        { label: 'My Nutrition', link: null }
+      ];
     if (url.startsWith('/workspace/plans/'))
       return [
         { label: 'My Plans', link: '/workspace/plans' },

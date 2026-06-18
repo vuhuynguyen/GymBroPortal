@@ -34,7 +34,7 @@
             class="cw-row__main"
             (click)="openSession(session)"
             [attr.aria-label]="'View ' + workoutTitle(session) + ' details'">
-            <div class="cw-row__date">{{ relativeDay(session.startedAt) }}</div>
+            <div class="cw-row__date">{{ relativeDay(session.startedAt, session.clientTimezone) }}</div>
             <div class="cw-row__info">
               <span class="cw-row__title">{{ workoutTitle(session) }}</span>
               <span class="cw-row__meta">{{ sourceTag(session) }}</span>

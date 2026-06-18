@@ -3,6 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 import { provideRouter } from '@angular/router';
 import { AuthService } from './auth';
+import { deviceTimeZone } from '../timezone';
 
 describe('AuthService', () => {
   let auth: AuthService;
@@ -34,13 +35,30 @@ describe('AuthService', () => {
     expect(requests.length).toBe(1);
 
     requests[0].flush({ token: 'fresh-token' });
-    // storeToken() triggers a profile load — satisfy it so verify() stays clean.
-    http.expectOne('/api/auth/me').flush({ userId: 'u1', email: 'e@x', name: 'N', isPlatformAdmin: false });
+    // storeToken() triggers a profile load — satisfy it so verify() stays clean. The stored zone already
+    // matches the device, so no timezone-sync PUT fires.
+    http
+      .expectOne('/api/auth/me')
+      .flush({ userId: 'u1', email: 'e@x', name: 'N', isPlatformAdmin: false, timeZoneId: deviceTimeZone() });
 
     expect(first).toBe('fresh-token');
     expect(second).toBe('fresh-token');
     expect(auth.getToken()).toBe('fresh-token');
     expect(auth.isAuthenticated()).toBeTrue();
+  });
+
+  it('reports the device timezone when the stored zone differs', () => {
+    auth.refresh().subscribe();
+    http.expectOne('/api/auth/refresh').flush({ token: 'fresh-token' });
+    // Profile returns a zone that is not the device's → the device zone is reported once (idempotent sync).
+    http
+      .expectOne('/api/auth/me')
+      .flush({ userId: 'u1', email: 'e@x', name: 'N', isPlatformAdmin: false, timeZoneId: 'Antarctica/Troll' });
+
+    const put = http.expectOne('/api/me/timezone');
+    expect(put.request.method).toBe('PUT');
+    expect(put.request.body).toEqual({ timeZoneId: deviceTimeZone() });
+    put.flush(null);
   });
 
   it('clears the session when a refresh fails', () => {

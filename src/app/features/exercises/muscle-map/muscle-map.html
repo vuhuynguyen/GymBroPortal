@@ -1,0 +1,16 @@
+@if (hasContent()) {
+  <svg
+    class="mm-svg"
+    [attr.viewBox]="viewBox"
+    xmlns="http://www.w3.org/2000/svg"
+    role="img"
+    aria-label="Muscle-activation map: front and back body with worked muscle groups highlighted">
+    <g stroke="#aab3c0" stroke-width="1.4" stroke-linejoin="round">
+      @for (layer of layers(); track $index) {
+        @for (d of layer.paths; track $index) {
+          <path [attr.d]="d" [attr.fill]="layer.fill" />
+        }
+      }
+    </g>
+  </svg>
+}

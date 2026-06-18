@@ -27,6 +27,8 @@ export interface SessionSummaryDto {
   planWeek: number | null;
   /** Weekly session goal from the active plan's frequency (null for ad-hoc-only). */
   weeklyGoal: number | null;
+  /** The trainee's IANA zone when the session started — used to render coach views in the trainee's local time. */
+  clientTimezone: string | null;
 }
 
 export interface SessionListResponseDto {
@@ -86,6 +88,17 @@ export interface PerformedSetDto {
   isPr: boolean;
 }
 
+/**
+ * The trainee's most recent PRIOR performance of a lift — the top working set of the last completed
+ * session that included it. The live "last time" reference; null when there's no history. Computed
+ * server-side on read, never the current session.
+ */
+export interface LastPerformedSetDto {
+  weightKg: number | null;
+  reps: number | null;
+  performedAt: string;
+}
+
 export interface PerformedExerciseDto {
   id: string;
   exerciseId: string;
@@ -100,6 +113,8 @@ export interface PerformedExerciseDto {
   trackingType?: string;
   /** Exercises sharing a non-null group id are performed as a superset (rotated, rest after the round). */
   supersetGroupId?: string | null;
+  /** Most recent prior performance of this lift (last completed session), or null when there's no history. */
+  lastPerformed?: LastPerformedSetDto | null;
 }
 
 export interface ActiveSessionDto {

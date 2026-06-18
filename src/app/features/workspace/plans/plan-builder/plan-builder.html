@@ -146,10 +146,14 @@
 
                       @if (isWorkoutExpanded(wi)) {
                         <div class="pb-workout-card__body flex flex-col gap-4" [formArrayName]="'exercises'">
+                          <div class="flex items-center px-1 text-inv-body-mini font-medium uppercase tracking-wider text-inv-grey-500">
+                            {{ workoutExerciseCount(wi) }} {{ workoutExerciseCount(wi) === 1 ? 'exercise' : 'exercises' }}
+                          </div>
                           @for (eg of exercisesAt(wi).controls; track eg; let ei = $index) {
                             <div class="pb-exercise-block flex flex-col gap-3 rounded-inv-md border border-inv-border-card bg-white p-4" [formGroupName]="ei">
-                              <!-- Exercise header: thumb + name + remove -->
+                              <!-- Exercise header: order # + thumb + name + collapse + remove -->
                               <div class="flex items-center gap-3">
+                                <span class="inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-inv-grey-25 text-inv-body-mini font-bold text-inv-grey-600" aria-hidden="true">{{ ei + 1 }}</span>
                                 <span class="pb-ex-grid-row__thumb" aria-hidden="true">
                                   @if (exerciseImageForId(eg.get('exerciseId')?.value); as img) {
                                     <img [src]="img" alt="" loading="lazy" />
@@ -158,7 +162,7 @@
                                   }
                                 </span>
                                 <span class="flex-1 min-w-0 flex flex-col">
-                                  <span class="text-inv-body-sm font-semibold text-inv-grey-900 truncate">{{ exerciseNameForId(eg.get('exerciseId')?.value) }}</span>
+                                  <span class="text-inv-body-sm font-semibold text-inv-grey-900 truncate">{{ exerciseLabel(eg) }}</span>
                                   @if (exerciseMuscleForId(eg.get('exerciseId')?.value); as mg) {
                                     <span class="text-inv-body-mini text-inv-grey-500">{{ mg }}</span>
                                   }
@@ -178,6 +182,16 @@
                                   </button>
                                 }
                                 @if (canEdit()) {
+                                  @if (ei > 0) {
+                                    <app-button type="button" icon="pi pi-chevron-up" size="small" [text]="true" [rounded]="true"
+                                      ariaLabel="Move exercise up" (clicked)="moveExercise(wi, ei, -1)" />
+                                  }
+                                  @if (ei < exercisesAt(wi).length - 1) {
+                                    <app-button type="button" icon="pi pi-chevron-down" size="small" [text]="true" [rounded]="true"
+                                      ariaLabel="Move exercise down" (clicked)="moveExercise(wi, ei, 1)" />
+                                  }
+                                  <app-button type="button" icon="pi pi-sync" size="small" [text]="true" [rounded]="true"
+                                    ariaLabel="Replace exercise" (clicked)="replaceExercise(wi, ei)" />
                                   <app-button
                                     type="button"
                                     icon="pi pi-trash"
@@ -188,8 +202,17 @@
                                     ariaLabel="Remove exercise"
                                     (clicked)="removeExercise(wi, ei)" />
                                 }
+                                <button
+                                  type="button"
+                                  class="inline-flex h-9 w-9 shrink-0 cursor-pointer items-center justify-center self-center rounded-inv-sm border-0 bg-transparent text-inv-grey-500 hover:bg-inv-grey-25"
+                                  [attr.aria-expanded]="isExerciseExpanded(wi, ei)"
+                                  [attr.aria-label]="isExerciseExpanded(wi, ei) ? 'Collapse exercise' : 'Expand exercise'"
+                                  (click)="toggleExerciseExpanded(wi, ei)">
+                                  <i class="pi" [class.pi-chevron-up]="isExerciseExpanded(wi, ei)" [class.pi-chevron-down]="!isExerciseExpanded(wi, ei)" aria-hidden="true"></i>
+                                </button>
                               </div>
 
+                              @if (isExerciseExpanded(wi, ei)) {
                               <!-- Per-set table -->
                               <div class="pb-set-scroll">
                               <div class="pb-set-grid flex flex-col gap-1.5" [formArrayName]="'sets'">
@@ -210,11 +233,20 @@
                                   <span class="text-center">Rest</span>
                                   <span></span>
                                 </div>
+                                <div class="flex flex-col gap-1.5"
+                                     cdkDropList
+                                     [cdkDropListDisabled]="!canEdit()"
+                                     (cdkDropListDropped)="onSetsDropped(wi, ei, $event)">
                                 @for (sg of setsAt(wi, ei).controls; track setTrackKey($index, sg); let si = $index) {
                                   <div class="pb-set-grid__row grid items-center gap-2"
                                        style="grid-template-columns: 28px minmax(96px, 1fr) 76px 88px 76px 84px 36px;"
-                                       [formGroupName]="si">
-                                    <span class="text-inv-body-sm font-semibold text-inv-grey-700 tabular-nums">{{ si + 1 }}</span>
+                                       [formGroupName]="si"
+                                       cdkDrag
+                                       [cdkDragDisabled]="!canEdit()">
+                                    <span class="inline-flex items-center justify-center text-inv-body-sm font-semibold text-inv-grey-700 tabular-nums"
+                                          cdkDragHandle
+                                          [class.cursor-move]="canEdit()"
+                                          [attr.title]="canEdit() ? 'Drag to reorder set' : null">{{ si + 1 }}</span>
 
                                     <select formControlName="setType" class="h-9 w-full rounded-inv-sm border border-inv-border-card bg-white px-2 text-inv-body-sm text-inv-grey-900 focus:border-inv-primary-500 focus:outline-none focus:ring-1 focus:ring-inv-primary-500/40" [disabled]="!canEdit()" [attr.aria-label]="'Set ' + (si + 1) + ' type'">
                                       @for (opt of setTypeOptions; track opt.value) {
@@ -248,6 +280,7 @@
                                     }
                                   </div>
                                 }
+                                </div>
                               </div>
                               </div>
 
@@ -259,6 +292,7 @@
                                   <i class="pi pi-plus" aria-hidden="true"></i>
                                   Add Set
                                 </button>
+                              }
                               }
                             </div>
                           }
@@ -340,6 +374,17 @@
         @if (hasUnsavedChanges()) {
           <span class="h-2 w-2 shrink-0 rounded-full bg-inv-warning-100" aria-hidden="true"></span>
           <span class="text-inv-body-sm font-medium text-inv-grey-800">Unsaved changes</span>
+        } @else if (isDraft()) {
+          <span class="h-2 w-2 shrink-0 rounded-full bg-inv-warning-100" aria-hidden="true"></span>
+          <span class="text-inv-body-sm font-medium text-inv-grey-800">
+            Draft &middot; not yet published
+            @if (latestPublishedVersion() !== null) {
+              <span class="font-normal text-inv-grey-500">(live: v{{ latestPublishedVersion() }})</span>
+            }
+          </span>
+        } @else if (version() !== null) {
+          <span class="h-2 w-2 shrink-0 rounded-full bg-inv-success-100" aria-hidden="true"></span>
+          <span class="text-inv-body-sm text-inv-grey-500">Published &middot; v{{ version() }}</span>
         } @else {
           <span class="text-inv-body-sm text-inv-grey-500">No unsaved changes</span>
         }
@@ -355,7 +400,7 @@
           severity="secondary"
           [outlined]="true"
           type="button"
-          [disabled]="saving() || loading()"
+          [disabled]="saving() || loading() || publishing()"
           (clicked)="onCancel()" />
         <app-button
           label="Save Plan"
@@ -363,8 +408,24 @@
           severity="primary"
           type="button"
           [loading]="saving()"
-          [disabled]="saving() || loading()"
+          [disabled]="saving() || loading() || publishing()"
           (clicked)="savePlan()" />
+        <app-button
+          label="Publish"
+          icon="pi pi-upload"
+          severity="success"
+          type="button"
+          [loading]="publishing()"
+          [disabled]="publishing() || saving() || loading() || hasUnsavedChanges() || !isDraft()"
+          [pTooltip]="
+            hasUnsavedChanges()
+              ? 'Save your changes before publishing.'
+              : !isDraft()
+                ? 'Nothing to publish — no unpublished changes.'
+                : 'Publish this draft so assigned trainees can move to it.'
+          "
+          tooltipPosition="top"
+          (clicked)="publishPlan()" />
       }
     </div>
   </app-ui-page-sticky-footer>

@@ -12,8 +12,7 @@ import { WorkspaceService } from '../workspace';
 import { SessionService } from '../logs/session.service';
 import { SessionDetailDialogComponent } from '../logs/session-detail-dialog/session-detail-dialog';
 import type { SessionDetailDto, SessionStatus, SessionSummaryDto } from '../logs/session.model';
-
-const MS_PER_DAY = 24 * 60 * 60 * 1000;
+import { relativeDayInZone } from '../../../core/timezone';
 
 /**
  * Coach view of one client's training history. Reads the client's sessions tenant-scoped from the coach's
@@ -138,17 +137,9 @@ export class ClientWorkoutsComponent implements OnInit {
     return Math.round(kg).toString();
   }
 
-  relativeDay(value: string): string {
-    const date = new Date(value);
-    if (Number.isNaN(date.getTime())) return '';
-    const today = new Date();
-    const startOfToday = new Date(today.getFullYear(), today.getMonth(), today.getDate()).getTime();
-    const startOfDate = new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime();
-    const diffDays = Math.round((startOfToday - startOfDate) / MS_PER_DAY);
-    if (diffDays === 0) return 'Today';
-    if (diffDays === 1) return 'Yesterday';
-    if (diffDays < 7) return `${diffDays} days ago`;
-    return date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  // Coach view of a client's sessions → label in the client's captured zone, not the coach's device zone.
+  relativeDay(value: string, zone?: string | null): string {
+    return relativeDayInZone(value, zone);
   }
 
   trackById(_index: number, item: SessionSummaryDto): string {

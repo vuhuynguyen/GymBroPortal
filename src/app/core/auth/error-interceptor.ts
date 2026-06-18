@@ -58,10 +58,16 @@ export const errorInterceptor: HttpInterceptorFn = (req, next) => {
         return throwError(() => err);
       }
 
+      // Non-auth API errors return a bare-string body (not { message }), so prefer that — otherwise the
+      // toast would fall through to Angular's generic HTTP message instead of the server's reason.
+      const detail =
+        typeof err.error === 'string' && err.error.trim()
+          ? err.error
+          : (err.error?.message ?? err.message ?? 'Request failed');
       messages.add({
         severity: 'error',
         summary: 'Something went wrong',
-        detail: err.error?.message ?? err.message ?? 'Request failed'
+        detail
       });
       return throwError(() => err);
     })

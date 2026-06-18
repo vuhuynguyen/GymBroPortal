@@ -21,7 +21,7 @@ import type { CreatePlanAssignmentRequest, PlanVisibilityMode } from '../plan-as
     ButtonComponent
   ],
   templateUrl: './assign-plan-modal.html',
-  styleUrl: './assign-plan-modal.scss',
+  styleUrl: '../../shared/assign-plan-modal.shared.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class AssignPlanModalComponent {
@@ -69,6 +69,10 @@ export class AssignPlanModalComponent {
 
   readonly selectedPlan = computed(
     () => this.plans().find((p) => p.id === this.selectedPlanId()) ?? null
+  );
+  /** Only plans with a published version are assignable — a draft-only plan must be published first. */
+  readonly assignablePlans = computed(() =>
+    this.plans().filter((p) => p.latestPublishedVersion !== null)
   );
   readonly selectedTraineeNames = computed(() => {
     const ids = new Set(this.selectedTraineeIds());

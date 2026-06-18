@@ -5,6 +5,7 @@ import { Observable, catchError, finalize, map, of, shareReplay, tap, throwError
 import { AuthResponse, AuthUser, LoginRequest, MeDto } from './auth.model';
 import { TenantService } from '../tenant/tenant';
 import { AUTH_HTTP } from './auth-http.context';
+import { deviceTimeZone } from '../timezone';
 
 const authHttpContext = new HttpContext().set(AUTH_HTTP, true);
 
@@ -129,9 +130,6 @@ export class AuthService {
       this.profileRequestToken = null;
       return;
     }
-    if (!force && this.profile() && this.profileRequestToken === token) {
-      return;
-    }
     if (!force && this.profileRequestToken === token) {
       return;
     }
@@ -141,6 +139,7 @@ export class AuthService {
       next: (me) => {
         if (this.token() !== token) return;
         this.profile.set(me);
+        this.syncDeviceTimezone(me);
       },
       error: () => {
         if (this.token() !== token) return;
@@ -148,6 +147,25 @@ export class AuthService {
         this.profileRequestToken = null;
       }
     });
+  }
+
+  /**
+   * Keep the authoritative server-side zone (`User.TimeZoneId`) in step with the device — the device zone is
+   * where the user actually is now, so reporting it on login/bootstrap makes a move take effect with no manual
+   * input. Sent only when it differs (idempotent), and best-effort: a failure never blocks the session.
+   */
+  private syncDeviceTimezone(me: MeDto): void {
+    const device = deviceTimeZone();
+    if (!device || me.timeZoneId === device) return;
+    this.http
+      .put<void>('/api/me/timezone', { timeZoneId: device })
+      .pipe(catchError(() => of(void 0)))
+      .subscribe(() => {
+        const current = this.profile();
+        if (current && current.userId === me.userId) {
+          this.profile.set({ ...current, timeZoneId: device });
+        }
+      });
   }
 
   logout(): void {

@@ -1,0 +1,338 @@
+<app-ui-page-container class="flex flex-col gap-inv-5">
+
+  <app-page-header title="My Nutrition" subtitle="Log what you eat and your daily check-in">
+    @if (tab() === 'today' && today()) {
+      <div class="ui-page-actions flex flex-wrap items-center gap-4">
+        <app-button
+          label="Daily check-in"
+          icon="pi pi-heart"
+          severity="secondary"
+          [outlined]="true"
+          (clicked)="openCheckin()" />
+        @if (!writesLocked()) {
+          <app-button label="Log off-plan food" icon="pi pi-plus" (clicked)="openPicker()" />
+        }
+      </div>
+    }
+  </app-page-header>
+
+  <!-- View toggle (Today / History) — the portal's segmented tablist idiom -->
+  <div class="mn-tabs" role="tablist" aria-label="Nutrition view">
+    <button
+      type="button"
+      role="tab"
+      class="mn-tab"
+      [class.mn-tab--active]="tab() === 'today'"
+      [attr.aria-selected]="tab() === 'today'"
+      (click)="showToday()">
+      Today
+    </button>
+    <button
+      type="button"
+      role="tab"
+      class="mn-tab"
+      [class.mn-tab--active]="tab() === 'history'"
+      [attr.aria-selected]="tab() === 'history'"
+      (click)="showHistory()">
+      History
+    </button>
+  </div>
+
+  <!-- ── TODAY ─────────────────────────────────────────────────────────── -->
+  @if (tab() === 'today') {
+   <div class="flex flex-col gap-inv-5">
+
+    @if (todayLoading() && !today()) {
+      <div class="mn-loading"><i class="pi pi-spin pi-spinner"></i></div>
+    } @else if (todayError()) {
+      <div class="mn-error">
+        <p class="mn-error__text">{{ todayError() }}</p>
+        <app-button label="Retry" icon="pi pi-refresh" severity="secondary" [outlined]="true" (clicked)="retryToday()" />
+      </div>
+    } @else if (today(); as log) {
+
+      @if (closed()) {
+        <div class="mn-banner">
+          <i class="pi pi-lock" aria-hidden="true"></i>
+          <span>Day closed — logging is locked. Unlogged plan items show as missed.</span>
+        </div>
+      } @else if (editingDisabled()) {
+        <div class="mn-banner">
+          <i class="pi pi-lock" aria-hidden="true"></i>
+          <span>Your coach has locked self-logging for this plan.</span>
+        </div>
+      }
+
+      <!-- Day summary: adherence ring + consumed-macro chips (plan-relative; hidden with no plan) -->
+      @if (hasPlan()) {
+        <app-ui-panel-card>
+          <div class="mn-hero">
+            <div class="mn-hero__lead">
+              <div class="mn-ring" role="img" [attr.aria-label]="adherencePct() + '% of plan completed'">
+                <svg viewBox="0 0 60 60" width="74" height="74">
+                  <circle class="mn-ring__track" cx="30" cy="30" r="26" />
+                  <circle
+                    class="mn-ring__value mn-ring__value--{{ tone() }}"
+                    cx="30" cy="30" r="26"
+                    [attr.stroke-dasharray]="ringDash()"
+                    transform="rotate(-90 30 30)" />
+                </svg>
+                <div class="mn-ring__center">
+                  <span class="mn-ring__pct">{{ adherencePct() }}%</span>
+                  <span class="mn-ring__sub">{{ log.completedCount }} of {{ log.plannedCount }}</span>
+                </div>
+              </div>
+              <div class="mn-hero__body">
+                <p class="mn-hero__eyebrow">Today’s plan</p>
+                <p class="mn-hero__headline">{{ remainingLabel() }}</p>
+                <p class="mn-hero__meta">{{ log.completedCount }} of {{ log.plannedCount }} planned items eaten</p>
+              </div>
+            </div>
+            @if (consumedChips().length) {
+              <div class="mn-macros" role="list" aria-label="Macros consumed today">
+                @for (chip of consumedChips(); track trackChip($index, chip)) {
+                  <div class="mn-macros__chip mn-macros__chip--{{ chip.key }}" role="listitem">
+                    <span class="mn-macros__value">{{ chip.value }}</span>
+                    <span class="mn-macros__label">{{ chip.label }}</span>
+                  </div>
+                }
+              </div>
+            }
+          </div>
+        </app-ui-panel-card>
+      }
+
+      @if (hasPlan() || hasMeals()) {
+        <h2 class="mn-section-title mn-section-title--list">{{ hasPlan() ? 'Today’s meals' : 'Logged today' }}</h2>
+        @for (meal of mealViews(); track trackMeal($index, meal)) {
+          <app-ui-panel-card>
+            <div class="mn-meal">
+              <header class="mn-meal__head">
+                <span class="mn-meal__name">{{ meal.name }}</span>
+                @if (meal.time) {
+                  <span class="mn-meal__time"><i class="pi pi-clock" aria-hidden="true"></i> {{ meal.time }}</span>
+                }
+              </header>
+              <ul class="mn-items" role="list">
+                @for (item of meal.items; track trackItem($index, item)) {
+                  <li class="mn-item mn-item--{{ statusClass(item.status) }}">
+                    <button
+                      type="button"
+                      class="mn-control mn-control--{{ statusClass(item.status) }}"
+                      [disabled]="writesLocked()"
+                      [attr.aria-label]="item.status === 'Completed' ? 'Completed, tap to undo' : 'Mark eaten'"
+                      (click)="toggle(item)">
+                      @if (item.status !== 'Planned') {
+                        <i [class]="statusIcon(item.status)" aria-hidden="true"></i>
+                      }
+                    </button>
+                    <div class="mn-item__body">
+                      <div class="mn-item__title-row">
+                        <span class="mn-item__name">{{ item.name }}</span>
+                        @if (isAdhoc(item)) {
+                          <span class="mn-tag mn-tag--extra">Extra</span>
+                        }
+                        @if (item.status === 'Substituted') {
+                          <span class="mn-tag mn-tag--swap">Swapped</span>
+                        } @else if (item.status === 'Skipped') {
+                          <span class="mn-tag mn-tag--skip">Skipped</span>
+                        } @else if (item.status === 'Missed') {
+                          <span class="mn-tag mn-tag--missed">Missed</span>
+                        }
+                      </div>
+                      <span class="mn-item__detail">{{ item.detail }}</span>
+                    </div>
+                    <div class="mn-item__actions">
+                      @if (canSubstitute(item)) {
+                        <app-button
+                          icon="pi pi-sync"
+                          size="small"
+                          [rounded]="true"
+                          [text]="true"
+                          severity="secondary"
+                          ariaLabel="Swap"
+                          (clicked)="substitute(item)" />
+                      }
+                      @if (item.isPlanned && item.status !== 'Skipped' && !writesLocked()) {
+                        <app-button
+                          icon="pi pi-minus-circle"
+                          size="small"
+                          [rounded]="true"
+                          [text]="true"
+                          severity="secondary"
+                          ariaLabel="Skip"
+                          (clicked)="skip(item)" />
+                      }
+                      @if (canRemove(item)) {
+                        <app-button
+                          icon="pi pi-trash"
+                          size="small"
+                          [rounded]="true"
+                          [text]="true"
+                          severity="danger"
+                          ariaLabel="Remove"
+                          (clicked)="remove(item)" />
+                      }
+                    </div>
+                  </li>
+                }
+              </ul>
+            </div>
+          </app-ui-panel-card>
+        }
+      } @else {
+        <app-ui-panel-card>
+          <div class="mn-empty">
+            <div class="mn-empty__icon"><i class="pi pi-apple" aria-hidden="true"></i></div>
+            <h2 class="mn-empty__heading">No nutrition plan today</h2>
+            <p class="mn-empty__text">Nothing’s assigned for today — you can still log anything you ate with “Log off-plan food” above.</p>
+          </div>
+        </app-ui-panel-card>
+      }
+
+    }
+
+   </div>
+
+  <!-- ── HISTORY ───────────────────────────────────────────────────────── -->
+  } @else {
+   <div class="flex flex-col gap-inv-5">
+
+    @if (historyLoading()) {
+      <div class="mn-loading"><i class="pi pi-spin pi-spinner"></i></div>
+    } @else if (historyDays().length === 0) {
+      <app-ui-panel-card>
+        <div class="mn-empty">
+          <div class="mn-empty__icon"><i class="pi pi-calendar" aria-hidden="true"></i></div>
+          <h2 class="mn-empty__heading">No logged days yet</h2>
+          <p class="mn-empty__text">Your past nutrition days will appear here once you start logging.</p>
+        </div>
+      </app-ui-panel-card>
+    } @else {
+      <h2 class="mn-section-title mn-section-title--list">Past days</h2>
+      <app-ui-panel-card>
+        <ul class="mn-history" role="list">
+          @for (day of historyDays(); track trackByDate($index, day)) {
+            <li class="mn-hrow">
+              <button type="button" class="mn-hrow__main" (click)="openDay(day)" [attr.aria-label]="'View ' + day.localDate">
+                <span class="mn-hrow__date">{{ dayLabel(day) }}</span>
+                <span class="mn-hrow__info">
+                  <span class="mn-hrow__title">{{ day.localDate }}</span>
+                  <span class="mn-hrow__meta">{{ dayCompletion(day) }}</span>
+                </span>
+                <span class="mn-hrow__stats">
+                  <span class="mn-stat"><b>{{ day.completedCount }}</b> done</span>
+                  @if (day.plannedCount > 0) {
+                    <span class="mn-stat"><b>{{ day.plannedCount }}</b> planned</span>
+                  }
+                </span>
+                <span class="mn-badge mn-badge--{{ dayTone(day) }}">{{ adherenceLabel(day) }}</span>
+                <i class="mn-hrow__chev pi pi-chevron-right" aria-hidden="true"></i>
+              </button>
+            </li>
+          }
+        </ul>
+      </app-ui-panel-card>
+    }
+
+   </div>
+  }
+
+</app-ui-page-container>
+
+<!-- Food picker slide-over (off-plan add or planned-item substitute) -->
+@if (pickerOpen()) {
+  <app-food-picker-panel
+    [mode]="pickerMode()"
+    [mealLabel]="pickerLabel()"
+    [mealOptions]="offPlanMealOptions()"
+    (added)="onFoodAdded($event)"
+    (closed)="closePicker()" />
+}
+
+<!-- History day-detail dialog (read-only) -->
+@if (detailOpen()) {
+  <app-nutrition-day-detail-dialog
+    [detail]="selectedDay()"
+    [loading]="detailLoading()"
+    titleFallback="Nutrition day"
+    (closed)="closeDetail()" />
+}
+
+<!-- Daily check-in popup — hosted in the shared centered-dialog overlay -->
+<ng-template #checkinTpl>
+  <div
+    class="mn-checkin-dialog ui-dialog-animate-in"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="mn-checkin-title"
+    (click)="$event.stopPropagation()">
+    <header class="mn-checkin-dialog__head">
+      <div class="mn-checkin-dialog__heading">
+        <h2 id="mn-checkin-title" class="mn-checkin-dialog__title">Daily check-in</h2>
+        <p class="mn-checkin-dialog__subtitle">Log your morning weight and last night’s sleep</p>
+      </div>
+      <button type="button" class="mn-checkin-dialog__close" (click)="closeCheckin()" aria-label="Close">
+        <i class="pi pi-times" aria-hidden="true"></i>
+      </button>
+    </header>
+
+    <div class="mn-checkin" [formGroup]="checkinForm">
+      <div class="mn-checkin__metrics">
+        <div class="mn-metric">
+          <label class="mn-metric__label" for="mn-weight">Weight</label>
+          <div class="mn-metric__control">
+            <input
+              id="mn-weight"
+              pInputText
+              type="number"
+              inputmode="decimal"
+              min="0"
+              step="0.1"
+              formControlName="weight"
+              class="mn-metric__input"
+              [placeholder]="checkin().weightKg !== null ? (checkin().weightKg + '') : '–'"
+              aria-label="Weight in kilograms" />
+            <span class="mn-metric__unit" aria-hidden="true">kg</span>
+            <app-button
+              icon="pi pi-check"
+              type="button"
+              size="small"
+              [rounded]="true"
+              ariaLabel="Log weight"
+              tooltip="Log weight"
+              styleClass="mn-metric__log"
+              (clicked)="saveWeight()" />
+          </div>
+        </div>
+
+        <div class="mn-metric">
+          <label class="mn-metric__label" for="mn-sleep">Sleep</label>
+          <div class="mn-metric__control">
+            <input
+              id="mn-sleep"
+              pInputText
+              type="number"
+              inputmode="decimal"
+              min="0"
+              step="0.25"
+              formControlName="sleep"
+              class="mn-metric__input"
+              [placeholder]="checkin().sleepHours !== null ? (checkin().sleepHours + '') : '–'"
+              aria-label="Sleep in hours" />
+            <span class="mn-metric__unit" aria-hidden="true">h</span>
+            <app-button
+              icon="pi pi-check"
+              type="button"
+              size="small"
+              [rounded]="true"
+              ariaLabel="Log sleep"
+              tooltip="Log sleep"
+              styleClass="mn-metric__log"
+              (clicked)="saveSleep()" />
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</ng-template>
