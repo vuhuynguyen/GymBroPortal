@@ -1,95 +1,49 @@
 name: CD
 
-# Builds the Angular SPA image, publishes it to GHCR, then deploys to the VM by pulling the new image
-# and restarting the `frontend` container (image swap — no build on the host).
+# Builds the Angular SPA and deploys the build output (plus the /api proxy Function under functions/) to
+# Cloudflare Pages with wrangler. Project name, output dir and the API origin live in wrangler.toml.
 #
-# Required repo secrets:  VM_HOST (public IP), VM_USER (ubuntu), DEPLOY_SSH_KEY (private deploy key).
-# GHCR auth on the VM uses the workflow's own GITHUB_TOKEN — no long-lived token stored on the host.
+# Required repo secrets:  CLOUDFLARE_API_TOKEN (permission "Cloudflare Pages: Edit"), CLOUDFLARE_ACCOUNT_ID.
+#
+# The Dockerfile/nginx image is no longer built here — it remains for the compose / self-host path only.
 on:
   push:
     branches: [main, master]
     tags: ['v*']
 
-# One deploy at a time — never let two pushes race to update the single VM.
+# One deploy at a time — never let two pushes race.
 concurrency:
   group: cd-${{ github.ref }}
   cancel-in-progress: false
 
 jobs:
-  # Gate: run the full CI suite (build + tests) before anything ships. CD never builds or
-  # deploys a red commit. CI declares `workflow_call`, so this reuses it — no duplicated steps.
+  # Gate: run the full CI suite (build + tests) before anything ships. CD never deploys a red commit.
+  # CI declares `workflow_call`, so this reuses it — no duplicated steps.
   ci:
     uses: ./.github/workflows/ci.yml
 
-  image:
+  deploy:
     needs: ci
     runs-on: ubuntu-latest
     permissions:
       contents: read
-      packages: write
     steps:
       - uses: actions/checkout@v4
 
-      - name: Set up Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GHCR
-        uses: docker/login-action@v3
+      - uses: actions/setup-node@v4
         with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
+          node-version: '22'
+          cache: 'npm'
 
-      - name: Image metadata
-        id: meta
-        uses: docker/metadata-action@v5
-        with:
-          # → ghcr.io/vuhuynguyen/gymbroportal (metadata-action lowercases the repo name for GHCR)
-          images: ghcr.io/${{ github.repository }}
-          tags: |
-            type=ref,event=branch
-            type=semver,pattern={{version}}
-            type=sha
-            type=raw,value=latest,enable={{is_default_branch}}
+      - name: Install
+        run: npm ci
 
-      - name: Build and push
-        uses: docker/build-push-action@v6
-        with:
-          context: .
-          file: ./Dockerfile
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
+      - name: Build (production)
+        run: npm run build -- --configuration production
 
-  deploy:
-    needs: image
-    runs-on: ubuntu-latest
-    permissions:
-      packages: read
-    steps:
-      - name: Deploy frontend to the VM
-        uses: appleboy/ssh-action@v1.0.3
+      - name: Deploy to Cloudflare Pages
+        uses: cloudflare/wrangler-action@v3
         with:
-          host: ${{ secrets.VM_HOST }}
-          username: ${{ secrets.VM_USER }}
-          key: ${{ secrets.DEPLOY_SSH_KEY }}
-          script: |
-            set -e
-            echo "${{ secrets.GITHUB_TOKEN }}" | docker login ghcr.io -u ${{ github.actor }} --password-stdin
-            cd ~/gymbro-app
-            # GHCR layer extraction can transiently fail on the VM (half-extracted overlayfs layer),
-            # so retry the pull a few times before giving up.
-            pulled=
-            for attempt in 1 2 3; do
-              if docker compose pull frontend; then pulled=1; break; fi
-              echo "docker compose pull frontend failed (attempt $attempt/3); retrying in 5s..."
-              sleep 5
-            done
-            [ -n "$pulled" ] || { echo "docker compose pull frontend failed after 3 attempts"; exit 1; }
-            # --no-deps: deploy ONLY the frontend; don't try to (re)start `api` via depends_on,
-            # which would need the API image and couples the two pipelines' ordering.
-            docker compose up -d --no-deps frontend
-            docker image prune -f
-            docker logout ghcr.io
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy --branch=main --commit-dirty=true

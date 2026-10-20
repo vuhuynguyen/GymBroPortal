@@ -10,7 +10,7 @@ permissions, and business rules are owned by the **GymBro API** repository.
 
 Angular 21 · standalone components · **signals** · `ChangeDetectionStrategy.OnPush` · PrimeNG 21 (Aura preset
 remapped to **blue**) · Tailwind with `--inv-*` design tokens. Zone-based change detection (not zoneless). The API
-base is the relative `/api` prefix (via `proxy.conf.json` in dev, nginx in prod); the API version is negotiated by
+base is the relative `/api` prefix (via `proxy.conf.json` in dev, the Cloudflare Pages Function `functions/api/[[path]].ts` in prod, nginx when self-hosted); the API version is negotiated by
 header, so there is no `environment*.ts`.
 
 ## Structure (three buckets only — do not add new top-level folders)

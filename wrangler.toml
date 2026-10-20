@@ -1,0 +1,11 @@
+# Cloudflare Pages project for the GymBro portal. `wrangler pages deploy` reads this (CD does it on push to main).
+# The Angular build output is served as static assets; `functions/api/[[path]].ts` reverse-proxies /api/* to the
+# API so the SPA and the API share one origin (the SameSite=Strict refresh cookie needs that — same role nginx
+# played in the compose stack). Pages falls back to index.html for unknown paths (no 404.html) = SPA routing.
+name = "gymbro-portal"
+compatibility_date = "2026-10-01"
+pages_build_output_dir = "dist/gym-bro-portal/browser"
+
+[vars]
+# Upstream API origin for the /api proxy Function (host only — the request path is forwarded unchanged).
+API_ORIGIN = "https://gymbro-api.fly.dev"
