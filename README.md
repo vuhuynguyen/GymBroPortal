@@ -14,7 +14,7 @@ assigned workout live and logs every set. It talks to the **GymBro API** (a sepa
 header-authenticated REST surface.
 
 **Status:** MVP. The full coaching loop — onboarding, plan building, assignment, live session logging, and a
-progress timeline — is implemented and deployed (nginx-served container behind the API on one origin).
+progress timeline — is implemented and deployed (Cloudflare Pages, with a Pages Function proxying `/api` to the API on one origin).
 
 ## Key features
 
@@ -73,7 +73,7 @@ There are **no `environment*.ts` files** — the API base is always the relative
 differs per environment:
 
 - **Dev** — `proxy.conf.json` proxies `/api` → the local API (`ng serve` uses it automatically).
-- **Prod** — the nginx container (`nginx.conf`) serves the built SPA and reverse-proxies `/api` → the API, so the browser sees one origin (no CORS).
+- **Prod** — Cloudflare Pages serves the built SPA and the Pages Function `functions/api/[[path]].ts` reverse-proxies `/api` → the API (`API_ORIGIN` in `wrangler.toml`), so the browser sees one origin (no CORS). The nginx container (`nginx.conf`, `Dockerfile`) does the same job for the compose / self-host path.
 
 ## Testing
 
@@ -91,8 +91,8 @@ npm run build                       # static assets → dist/gym-bro-portal/brow
 docker build -t gymbro-portal .     # nginx image serving the SPA + reverse-proxying /api
 ```
 
-CI builds, runs the API-contract drift check, and runs tests on every push/PR; CD builds the nginx image, pushes
-it to GHCR, and deploys on merge to `main`.
+CI builds, runs the API-contract drift check, and runs tests on every PR; CD builds the SPA and deploys it to
+Cloudflare Pages with wrangler on merge to `main` (secrets `CLOUDFLARE_API_TOKEN` + `CLOUDFLARE_ACCOUNT_ID`).
 
 ## Documentation
 
